@@ -33,6 +33,8 @@ export function BookCover({ title, author, uri, size = 'md', width, style, acces
   const tone = coverTones[hashString(title) % coverTones.length];
   const showImage = !!uri && !failed;
   const small = w < 80;
+  // Below ~56px a title cannot be set legibly; show a plain cloth jacket instead.
+  const tiny = w < 56;
 
   return (
     <View
@@ -66,7 +68,7 @@ export function BookCover({ title, author, uri, size = 'md', width, style, acces
       ) : (
         <View style={{ flex: 1, padding: small ? spacing.xs : spacing.md, justifyContent: 'space-between' }}>
           <View style={{ height: 1, backgroundColor: tone.ink, opacity: 0.35, marginTop: small ? 2 : spacing.xs }} />
-          <Text
+          {tiny ? <View /> : <Text
             numberOfLines={small ? 3 : 5}
             style={{
               fontFamily: fonts.serifSemibold,
@@ -77,7 +79,7 @@ export function BookCover({ title, author, uri, size = 'md', width, style, acces
             }}
           >
             {title}
-          </Text>
+          </Text>}
           {author && !small ? (
             <Text numberOfLines={1} style={{ fontFamily: fonts.sansMedium, color: tone.ink, opacity: 0.8, fontSize: 9, textAlign: 'center', letterSpacing: 0.8, textTransform: 'uppercase' }}>
               {author}

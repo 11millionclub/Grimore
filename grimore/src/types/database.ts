@@ -1964,6 +1964,7 @@ export type Database = {
       }
       cover_reveal_hint: { Args: { p_challenge: string }; Returns: Json }
       get_challenge_state: { Args: { p_challenge: string }; Returns: Json }
+      get_corner_settings: { Args: { p_user: string }; Returns: Json }
       get_progress: { Args: { p_user?: string }; Returns: Json }
       get_today_challenges: { Args: never; Returns: Json }
       is_username_available: { Args: { p_username: string }; Returns: boolean }

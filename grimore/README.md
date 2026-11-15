@@ -1,56 +1,286 @@
-# Welcome to your Expo app 👋
+# GriMore
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Your world of stories.**
 
-## Get started
+GriMore is a mobile-first literary social app. Readers collect the books they love, keep a journal of their reading life, play three small literary puzzles every day, and share reviews and thoughts with other readers.
 
-1. Install dependencies
+It aims to feel like a well-made editorial magazine rather than a library database: warm ivory paper, charcoal ink, a wine-red accent, serif headings, and book covers given room to breathe.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## Contents
 
-   ```bash
-   npx expo start
-   ```
+- [What is in this version](#what-is-in-this-version)
+- [Tech stack](#tech-stack)
+- [Run it locally (Expo Go)](#run-it-locally-expo-go)
+- [Environment variables](#environment-variables)
+- [Supabase](#supabase)
+- [Architecture](#architecture)
+- [Design system](#design-system)
+- [Daily games](#daily-games)
+- [Security model](#security-model)
+- [Testing](#testing)
+- [Deployment notes](#deployment-notes)
+- [Status, limitations and next steps](#status-limitations-and-next-steps)
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## What is in this version
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Area | What works |
+| --- | --- |
+| **Auth & onboarding** | Email/password sign-up, sign-in, sign-out, password reset by email link. Six-step onboarding: welcome, genres, reading language, first books, favourites, introduction to the games. |
+| **Home** | Greeting, streak badge, today's three challenges, current read with progress, yearly goal, recently added, suggestions weighted by favourite genres, and recent activity from followed readers. |
+| **Library** | Virtualised grid or list; search; filters for All / Reading / Want / Read / On hold / DNF with counts; sort by recent activity, date added, title or rating; infinite scroll. |
+| **Books** | Search across the GriMore catalogue, Open Library and Google Books (title, author or ISBN with checksum validation); manual entry; book page with status, half-star rating, page progress, private notes, community stats, reviews and editions. |
+| **Play** | Bookle, Cover Reveal and Literary Quiz. One canonical puzzle per game per UTC day, validated on the server; global and per-game streaks, Perfect Day bonus, XP, achievements, 12-week activity calendar, Bookle guess distribution and spoiler-free share text. |
+| **Social** | Following / Discover / Reviews feeds; five post types (thought, question, recommendation, reading update, discussion); reviews tied to a book with a rating and spoiler flag; likes, threaded replies, follow / unfollow, private accounts with follow requests, block, report, notifications. |
+| **Profile & My Corner** | Avatar upload, bio, statistics, reading goal, favourite genres, achievements, recently finished shelf and posts. **My Corner** is a personal 2D reading nook: five backdrops, three layouts (editorial, shelf, gallery), three book arrangements (spines, covers, stacked), a featured book, quotes and favourite authors. |
+| **Polish** | Light and dark themes, safe areas, keyboard handling, skeleton loaders, designed empty and error states, typographic fallback covers, haptics, reduced-motion support, screen-reader labels throughout. |
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## Tech stack
+
+- **Expo SDK 58** (React Native 0.88, React 19.3), **Expo Router** (file-based navigation), **TypeScript** in strict mode
+- **Supabase**: Postgres 17, Auth, Storage, Row Level Security, `pg_cron`, `pg_net`
+- **TanStack Query** for server state, **Zustand** for the session
+- **React Hook Form** + **Zod** for forms and validation
+- **Reanimated 4** for motion, **expo-image** for cached covers, **expo-haptics**
+- **Fonts**: Newsreader (editorial serif) and Inter (interface sans), via `@expo-google-fonts`
+- **Icons**: Feather (`@expo/vector-icons`), one family throughout
+
+Everything above ships inside Expo Go. No development build is required.
+
+---
+
+## Run it locally (Expo Go)
+
+Requirements: Node 20 or newer, and the **Expo Go** app on your phone (iOS or Android).
 
 ```bash
-npm run reset-project
+cd grimore
+npm install
+cp .env.example .env    # then paste your Supabase anon/publishable key
+npx expo start
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Scan the QR code with Expo Go (Android) or the Camera app (iOS). Press `w` to open the web build in a browser.
 
-### Other setup steps
+> Install new libraries with `npx expo install <package>`, never `npm install <package>`, so versions stay compatible with SDK 58.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+---
 
-## Learn more
+## Environment variables
 
-To learn more about developing your project with Expo, look at the following resources:
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `EXPO_PUBLIC_SUPABASE_URL` | yes | `https://atyggjdofzdfjbfbisbf.supabase.co` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | yes | The **anon** or **publishable** key (Dashboard → Project Settings → API). Safe in a client: all access is enforced by RLS. |
+| `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` | no | Without it Google Books works at low, shared quotas. For production, create a key restricted to the Books API and to your app IDs. |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+`.env` is git-ignored. **Never** put the service-role key, database password or any other secret in an `EXPO_PUBLIC_*` variable: those values are compiled into the app. If the variables are missing, the app shows a friendly "Almost there" screen instead of crashing.
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## Supabase
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### What is deployed
+
+The project `Grimore` (`atyggjdofzdfjbfbisbf`, eu-west-3) already has every migration in `supabase/migrations/` applied, plus the curated seed data and 14 days of scheduled challenges.
+
+| Migration | Contents |
+| --- | --- |
+| `…01_foundation` | Extensions, `private` schema, helpers, `profiles`, `user_preferences`, `user_statistics`, `genres`, `user_favorite_genres`, sign-up trigger |
+| `…02_catalogue_and_library` | `authors`, `books` (the work), `book_authors`, `book_genres`, `book_editions`, `book_identifiers`, `user_books`, `reading_sessions`, `reading_goals`, `reading_lists`, `reading_list_books`, `user_favorite_books`, `user_favorite_authors`, `user_quotes`, `upsert_book()`, `search_catalogue()` |
+| `…03_social` | `follows`, `user_blocks`, `posts`, `post_comments`, `post_reactions`, `reviews`, `review_comments`, `review_reactions`, `saved_items`, `notifications`, `content_reports`, counters and notification triggers, `feed_items` view |
+| `…04_games_and_gamification` | `quiz_questions`, `daily_challenges`, `daily_challenge_solutions`, `game_attempts`, `game_answers`, `user_game_statistics`, `user_streaks`, `daily_activity`, `achievements`, `user_achievements`, `xp_transactions`, `scan_jobs`, `scan_candidates`, the game functions and the scheduler |
+| `…05_row_level_security` | RLS on every table, policies, function and column privileges, `avatars` storage bucket |
+| `…06_seed_catalogue` | 20 genres, 8 achievements, 71 curated books by 61 authors, 45 hand-checked quiz questions |
+| `…07_operations` | Cover enrichment from Open Library (`pg_net`), and a daily `pg_cron` job that keeps 14 days of challenges published |
+| `…08_corner_settings` | `get_corner_settings()` so a reader's corner looks the same to visitors |
+
+### Setting up a fresh project
+
+With the [Supabase CLI](https://supabase.com/docs/guides/local-development):
+
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+Or paste each file from `supabase/migrations/` into the SQL Editor, **in filename order**. Then:
+
+- **Authentication → URL Configuration**: add `grimore://**` and your Expo dev URL (for example `exp://192.168.1.10:8081/--/**`) to the redirect allow-list, so email confirmation and password-reset links open the app.
+- **Database → Extensions**: `pg_cron` and `pg_net` must be enabled (migration 07 does this where allowed).
+
+### Regenerating types
+
+After any schema change, regenerate `src/types/database.ts`:
+
+```bash
+supabase gen types typescript --project-id atyggjdofzdfjbfbisbf > src/types/database.ts
+```
+
+Then add the header comment back at the top of the file.
+
+### Book data
+
+- **The work is not the edition.** `books` is the literary work; `book_editions` and `book_identifiers` hold ISBNs, publishers and covers. Two ISBNs never create two books.
+- Clients cannot write to the catalogue directly. `upsert_book()` deduplicates in order: any known identifier, then Open Library work key, then exact normalised title plus first author.
+- Providers live behind `src/services/books/` (`BookProvider`). Open Library is primary (free, no key, good work-level data); Google Books fills gaps (recent and non-English editions). Results are merged by ISBN (ISBN-10 is converted to ISBN-13) or by exact title and author, and one provider failing never breaks search.
+- Covers for the curated catalogue come from Open Library's covers API, accepted only when Open Library's title matches exactly. Book pages credit Open Library.
+
+---
+
+## Architecture
+
+```
+grimore/
+├── src/
+│   ├── app/                    Routes only (Expo Router)
+│   │   ├── _layout.tsx         Fonts, providers, auth / onboarding gating (Stack.Protected)
+│   │   ├── (auth)/             Welcome, sign-in, sign-up, forgot-password
+│   │   ├── (tabs)/             Home, Library, Play, Social, Profile + custom tab bar
+│   │   ├── play/               bookle, cover-reveal, quiz, streak
+│   │   ├── book/[id]           Book page
+│   │   ├── item/[type]/[id]    A post or review with its replies
+│   │   ├── user/[username]     Another reader's profile
+│   │   └── …                   onboarding, compose, add-book, review editor, settings, corner/edit
+│   ├── components/
+│   │   ├── ui/                 Design-system primitives (Text, Button, TextField, BookCover, Rating, …)
+│   │   ├── games/              Daily strip, streak badge, result panel
+│   │   ├── corner/             My Corner renderer
+│   │   └── …                   Feed card, book search, shelf, profile view, top bar, tab bar
+│   ├── features/
+│   │   ├── games/              Types, presentation logic, streak rules, useGame hook
+│   │   └── corner/             useCorner
+│   ├── services/               Supabase data access, one module per domain
+│   │   └── books/              Provider abstraction: Open Library, Google Books, merging
+│   ├── hooks/                  Shared TanStack Query hooks
+│   ├── lib/                    Supabase client, env validation, query client, error mapping
+│   ├── stores/                 Zustand session store
+│   ├── theme/                  Tokens: colours (light/dark), spacing, radius, type, motion
+│   ├── validation/             Zod schemas
+│   ├── types/database.ts       Generated from the live schema
+│   └── utils/                  Dates (UTC challenge days), deterministic hashing
+└── supabase/
+    ├── migrations/             Version-controlled SQL, applied in order
+    └── tests/                  security_verification.sql
+```
+
+Conventions:
+
+- Screens import components; components import tokens. Colours, sizes and fonts live only in `src/theme/`.
+- All server state goes through TanStack Query with keys from `qk` in `src/lib/query-client.ts`.
+- Backend errors are mapped to calm, human messages by `toAppError`; raw database errors never reach the UI.
+- No `any`. Generated database types flow through every query.
+
+---
+
+## Design system
+
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| canvas | `#F7F5F0` | `#161513` | Page background (ivory paper) |
+| surface | `#FFFFFF` | `#1F1E1B` | Raised surfaces, inputs |
+| surfaceMuted | `#EFECE5` | `#292724` | Quiet fills, skeletons |
+| ink | `#20201E` | `#F1EEE7` | Primary text |
+| inkMuted | `#77756F` | `#A29E95` | Secondary text |
+| border | `#E8E5DE` | `#2F2D29` | Hairlines |
+| accent | `#743B48` | `#C98A97` | Wine red: primary actions, the Play section |
+| olive | `#68745B` | `#9FAD8E` | Success, progress, Bookle matches |
+| ochre | `#A9823C` | `#D2AE6A` | "Close" feedback |
+
+- **Type**: Newsreader for display, titles, book titles and quotes; Inter for interface text. Named styles only (`display`, `title1`–`3`, `bookTitle`, `quote`, `body`, `callout`, `caption`, `eyebrow`, …).
+- **Spacing**: 4-point scale; screens use a 20 pt edge.
+- **Covers**: missing or broken covers render as a designed cloth-bound jacket in one of eight harmonious tones, chosen deterministically from the title.
+- **Navigation**: a floating ivory tab bar with the Play tab as a wine-red seal at its centre.
+- **Motion**: short fades and springs only; skeletons respect reduced-motion settings.
+
+---
+
+## Daily games
+
+Every game has **one canonical challenge per UTC day**. Everyone in the world plays the same puzzle, and reopening the app never changes it. Local dates are shown, but challenge identity is the UTC date.
+
+| Game | How it works | XP |
+| --- | --- | --- |
+| **Bookle** | Up to six guesses picked from the catalogue. Each guess compares against the answer on decade, primary genre, the author's country, title word count, page-count band and author. Arrows point towards the answer. After three guesses the author's initials are revealed. Missing data shows "?" rather than a guessed clue. | 15 |
+| **Cover Reveal** | The cover starts 20% visible behind a 5×5 grid; each of up to three hints uncovers another 20% in a fixed, seeded order. One answer from four options. Score: 100 / 75 / 50 / 25 by hints used. | 15 |
+| **Literary Quiz** | One validated question with four options, answered once. The explanation and related book are shown afterwards. | 10 |
+
+- **Perfect Day**: all three in one day, +15 XP.
+- **Streaks**: the global streak grows when at least one challenge is completed that day; each game also has its own streak. Missing a day restarts a streak, and the longest is always kept. `user_streaks.freezes_available` exists for a future streak freeze but is not granted or sold.
+- **Achievements**: First Day, Three-, Seven- and Thirty-Day Streak, Perfect Day, Book Detective (Bookle in three guesses or fewer), Literary Mind (ten quiz wins), Cover Expert (Cover Reveal with no hints).
+
+### Content pipeline
+
+- `private.schedule_challenges(from, days)` fills empty days from **validated pools only**: curated books with complete metadata (Bookle), curated books with verified covers (Cover Reveal), and quiz questions with `validated_at` set. It is idempotent; answers repeat only after every eligible answer has been used, least recently used first.
+- A `pg_cron` job runs it daily at 00:05 UTC to keep 14 days scheduled. Past challenges remain as the historical record.
+- **Adding content**: insert into `quiz_questions` with `validated_at = null`, have a person check the facts, then set `validated_at`. Any future AI-generated content must go through the same validation step before publication.
+
+---
+
+## Security model
+
+- **RLS on every table.** Policies target the `authenticated` role; the anonymous role can read nothing (it may only call `is_username_available` during sign-up).
+- **Ownership**: users can only insert, update or delete their own rows. Column privileges stop users changing protected columns such as counters, ownership and follow direction.
+- **Privacy**: `private.can_view_user()` hides content from blocked users, and from non-followers of private accounts. Following a private account creates a request that only its owner can accept.
+- **Games cannot be gamed**: clients have **no write access** to attempts, answers, XP, streaks, statistics or achievements, and cannot read solutions or the quiz bank. Every action goes through a `SECURITY DEFINER` function (`bookle_guess`, `cover_reveal_hint`, `cover_reveal_answer`, `quiz_answer`) that checks it is today's challenge, enforces the limits, validates against hidden solutions and awards XP through an idempotent ledger (`unique (user_id, source_type, source_key)`).
+- **Rate limits** on posts, comments, reviews, reports and scan jobs, enforced by database triggers.
+- **Secrets**: only the anon/publishable key is in the client. Nothing in this repository contains a secret.
+
+The Supabase security advisor reports these functions as "callable by signed-in users". That is intentional: they are the game API, and each validates the caller itself.
+
+---
+
+## Testing
+
+```bash
+npm run typecheck     # tsc --noEmit (strict)
+npm run lint          # expo lint (eslint-config-expo)
+npm test              # jest: game rules, streaks, XP, Cover Reveal tiles, ISBNs, provider merging, UTC dates
+npm run check         # all three
+npx expo export --platform ios --platform android --platform web   # bundling check
+```
+
+**Database security tests**: `supabase/tests/security_verification.sql` creates two throwaway users inside a transaction, acts as them through the `authenticated` role exactly as PostgREST does, checks 35 assertions, and rolls everything back. It covers: library ownership, XP / streak / attempt tampering, hidden solutions and future challenges, one answer per quiz, duplicate-XP prevention, the First Day achievement, Bookle duplicate guesses, private accounts and follow requests, protected counters, notifications, blocking and anonymous access. Run it in the SQL Editor or with:
+
+```bash
+psql "$DATABASE_URL" -f supabase/tests/security_verification.sql
+```
+
+---
+
+## Deployment notes
+
+- **Expo Go** is the development target. For store builds, use EAS (`npx eas-cli@latest build`). Set `EXPO_PUBLIC_*` variables as EAS environment variables, and replace the placeholder icon and splash in `assets/`.
+- **Deep links** use the `grimore://` scheme. Add the production scheme and domain to Supabase's redirect allow-list.
+- **Google Books**: set a restricted key before launch; anonymous quotas are shared and easily exhausted.
+- **Moderation**: reports land in `content_reports` with status `open`. There is no moderator UI yet; review them in the Supabase dashboard.
+
+---
+
+## Status, limitations and next steps
+
+### Known limitations
+
+- **Cover Reveal hides the cover in the client.** The image URL is in the challenge payload, so a determined player could open it directly. Serving pre-cropped tiles from an Edge Function would close this.
+- **5 of the 71 curated books have no verified cover** (Open Library had no exact title match). They show the designed fallback and are never used for Cover Reveal.
+- **Bookle page bands** come from rounded typical-edition counts, cross-checked with Open Library's median where the two agree within 30%. Some editions differ.
+- **Push notifications** are not implemented; notifications are in-app only.
+- **Scanning** (`scan_jobs`, `scan_candidates`) is schema-only. The "Shelf scanning" card in Add Book is marked as coming soon.
+- **Reading lists**: the tables and services exist, but there is no screen for them yet.
+- **No moderator dashboard**, and saved posts are stored but have no UI yet.
+- **Streak freeze** exists in the schema only, by design.
+
+### Next priorities
+
+1. ISBN barcode scanning with `expo-camera`, then AI-assisted shelf import through `scan_jobs`, with a human review step.
+2. Serve Cover Reveal tiles from an Edge Function.
+3. Push notifications for replies, follows and streak reminders (opt-in, gentle).
+4. Reading lists and saved-items screens; a richer edition picker.
+5. A moderator console for `content_reports`.
+6. A content-ops screen for validating and scheduling quiz questions.
+7. Social sign-in (Apple, Google) through `supabase.auth.signInWithOAuth`.

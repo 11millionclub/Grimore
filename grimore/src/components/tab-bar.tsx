@@ -25,7 +25,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: Math.max(insets.bottom, spacing.md), alignItems: 'center' }}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: Math.max(insets.bottom, spacing.md), paddingHorizontal: spacing.base, alignItems: 'center' }}
     >
       <View
         accessibilityRole="tablist"
@@ -35,7 +35,6 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           height: layout.tabBarHeight,
           width: '100%',
           maxWidth: 520,
-          marginHorizontal: spacing.base,
           paddingHorizontal: spacing.sm,
           backgroundColor: colors.surface,
           borderRadius: radius.full,

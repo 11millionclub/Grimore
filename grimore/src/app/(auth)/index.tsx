@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +17,9 @@ const SHELF = [
 export default function Welcome() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // Five books plus gaps must fit inside the page padding on small phones.
+  const unit = Math.min(76, Math.floor((Math.min(width, layout.maxContentWidth) - layout.screenPadding * 2 - spacing.sm * 4) / 5.35));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas, paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }}>
@@ -40,7 +43,7 @@ export default function Welcome() {
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
             {SHELF.map((b, i) => (
               <View key={b.title} style={{ transform: [{ translateY: i % 2 ? -10 : 0 }, { rotate: `${(i - 2) * 2}deg` }] }}>
-                <BookCover title={b.title} author={b.author} width={i === 2 ? 96 : 72} accessible={false} />
+                <BookCover title={b.title} author={b.author} width={i === 2 ? Math.round(unit * 1.35) : unit} accessible={false} />
               </View>
             ))}
           </View>
