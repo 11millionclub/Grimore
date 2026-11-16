@@ -18,7 +18,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.grimoresteam.grimore"
     },
     "web": {
       "output": "single",
@@ -50,6 +55,22 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#F7F5F0"
+    "backgroundColor": "#F7F5F0",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "42b10c5e-0a64-45aa-a66c-98d454482159"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/42b10c5e-0a64-45aa-a66c-98d454482159"
+    }
   }
 }
