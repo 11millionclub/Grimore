@@ -1,10 +1,11 @@
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { Cinzel_500Medium, Cinzel_600SemiBold, Cinzel_700Bold } from '@expo-google-fonts/cinzel';
 import {
-  Newsreader_400Regular,
-  Newsreader_400Regular_Italic,
-  Newsreader_500Medium,
-  Newsreader_600SemiBold,
-} from '@expo-google-fonts/newsreader';
+  CormorantGaramond_500Medium,
+  CormorantGaramond_500Medium_Italic,
+  CormorantGaramond_600SemiBold,
+  CormorantGaramond_700Bold,
+} from '@expo-google-fonts/cormorant-garamond';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
@@ -29,10 +30,13 @@ startSessionListener();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Newsreader_400Regular,
-    Newsreader_400Regular_Italic,
-    Newsreader_500Medium,
-    Newsreader_600SemiBold,
+    Cinzel_500Medium,
+    Cinzel_600SemiBold,
+    Cinzel_700Bold,
+    CormorantGaramond_500Medium,
+    CormorantGaramond_500Medium_Italic,
+    CormorantGaramond_600SemiBold,
+    CormorantGaramond_700Bold,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -111,12 +115,13 @@ function Navigation() {
           <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
           <Stack.Screen name="item/[type]/[id]" />
           <Stack.Screen name="user/[username]" />
+          <Stack.Screen name="play/index" />
           <Stack.Screen name="play/bookle" />
           <Stack.Screen name="play/cover-reveal" />
           <Stack.Screen name="play/quiz" />
           <Stack.Screen name="play/streak" />
           <Stack.Screen name="profile/edit" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="corner/edit" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="nook/edit" options={{ presentation: 'modal' }} />
           <Stack.Screen name="settings" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="find-readers" />

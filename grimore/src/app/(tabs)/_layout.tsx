@@ -12,7 +12,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="library" />
-      <Tabs.Screen name="play" />
+      <Tabs.Screen name="add" />
       <Tabs.Screen name="social" />
       <Tabs.Screen name="profile" />
     </Tabs>

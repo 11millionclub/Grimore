@@ -11,11 +11,14 @@ export function Avatar({
   uri,
   size = 40,
   ring,
+  square,
 }: {
   name: string;
   uri?: string | null;
   size?: number;
   ring?: boolean;
+  /** Fill a shaped frame (arch, shield) instead of drawing a circle. */
+  square?: boolean;
 }) {
   const { colors } = useTheme();
   const tone = coverTones[hashString(name) % coverTones.length];
@@ -34,7 +37,7 @@ export function Avatar({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: square ? 0 : size / 2,
         overflow: 'hidden',
         backgroundColor: tone.bg,
         alignItems: 'center',

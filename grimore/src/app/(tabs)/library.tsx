@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ShelfPlank } from '@/components/ornaments';
+
 import { BookCover, Chip, ChipRow, EmptyState, ErrorState, Icon, IconButton, ProgressBar, Rating, Skeleton, Text, TextField } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { useDebounced } from '@/hooks/use-debounced';
@@ -49,13 +51,15 @@ export default function Library() {
     <View style={{ paddingTop: insets.top + spacing.base, gap: spacing.base, marginBottom: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.xs }}>
-          <Text variant="eyebrow">{counts.data ? `${counts.data.all} ${counts.data.all === 1 ? 'book' : 'books'}` : 'Your collection'}</Text>
-          <Text variant="title1" accessibilityRole="header">
-            Library
+          <Text variant="eyebrow">
+            {counts.data ? `${counts.data.all} ${counts.data.all === 1 ? 'tome' : 'tomes'} · ${counts.data.want_to_read + counts.data.on_hold} unread` : 'Your collection'}
+          </Text>
+          <Text variant="display" accessibilityRole="header">
+            The Library
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-          <IconButton icon={view === 'grid' ? 'list' : 'grid'} label={view === 'grid' ? 'Show as list' : 'Show as grid'} onPress={() => setView((v) => (v === 'grid' ? 'list' : 'grid'))} filled />
+          <IconButton icon={view === 'grid' ? 'list' : 'grid'} label={view === 'grid' ? 'Show as list' : 'Show as shelves'} onPress={() => setView((v) => (v === 'grid' ? 'list' : 'grid'))} filled />
           <IconButton icon="plus" label="Add a book" onPress={() => router.push('/add-book')} filled tone="accent" />
         </View>
       </View>
@@ -106,11 +110,12 @@ export default function Library() {
         keyExtractor={(e) => e.id}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
-        columnWrapperStyle={view === 'grid' ? { gap } : undefined}
+        columnWrapperStyle={view === 'grid' ? { gap, alignItems: 'flex-end' } : undefined}
+        ItemSeparatorComponent={view === 'grid' ? ShelfRow : undefined}
         contentContainerStyle={{
           paddingHorizontal: layout.screenPadding,
           paddingBottom: layout.tabBarHeight + insets.bottom + spacing.xxxl,
-          gap: view === 'grid' ? spacing.lg : spacing.base,
+          gap: view === 'grid' ? 0 : spacing.base,
           maxWidth: layout.maxContentWidth,
           width: '100%',
           alignSelf: 'center',
@@ -119,7 +124,12 @@ export default function Library() {
         keyboardDismissMode="on-drag"
         onEndReachedThreshold={0.5}
         onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && void list.fetchNextPage()}
-        ListFooterComponent={list.isFetchingNextPage ? <ActivityIndicator style={{ marginTop: spacing.lg }} /> : undefined}
+        ListFooterComponent={
+          <>
+            {view === 'grid' && items.length ? <ShelfRow /> : null}
+            {list.isFetchingNextPage ? <ActivityIndicator style={{ marginTop: spacing.lg }} /> : null}
+          </>
+        }
         refreshing={list.isRefetching && !list.isFetchingNextPage}
         onRefresh={() => {
           void list.refetch();
@@ -134,6 +144,11 @@ export default function Library() {
   );
 }
 
+/** A wooden plank under each row of covers. */
+function ShelfRow() {
+  return <ShelfPlank style={{ marginTop: 0, marginBottom: spacing.xl }} />;
+}
+
 function open(entry: LibraryEntry) {
   router.push({ pathname: '/book/[id]', params: { id: entry.book.id } });
 }
@@ -145,7 +160,7 @@ function GridItem({ entry, width }: { entry: LibraryEntry; width: number }) {
       accessibilityRole="button"
       accessibilityLabel={`${entry.book.title}, ${STATUS_META[entry.status].label}${entry.rating ? `, rated ${entry.rating}` : ''}`}
       onPress={() => open(entry)}
-      style={({ pressed }) => ({ width, gap: spacing.sm, opacity: pressed ? 0.75 : 1 })}
+      style={({ pressed }) => ({ width, transform: [{ translateY: pressed ? -6 : 0 }] })}
     >
       <View>
         <BookCover title={entry.book.title} author={entry.book.authors} uri={entry.book.cover_url} width={width} accessible={false} />
@@ -162,10 +177,11 @@ function GridItem({ entry, width }: { entry: LibraryEntry; width: number }) {
           </View>
         ) : null}
       </View>
-      <Text variant="bookTitle" numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 17 }}>
-        {entry.book.title}
-      </Text>
-      {entry.rating ? <Rating value={entry.rating} size={11} /> : null}
+      {entry.rating ? (
+        <View style={{ position: 'absolute', bottom: spacing.xs, left: spacing.xs, backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 1, opacity: 0.94 }}>
+          <Rating value={entry.rating} size={9} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
