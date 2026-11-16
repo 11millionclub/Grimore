@@ -36,9 +36,9 @@ export default function Social() {
     <View style={{ paddingTop: insets.top + spacing.base, gap: spacing.lg, marginBottom: spacing.xs }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.xs }}>
-          <Text variant="eyebrow">The reading room</Text>
-          <Text variant="title1" accessibilityRole="header">
-            Social
+          <Text variant="eyebrow">Fellow readers</Text>
+          <Text variant="display" accessibilityRole="header">
+            The Readers
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: spacing.xs }}>

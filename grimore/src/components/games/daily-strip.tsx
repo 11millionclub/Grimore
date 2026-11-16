@@ -14,8 +14,27 @@ function statusOf(c: Challenge | undefined): 'unavailable' | 'new' | 'in_progres
 }
 
 /** Three compact tiles, one per daily game, with today's status at a glance. */
-export function DailyStrip({ challenges, loading }: { challenges: Challenge[] | undefined; loading?: boolean }) {
+export function DailyStrip({ challenges, loading, compact }: { challenges: Challenge[] | undefined; loading?: boolean; compact?: boolean }) {
   const { colors } = useTheme();
+  if (compact) {
+    return (
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        {ORDER.map((game) => {
+          const c = challenges?.find((x) => x.game === game);
+          const status = statusOf(c);
+          const done = status === 'won' || status === 'lost';
+          return (
+            <View key={game} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: spacing.xs + 2, paddingHorizontal: spacing.sm, borderRadius: radius.full, backgroundColor: status === 'won' ? colors.oliveSoft : colors.surfaceMuted }}>
+              <Icon name={status === 'won' ? 'check' : done ? 'minus' : GAME_META[game].icon} size={12} tone={status === 'won' ? 'olive' : done ? 'inkMuted' : 'accent'} />
+              <Text variant="caption" numberOfLines={1} style={{ fontSize: 11 }}>
+                {GAME_META[game].name.replace('Literary ', '')}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
   if (loading) {
     return (
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>

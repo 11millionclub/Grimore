@@ -2,6 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { TopBar } from '@/components/top-bar';
 import { Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
 import { GAME_META, PERFECT_DAY_BONUS, type Challenge, type GameType } from '@/features/games/types';
 import { useMyId, useProgress, useTodayChallenges } from '@/hooks/queries';
@@ -25,7 +26,9 @@ export default function Play() {
   const dateKey = today.data?.[0]?.challenge_date ?? utcDateKey();
 
   return (
-    <Screen tabBarInset onRefresh={() => void today.refetch()} refreshing={today.isRefetching}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <TopBar title="Daily riddles" />
+      <Screen edgeTop={false} onRefresh={() => void today.refetch()} refreshing={today.isRefetching}>
       {/* The Daily: a distinct, ink-dark masthead for the games section */}
       <View style={{ backgroundColor: colors.accent, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.lg, marginBottom: spacing.xl, overflow: 'hidden' }}>
         <View
@@ -41,7 +44,7 @@ export default function Play() {
             The Daily · {formatChallengeDate(dateKey)}
           </Text>
           <Text variant="title1" tone="onAccent" accessibilityRole="header">
-            Three puzzles.{'\n'}One shared day.
+            Three riddles.{'\n'}One shared day.
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: spacing.xl }}>
@@ -71,7 +74,8 @@ export default function Play() {
       <Text variant="caption" align="center" style={{ marginTop: spacing.base }}>
         Everyone plays the same puzzles. Days change at midnight UTC.
       </Text>
-    </Screen>
+      </Screen>
+    </View>
   );
 }
 

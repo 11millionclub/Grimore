@@ -97,3 +97,11 @@ export async function searchReaders(query: string) {
     await supabase.from('profiles').select('id, username, display_name, avatar_url').or(`username.ilike.%${term}%,display_name.ilike.%${term}%`).limit(20),
   );
 }
+
+/** Upload a reader's own Nook background under <uid>/nook-<ts>.<ext>; returns its public URL. */
+export async function uploadNookBackground(userId: string, base64: string, mimeType = 'image/jpeg'): Promise<string> {
+  const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${userId}/nook-${Date.now()}.${ext}`;
+  unwrap(await supabase.storage.from('nook-backgrounds').upload(path, decode(base64), { contentType: mimeType, upsert: true }));
+  return supabase.storage.from('nook-backgrounds').getPublicUrl(path).data.publicUrl;
+}

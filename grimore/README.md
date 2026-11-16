@@ -4,7 +4,9 @@
 
 GriMore is a mobile-first literary social app. Readers collect the books they love, keep a journal of their reading life, play three small literary puzzles every day, and share reviews and thoughts with other readers.
 
-It aims to feel like a well-made editorial magazine rather than a library database: warm ivory paper, charcoal ink, a wine-red accent, serif headings, and book covers given room to breathe.
+**Positioning:** GriMore is first a **digital library** (every book you own, in one place) that helps you decide **what to read next**, starting from your own unread shelves. Social features and three small daily literary riddles are extras around that core.
+
+**Look and feel:** an enchanted reading room. Aged parchment and candlelit oak, wax-seal wine, antique gilt, Cinzel inscriptions and Cormorant Garamond headings, wooden shelves under the covers, and quiet fantasy details (a dragon seal, gothic arches, heraldic icons) that never get in the way of the books.
 
 ---
 
@@ -30,12 +32,12 @@ It aims to feel like a well-made editorial magazine rather than a library databa
 | Area | What works |
 | --- | --- |
 | **Auth & onboarding** | Email/password sign-up, sign-in, sign-out, password reset by email link. Six-step onboarding: welcome, genres, reading language, first books, favourites, introduction to the games. |
-| **Home** | Greeting, streak badge, today's three challenges, current read with progress, yearly goal, recently added, suggestions weighted by favourite genres, and recent activity from followed readers. |
+| **Hall (home)** | "Your library" card (tomes owned and unread), **What to read next** chosen from your own unread shelves with a stated reason for each pick, current read, the year's quest, recently shelved books on a plank, suggestions beyond your shelves, other readers' activity, and a small daily-riddles card. |
 | **Library** | Virtualised grid or list; search; filters for All / Reading / Want / Read / On hold / DNF with counts; sort by recent activity, date added, title or rating; infinite scroll. |
 | **Books** | Search across the GriMore catalogue, Open Library and Google Books (title, author or ISBN with checksum validation); manual entry; book page with status, half-star rating, page progress, private notes, community stats, reviews and editions. |
 | **Play** | Bookle, Cover Reveal and Literary Quiz. One canonical puzzle per game per UTC day, validated on the server; global and per-game streaks, Perfect Day bonus, XP, achievements, 12-week activity calendar, Bookle guess distribution and spoiler-free share text. |
 | **Social** | Following / Discover / Reviews feeds; five post types (thought, question, recommendation, reading update, discussion); reviews tied to a book with a rating and spoiler flag; likes, threaded replies, follow / unfollow, private accounts with follow requests, block, report, notifications. |
-| **Profile & My Corner** | Avatar upload, bio, statistics, reading goal, favourite genres, achievements, recently finished shelf and posts. **My Corner** is a personal 2D reading nook: five backdrops, three layouts (editorial, shelf, gallery), three book arrangements (spines, covers, stacked), a featured book, quotes and favourite authors. |
+| **Nook (profile)** | A customisable reading room: illustrated library or own-photo background, wax-seal colour, portrait frame, shelf wood, epithet, current obsession, treasured shelf, quotes, kindred authors, quest, seals and writings. See [The Nook](#the-nook). |
 | **Polish** | Light and dark themes, safe areas, keyboard handling, skeleton loaders, designed empty and error states, typographic fallback covers, haptics, reduced-motion support, screen-reader labels throughout. |
 
 ---
@@ -98,7 +100,8 @@ The project `Grimore` (`atyggjdofzdfjbfbisbf`, eu-west-3) already has every migr
 | `…05_row_level_security` | RLS on every table, policies, function and column privileges, `avatars` storage bucket |
 | `…06_seed_catalogue` | 20 genres, 8 achievements, 71 curated books by 61 authors, 45 hand-checked quiz questions |
 | `…07_operations` | Cover enrichment from Open Library (`pg_net`), and a daily `pg_cron` job that keeps 14 days of challenges published |
-| `…08_corner_settings` | `get_corner_settings()` so a reader's corner looks the same to visitors |
+| `…08_corner_settings` | `get_corner_settings()` (superseded by 09) |
+| `…09_nook` | Nook settings on `user_preferences` (`nook_scene`, `nook_background_url`, `nook_seal`, `nook_frame`, `nook_shelf`, `nook_title`), `get_nook_settings()`, and the `nook-backgrounds` storage bucket (owner-only writes) |
 
 ### Setting up a fresh project
 
@@ -180,22 +183,40 @@ Conventions:
 
 ## Design system
 
+### Navigation
+
+Five places, with the library at the centre: **Hall** (home), **Library**, a raised wax-seal **Add a book** button, **Readers** (social) and **Nook** (profile). The daily riddles live behind a small card on the Hall.
+
+### The Nook
+
+A reader's profile is their **Nook**: a reading room they can arrange.
+
+- **Room**: six original illustrated libraries (Great Hall, Candlelit Study, Wizard's Tower, Dragon's Archive, Elven Library, Moonlit Reading Room), drawn in SVG in `src/components/nook/library-scene.tsx`, or **their own photo** uploaded to `nook-backgrounds`.
+- **Wax seal** colour (wine, emerald, sapphire, amethyst, gilt, obsidian), **portrait frame** (gothic arch, roundel, shield), **shelf wood** (oak, walnut, ebony, birch) and an **epithet** under their name.
+- **Current obsession** (featured book with their favourite quote), the **treasured shelf** (up to 12 favourites on a wooden plank), the nightstand, kindred authors, the year's reading quest, earned **seals** (achievements), finished books and their reviews.
+
+The scenes are original artwork made for GriMore. We deliberately do not ship images collected from Pinterest or elsewhere: they belong to their creators. Readers who want a particular look can upload a photo they have the right to use.
+
+### Tokens
+
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| canvas | `#F7F5F0` | `#161513` | Page background (ivory paper) |
-| surface | `#FFFFFF` | `#1F1E1B` | Raised surfaces, inputs |
-| surfaceMuted | `#EFECE5` | `#292724` | Quiet fills, skeletons |
-| ink | `#20201E` | `#F1EEE7` | Primary text |
-| inkMuted | `#77756F` | `#A29E95` | Secondary text |
-| border | `#E8E5DE` | `#2F2D29` | Hairlines |
-| accent | `#743B48` | `#C98A97` | Wine red: primary actions, the Play section |
-| olive | `#68745B` | `#9FAD8E` | Success, progress, Bookle matches |
-| ochre | `#A9823C` | `#D2AE6A` | "Close" feedback |
+| canvas | `#F3ECDF` | `#13100D` | Parchment / candlelit oak |
+| surface | `#FBF7EF` | `#1C1814` | Raised surfaces, inputs |
+| surfaceMuted | `#E9E0CF` | `#28221C` | Quiet fills, skeletons |
+| ink | `#211B17` | `#EFE5D1` | Primary text (iron-gall ink) |
+| inkMuted | `#6E6357` | `#A99D87` | Secondary text |
+| border | `#E1D5BF` | `#322A21` | Hairlines |
+| accent | `#6E2333` | `#C77A8A` | Wax-seal wine: primary actions |
+| gold | `#A3803C` | `#D3AF68` | Gilt ornaments, flourishes, seals |
+| olive | `#4E5E45` | `#98AC88` | Forest leather: success, progress |
+| shelf | `#7A5534` | `#4A3322` | Wooden planks under books |
 
-- **Type**: Newsreader for display, titles, book titles and quotes; Inter for interface text. Named styles only (`display`, `title1`–`3`, `bookTitle`, `quote`, `body`, `callout`, `caption`, `eyebrow`, …).
+- **Type**: **Cinzel** for inscriptions (wordmark, mastheads such as "THE LIBRARY", small-caps labels), **Cormorant Garamond** for headings, book titles and quotes, **Inter** for the interface. Named styles only (`display`, `title1`–`3`, `bookTitle`, `quote`, `body`, `callout`, `caption`, `eyebrow`, …).
+- **Ornaments** (`src/components/ornaments.tsx`): flourish dividers, gilt ornate frames, the dragon emblem, gothic arch portraits and shelf planks. Heraldic glyphs (dragon, tower, quill, wizard's hat) come from Font Awesome's free solid set; plain interface icons stay Feather.
 - **Spacing**: 4-point scale; screens use a 20 pt edge.
 - **Covers**: missing or broken covers render as a designed cloth-bound jacket in one of eight harmonious tones, chosen deterministically from the title.
-- **Navigation**: a floating ivory tab bar with the Play tab as a wine-red seal at its centre.
+- **Navigation**: a parchment tab bar with a gilt rule and a raised wax seal for adding books.
 - **Motion**: short fades and springs only; skeletons respect reduced-motion settings.
 
 ---

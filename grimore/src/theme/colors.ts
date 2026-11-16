@@ -1,33 +1,32 @@
 /**
- * GriMore colour tokens.
+ * GriMore colour tokens — "the grimoire".
  *
- * Warm ivory paper, charcoal ink, a wine-red accent and a muted olive.
- * Every screen reads colours from here through `useTheme()`; no hex values
- * live outside this file.
+ * Light is aged parchment and iron-gall ink; dark is a candlelit reading room.
+ * Wine red is the wax seal, antique gold is gilt on a spine, forest green is
+ * the old leather binding. No hex values live outside this file.
  */
 
 export type Palette = {
-  /** Page background: warm ivory paper. */
+  /** Page background: parchment (light) or candlelit oak (dark). */
   canvas: string;
   /** Raised surfaces: cards, sheets, inputs. */
   surface: string;
   /** Quiet fills: chips, skeletons, secondary panels. */
   surfaceMuted: string;
-  /** Primary text. */
   ink: string;
-  /** Secondary text. */
   inkMuted: string;
-  /** Tertiary text, placeholders, disabled. */
   inkSubtle: string;
-  /** Hairlines. */
   border: string;
   borderStrong: string;
-  /** Wine red: primary actions and key literary moments. */
+  /** Wax-seal wine: primary actions. */
   accent: string;
   accentPressed: string;
   accentSoft: string;
   onAccent: string;
-  /** Olive: success, progress, positive game feedback. */
+  /** Antique gold: ornaments, highlights, achievements. */
+  gold: string;
+  goldSoft: string;
+  /** Forest leather: success and progress. */
   olive: string;
   oliveSoft: string;
   onOlive: string;
@@ -36,82 +35,99 @@ export type Palette = {
   ochreSoft: string;
   danger: string;
   dangerSoft: string;
-  /** Scrim over imagery. */
+  /** Wooden shelf under books. */
+  shelf: string;
+  shelfEdge: string;
   overlay: string;
   shadow: string;
 };
 
 export const palettes: Record<'light' | 'dark', Palette> = {
   light: {
-    canvas: '#F7F5F0',
-    surface: '#FFFFFF',
-    surfaceMuted: '#EFECE5',
-    ink: '#20201E',
-    inkMuted: '#77756F',
-    inkSubtle: '#A6A39B',
-    border: '#E8E5DE',
-    borderStrong: '#D8D3C8',
-    accent: '#743B48',
-    accentPressed: '#5D2E39',
-    accentSoft: '#F2E7E9',
-    onAccent: '#FBF8F3',
-    olive: '#68745B',
-    oliveSoft: '#E8EBE1',
-    onOlive: '#FBF8F3',
+    canvas: '#F3ECDF',
+    surface: '#FBF7EF',
+    surfaceMuted: '#E9E0CF',
+    ink: '#211B17',
+    inkMuted: '#6E6357',
+    inkSubtle: '#A1957F',
+    border: '#E1D5BF',
+    borderStrong: '#CDBC9E',
+    accent: '#6E2333',
+    accentPressed: '#561A27',
+    accentSoft: '#EFDDDD',
+    onAccent: '#FBF4E8',
+    gold: '#A3803C',
+    goldSoft: '#EFE2C4',
+    olive: '#4E5E45',
+    oliveSoft: '#E1E5D6',
+    onOlive: '#F8F4EA',
     ochre: '#A9823C',
-    ochreSoft: '#F3EBDA',
-    danger: '#9B3A35',
-    dangerSoft: '#F5E4E2',
-    overlay: 'rgba(32, 32, 30, 0.55)',
-    shadow: 'rgba(52, 40, 30, 0.10)',
+    ochreSoft: '#F2E7D0',
+    danger: '#963530',
+    dangerSoft: '#F4E0DC',
+    shelf: '#7A5534',
+    shelfEdge: '#5A3C23',
+    overlay: 'rgba(25, 18, 12, 0.55)',
+    shadow: 'rgba(60, 40, 20, 0.14)',
   },
   dark: {
-    canvas: '#161513',
-    surface: '#1F1E1B',
-    surfaceMuted: '#292724',
-    ink: '#F1EEE7',
-    inkMuted: '#A29E95',
-    inkSubtle: '#6F6C65',
-    border: '#2F2D29',
-    borderStrong: '#403D37',
-    accent: '#C98A97',
-    accentPressed: '#B37683',
-    accentSoft: '#3A262B',
-    onAccent: '#1A1213',
-    olive: '#9FAD8E',
-    oliveSoft: '#2A2F25',
-    onOlive: '#141611',
+    canvas: '#13100D',
+    surface: '#1C1814',
+    surfaceMuted: '#28221C',
+    ink: '#EFE5D1',
+    inkMuted: '#A99D87',
+    inkSubtle: '#6E6455',
+    border: '#322A21',
+    borderStrong: '#4A3E30',
+    accent: '#C77A8A',
+    accentPressed: '#B06676',
+    accentSoft: '#3A2228',
+    onAccent: '#1A0F11',
+    gold: '#D3AF68',
+    goldSoft: '#3A3020',
+    olive: '#98AC88',
+    oliveSoft: '#262D20',
+    onOlive: '#12160F',
     ochre: '#D2AE6A',
     ochreSoft: '#3A3122',
     danger: '#E08A82',
     dangerSoft: '#3B2422',
+    shelf: '#4A3322',
+    shelfEdge: '#2E1F14',
     overlay: 'rgba(0, 0, 0, 0.6)',
-    shadow: 'rgba(0, 0, 0, 0.4)',
+    shadow: 'rgba(0, 0, 0, 0.45)',
   },
 };
 
-/**
- * Backgrounds for "My Corner". Each one is a complete mini-palette so text
- * stays legible whatever the reader chooses.
- */
-export const cornerThemes = {
-  ivory: { label: 'Ivory', background: '#F7F5F0', panel: '#FFFFFF', ink: '#20201E', muted: '#77756F', accent: '#743B48', shelf: '#E2DCCF' },
-  linen: { label: 'Linen', background: '#EFE8DC', panel: '#F8F3EA', ink: '#2A2622', muted: '#7B7266', accent: '#8A4B3A', shelf: '#D9CDB8' },
-  library: { label: 'Library', background: '#2C2420', panel: '#382E29', ink: '#F3EBDD', muted: '#BFAF98', accent: '#D8A26A', shelf: '#4A3B33' },
-  night: { label: 'Night', background: '#171A21', panel: '#20242D', ink: '#ECEEF2', muted: '#9AA0AD', accent: '#C9A6E0', shelf: '#2B303B' },
-  olive: { label: 'Olive', background: '#E6E8DD', panel: '#F2F3EC', ink: '#232720', muted: '#6B725F', accent: '#56613F', shelf: '#CDD2BF' },
+/** Wax-seal colours a reader can choose for their Nook. */
+export const sealColors = {
+  wine: { label: 'Wine', color: '#6E2333', light: '#C77A8A' },
+  emerald: { label: 'Emerald', color: '#1F5B45', light: '#7FC2A4' },
+  sapphire: { label: 'Sapphire', color: '#26406E', light: '#8FA9DB' },
+  amethyst: { label: 'Amethyst', color: '#523066', light: '#B999D0' },
+  gilt: { label: 'Gilt', color: '#9A7432', light: '#E0BE77' },
+  obsidian: { label: 'Obsidian', color: '#1E1B1A', light: '#BDB3A6' },
 } as const;
+export type SealColorId = keyof typeof sealColors;
 
-export type CornerThemeId = keyof typeof cornerThemes;
+/** Shelf woods for the Nook. */
+export const shelfWoods = {
+  oak: { label: 'Oak', top: '#8A6239', edge: '#64442A' },
+  walnut: { label: 'Walnut', top: '#5C3D27', edge: '#3E2818' },
+  ebony: { label: 'Ebony', top: '#2C2420', edge: '#171210' },
+  birch: { label: 'Birch', top: '#C9AE84', edge: '#A08458' },
+} as const;
+export type ShelfWoodId = keyof typeof shelfWoods;
 
-/** Deterministic, harmonious tones for typographic placeholder covers. */
+/** Leather-and-cloth tones for typographic placeholder covers and spines. */
 export const coverTones = [
-  { bg: '#743B48', ink: '#F7EFE6' },
-  { bg: '#68745B', ink: '#F5F1E6' },
-  { bg: '#2F3A4A', ink: '#EEE8DC' },
-  { bg: '#A9823C', ink: '#FFF8EA' },
-  { bg: '#3E3A36', ink: '#EFE6D6' },
-  { bg: '#8C5A4A', ink: '#FBF1E4' },
-  { bg: '#4E5F63', ink: '#F1EEE6' },
-  { bg: '#C9B79C', ink: '#2B2520' },
+  { bg: '#6E2333', ink: '#F4E7D2' },
+  { bg: '#2F4A3A', ink: '#EFE6D0' },
+  { bg: '#26344F', ink: '#EDE4D2' },
+  { bg: '#8E6B33', ink: '#FFF6E2' },
+  { bg: '#3A302A', ink: '#E9DCC4' },
+  { bg: '#7B4A36', ink: '#FBEEDD' },
+  { bg: '#41545A', ink: '#EEEADF' },
+  { bg: '#B9A47F', ink: '#2A221B' },
+  { bg: '#4B2E44', ink: '#F1E3DA' },
 ] as const;

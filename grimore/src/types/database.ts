@@ -1710,6 +1710,12 @@ export type Database = {
           corner_layout: string
           corner_theme: string
           created_at: string
+          nook_background_url: string | null
+          nook_frame: string
+          nook_scene: string
+          nook_seal: string
+          nook_shelf: string
+          nook_title: string | null
           notifications_enabled: boolean
           reading_language: string
           show_spoilers: boolean
@@ -1723,6 +1729,12 @@ export type Database = {
           corner_layout?: string
           corner_theme?: string
           created_at?: string
+          nook_background_url?: string | null
+          nook_frame?: string
+          nook_scene?: string
+          nook_seal?: string
+          nook_shelf?: string
+          nook_title?: string | null
           notifications_enabled?: boolean
           reading_language?: string
           show_spoilers?: boolean
@@ -1736,6 +1748,12 @@ export type Database = {
           corner_layout?: string
           corner_theme?: string
           created_at?: string
+          nook_background_url?: string | null
+          nook_frame?: string
+          nook_scene?: string
+          nook_seal?: string
+          nook_shelf?: string
+          nook_title?: string | null
           notifications_enabled?: boolean
           reading_language?: string
           show_spoilers?: boolean
@@ -1965,6 +1983,7 @@ export type Database = {
       cover_reveal_hint: { Args: { p_challenge: string }; Returns: Json }
       get_challenge_state: { Args: { p_challenge: string }; Returns: Json }
       get_corner_settings: { Args: { p_user: string }; Returns: Json }
+      get_nook_settings: { Args: { p_user: string }; Returns: Json }
       get_progress: { Args: { p_user?: string }; Returns: Json }
       get_today_challenges: { Args: never; Returns: Json }
       is_username_available: { Args: { p_username: string }; Returns: boolean }

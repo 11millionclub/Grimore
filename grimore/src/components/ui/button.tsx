@@ -6,7 +6,7 @@ import { radius, spacing, typeScale, useTheme } from '@/theme';
 import { Icon, type IconName } from './icon';
 import { Text } from './text';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'olive' | 'destructive';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'olive' | 'destructive' | 'onDark';
 type Size = 'sm' | 'md' | 'lg';
 
 const sizes: Record<Size, { height: number; paddingHorizontal: number; icon: number }> = {
@@ -51,6 +51,8 @@ export function Button({
     secondary: { bg: colors.surface, pressed: colors.surfaceMuted, fg: colors.ink, border: colors.borderStrong },
     ghost: { bg: 'transparent', pressed: colors.surfaceMuted, fg: colors.ink, border: 'transparent' },
     destructive: { bg: colors.dangerSoft, pressed: colors.dangerSoft, fg: colors.danger, border: 'transparent' },
+    /** Over imagery and dark scenes: parchment text, gilt hairline. */
+    onDark: { bg: 'rgba(246,238,221,0.06)', pressed: 'rgba(246,238,221,0.16)', fg: '#F6EEDD', border: 'rgba(217,182,110,0.7)' },
   }[variant];
   const s = sizes[size];
   const inactive = disabled || loading;
@@ -72,7 +74,7 @@ export function Button({
           paddingHorizontal: s.paddingHorizontal,
           borderRadius: radius.full,
           backgroundColor: pressed ? palette.pressed : palette.bg,
-          borderWidth: variant === 'secondary' ? 1 : 0,
+          borderWidth: variant === 'secondary' || variant === 'onDark' ? 1 : 0,
           borderColor: palette.border,
           alignItems: 'center',
           justifyContent: 'center',
@@ -107,6 +109,7 @@ export function IconButton({
   filled,
   size = 40,
   disabled,
+  color: colorOverride,
 }: {
   icon: IconName;
   label: string;
@@ -115,9 +118,11 @@ export function IconButton({
   filled?: boolean;
   size?: number;
   disabled?: boolean;
+  /** For buttons floating over imagery. */
+  color?: string;
 }) {
   const { colors } = useTheme();
-  const color = tone === 'accent' ? colors.accent : tone === 'muted' ? colors.inkMuted : colors.ink;
+  const color = colorOverride ?? (tone === 'accent' ? colors.accent : tone === 'muted' ? colors.inkMuted : colors.ink);
   return (
     <Pressable
       accessibilityRole="button"
@@ -131,7 +136,7 @@ export function IconButton({
         borderRadius: size / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: pressed ? colors.surfaceMuted : filled ? colors.surface : 'transparent',
+        backgroundColor: pressed ? (colorOverride ? 'rgba(255,255,255,0.15)' : colors.surfaceMuted) : filled ? colors.surface : 'transparent',
         borderWidth: filled ? 1 : 0,
         borderColor: colors.border,
         opacity: disabled ? 0.4 : 1,

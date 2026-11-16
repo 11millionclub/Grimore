@@ -129,3 +129,53 @@ export async function countReadInYear(userId: string, year: number): Promise<num
   if (error) throw error;
   return count ?? 0;
 }
+
+export type NextReadCandidate = {
+  book: { id: string; title: string; cover_url: string | null; authors: string; page_count_estimate: number | null };
+  reason: string;
+  score: number;
+};
+
+/**
+ * "What should I read next?" from the reader's own unread shelves (Want to
+ * Read + On Hold). A transparent heuristic for now: favourite-genre matches
+ * first, then shorter books, then the ones waiting longest. Every pick says
+ * why it was chosen. Collaborative "readers like you" ranking comes later.
+ */
+export async function getNextReads(userId: string, favouriteGenreIds: number[], genreNames: Record<number, string>, limit = 6): Promise<NextReadCandidate[]> {
+  const rows = unwrap(
+    await supabase
+      .from('user_books')
+      .select('added_at, status, book:books!inner(id, title, cover_url, page_count_estimate, primary_genre_id, book_authors(position, role, authors(name)))')
+      .eq('user_id', userId)
+      .in('status', ['want_to_read', 'on_hold'])
+      .order('added_at', { ascending: true })
+      .limit(200),
+  ) as unknown as {
+    added_at: string;
+    status: ReadingStatus;
+    book: { id: string; title: string; cover_url: string | null; page_count_estimate: number | null; primary_genre_id: number | null; book_authors: Parameters<typeof authorLine>[0] };
+  }[];
+
+  const now = Date.now();
+  return rows
+    .map((r, i) => {
+      const genreMatch = r.book.primary_genre_id !== null && favouriteGenreIds.includes(r.book.primary_genre_id);
+      const short = !!r.book.page_count_estimate && r.book.page_count_estimate < 300;
+      const monthsWaiting = Math.floor((now - Date.parse(r.added_at)) / (30 * 86_400_000));
+      const score = (genreMatch ? 3 : 0) + (short ? 1 : 0) + Math.min(2, monthsWaiting / 6) + (r.status === 'on_hold' ? 0.5 : 0) - i * 0.001;
+      const reason = genreMatch
+        ? `You love ${genreNames[r.book.primary_genre_id!]?.toLowerCase() ?? 'this genre'}`
+        : r.status === 'on_hold'
+          ? 'You paused this one'
+          : short
+            ? `A short read · ${r.book.page_count_estimate} pages`
+            : monthsWaiting >= 2
+              ? `Waiting ${monthsWaiting} months on your shelf`
+              : 'Recently added to your shelf';
+      const { book_authors, primary_genre_id: _g, ...book } = r.book;
+      return { book: { ...book, authors: authorLine(book_authors) }, reason, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}

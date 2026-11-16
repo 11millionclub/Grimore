@@ -60,14 +60,14 @@ export default function Settings() {
         <SectionHeader eyebrow="Account" title={profile.data ? `@${profile.data.username}` : 'Account'} />
         <ListRow title="Edit profile" subtitle="Name, username, bio and photo" onPress={() => router.push('/profile/edit')} />
         <Divider />
-        <ListRow title="Arrange My Corner" subtitle="Theme, layout, favourites and quotes" onPress={() => router.push('/corner/edit')} />
+        <ListRow title="Arrange your Nook" subtitle="Room, wax seal, frame, shelf, quotes" onPress={() => router.push('/nook/edit')} />
         <Divider />
 
         <View style={{ height: spacing.xxl }} />
         <SectionHeader eyebrow="Privacy" title="Who can see your reading" />
         <ListRow
           title="Private account"
-          subtitle="Only followers you approve can see your library, posts and corner."
+          subtitle="Only followers you approve can see your library, posts and Nook."
           trailing={<Switch value={!!profile.data?.is_private} onValueChange={(v) => void togglePrivate(v)} trackColor={{ true: colors.accent, false: colors.borderStrong }} accessibilityLabel="Private account" />}
         />
         <Divider />
