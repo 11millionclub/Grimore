@@ -58,6 +58,17 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0c0d0f"
+    "backgroundColor": "#0c0d0f",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/42b10c5e-0a64-45aa-a66c-98d454482159"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "42b10c5e-0a64-45aa-a66c-98d454482159"
+      }
+    }
   }
 }
