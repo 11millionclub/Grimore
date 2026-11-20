@@ -1,257 +1,223 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { DailyStrip } from '@/components/games/daily-strip';
-import { StreakBadge } from '@/components/games/streak-badge';
-import { BookShelf } from '@/components/nook/book-shelf';
-import { LibraryScene } from '@/components/nook/library-scene';
-import { Flourish, Glyph, OrnateFrame, Wordmark } from '@/components/ornaments';
-import { Shelf } from '@/components/shelf';
-import { Avatar, BookCover, Button, EmptyState, IconButton, ProgressBar, Screen, SectionHeader, Skeleton, Text } from '@/components/ui';
-import { useFavoriteGenres, useGenres, useMyId, useMyProfile, useProgress, useReadingGoal, useTodayChallenges } from '@/hooks/queries';
-import { qk } from '@/lib/query-client';
-import { getSuggestions } from '@/services/catalogue';
-import { getNextReads, getStatusCounts, listLibrary } from '@/services/library';
-import { getActivityFromFollowed } from '@/services/social';
-import { fonts, layout, radius, spacing, useTheme } from '@/theme';
-import { greetingFor, relativeTime } from '@/utils/dates';
+import { PostCard, Ring } from '@/components/feed';
+import { ArrowRightIcon, BellIcon, BookOpenIcon, FireIcon, PaperPlaneTiltIcon } from '@/components/icons';
+import { Avatar, Btn, Cover, EmptyState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stagger, Text } from '@/components/ui';
+import { useMyId, useReadingGoal, useReadingStats, useShelf, useStreak, useTodayGames, useUnread } from '@/hooks/queries';
+import { getLeaderboard } from '@/services/games';
+import { getFeed } from '@/services/social';
+import { monthName } from '@/services/stats';
+import { fonts, radius, spacing, useTheme } from '@/theme';
+import { fmt } from '@/utils/dates';
 
-export default function Hall() {
-  const userId = useMyId()!;
+export default function Home() {
   const { colors } = useTheme();
-  const queryClient = useQueryClient();
-  const profile = useMyProfile();
-  const today = useTodayChallenges();
-  const progress = useProgress(userId);
-  const goal = useReadingGoal(userId);
-  const favGenres = useFavoriteGenres(userId);
-  const allGenres = useGenres();
-
-  const counts = useQuery({ queryKey: [...qk.libraryAll, 'counts'], queryFn: () => getStatusCounts(userId) });
-  const reading = useQuery({ queryKey: qk.library('home-reading'), queryFn: () => listLibrary({ userId, status: 'reading', sort: 'updated' }) });
-  const recent = useQuery({ queryKey: qk.library('home-recent'), queryFn: () => listLibrary({ userId, sort: 'added' }) });
-  const genreNames = Object.fromEntries((allGenres.data ?? []).map((g) => [g.id, g.name]));
-  const favIds = (favGenres.data ?? []).map((g) => g.id);
-  const nextReads = useQuery({
-    queryKey: qk.library(`next-${favIds.join(',')}`),
-    queryFn: () => getNextReads(userId, favIds, genreNames),
-    enabled: favGenres.isSuccess && allGenres.isSuccess,
+  const me = useMyId()!;
+  const reading = useShelf(me, 'reading');
+  const goal = useReadingGoal(me);
+  const streak = useStreak();
+  const stats = useReadingStats(me);
+  const unread = useUnread();
+  const games = useTodayGames();
+  const hangman = games.data?.find((g) => g.game === 'hangman');
+  const board = useQuery({ queryKey: ['board', hangman?.id], queryFn: () => getLeaderboard(hangman!.id), enabled: !!hangman });
+  const leader = board.data?.find((r) => !r.is_me);
+  const feed = useInfiniteQuery({
+    queryKey: ['feed', 'following'],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => getFeed({ viewerId: me, scope: 'following', cursor: pageParam }),
+    getNextPageParam: (last) => last.nextCursor,
   });
-  const activity = useQuery({ queryKey: ['activity', userId], queryFn: () => getActivityFromFollowed(userId) });
-  const suggestions = useQuery({
-    queryKey: [...qk.suggestions, favIds.join(',')],
-    queryFn: () => getSuggestions(favIds, (recent.data?.items ?? []).map((e) => e.book.id)),
-    enabled: favGenres.isSuccess && recent.isSuccess,
-  });
-
-  const firstName = profile.data?.display_name?.split(' ')[0] ?? '';
-  const total = counts.data?.all ?? 0;
-  const unread = (counts.data?.want_to_read ?? 0) + (counts.data?.on_hold ?? 0);
-  const current = reading.data?.items[0];
-  const riddlesDone = (today.data ?? []).filter((c) => c.attempt && c.attempt.status !== 'in_progress').length;
+  const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
+  const month = new Date().getMonth();
+  const monthPages = stats.data?.pagesByMonth[month] ?? 0;
+  const refresh = () => Promise.all([reading.refetch(), goal.refetch(), streak.refetch(), feed.refetch(), games.refetch(), stats.refetch(), unread.refetch()]);
 
   return (
-    <Screen tabBarInset onRefresh={() => void queryClient.invalidateQueries()} refreshing={false}>
-      {/* Masthead */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl }}>
-        <Wordmark size={13} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <StreakBadge days={progress.data?.current_streak ?? 0} active={!!progress.data?.played_today} />
-          <IconButton icon="bell" label="Notifications" onPress={() => router.push('/notifications')} />
+    <Screen
+      title="Grimore"
+      tabs
+      refreshing={feed.isRefetching}
+      onRefresh={refresh}
+      actions={
+        <>
+          <IconBtn label="Notifications" onPress={() => router.push('/notifications')}>
+            <BellIcon size={22} color={colors.ink} />
+            {unread.data?.notifications ? <View style={{ position: 'absolute', right: 8, top: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg }} /> : null}
+          </IconBtn>
+          <IconBtn label="Messages" onPress={() => router.push('/messages')}>
+            <PaperPlaneTiltIcon size={22} color={colors.ink} />
+            {unread.data?.messages ? <View style={{ position: 'absolute', right: 8, top: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg }} /> : null}
+          </IconBtn>
+        </>
+      }
+    >
+      {reading.isLoading ? (
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <Skeleton height={168} rounded={radius.card} />
         </View>
-      </View>
-      <View style={{ gap: spacing.xs, marginBottom: spacing.xl }}>
-        <Text variant="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
-        <Text variant="title1" accessibilityRole="header">
-          {greetingFor()}
-          {firstName ? `, ${firstName}.` : '.'}
-        </Text>
-      </View>
-
-      {/* Your library */}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Your library: ${total} books, ${unread} unread. Open library`} onPress={() => router.push('/library')}>
-        <LibraryScene id="great-hall" style={{ height: 232, borderRadius: radius.xl, marginBottom: spacing.xxl }}>
-          <LinearGradient colors={['rgba(14,9,5,0.15)', 'rgba(14,9,5,0.88)']} locations={[0.15, 0.85]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }} />
-          <View style={{ flex: 1, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs }}>
-            <Text variant="eyebrow" style={{ color: '#E9CF95' }}>
-              Your library
-            </Text>
-            {counts.isLoading ? (
-              <Skeleton width={180} height={30} />
-            ) : (
-              <Text style={{ fontFamily: fonts.serifBold, fontSize: 32, lineHeight: 36, color: '#F8F0DF' }}>
-                {total} {total === 1 ? 'tome' : 'tomes'} on your shelves
-              </Text>
-            )}
-            <Text variant="callout" style={{ color: '#E6DAC2' }}>
-              {total === 0 ? 'Begin by adding the books you own and love.' : unread ? `${unread} still waiting to be read` : 'Every one of them read. Impressive.'}
-            </Text>
-            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
-              <Button title="Add books" icon="plus" size="sm" onPress={() => router.push('/add-book')} />
-              <Button title="Open library" size="sm" variant="secondary" onPress={() => router.push('/library')} />
+      ) : (reading.data ?? []).length === 0 ? (
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <Press onPress={() => router.push('/add')} style={{ backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpenIcon size={24} weight="fill" color={colors.accent} />
             </View>
-          </View>
-        </LibraryScene>
-      </Pressable>
-
-      {/* What to read next — from the reader's own shelves */}
-      <View style={{ marginBottom: spacing.xxl }}>
-        <SectionHeader eyebrow="From your own shelves" title="What to read next" />
-        {nextReads.isLoading ? (
-          <Skeleton height={190} />
-        ) : nextReads.data?.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -layout.screenPadding }} contentContainerStyle={{ paddingHorizontal: layout.screenPadding, paddingTop: spacing.md, gap: spacing.base }}>
-            {nextReads.data.map((c, i) => (
-              <Pressable
-                key={c.book.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${c.book.title}. ${c.reason}`}
-                onPress={() => router.push({ pathname: '/book/[id]', params: { id: c.book.id } })}
-                style={({ pressed }) => ({ width: 132, gap: spacing.sm, opacity: pressed ? 0.8 : 1 })}
-              >
-                <View>
-                  <BookCover title={c.book.title} author={c.book.authors} uri={c.book.cover_url} width={132} accessible={false} />
-                  {i === 0 ? (
-                    <View style={{ position: 'absolute', top: -8, left: -6, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full, backgroundColor: colors.gold }}>
-                      <Text variant="eyebrow" style={{ color: '#FFF8E8', fontSize: 9 }}>
-                        Top pick
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Text variant="bookTitle" numberOfLines={2} style={{ fontSize: 16, lineHeight: 19 }}>
-                  {c.book.title}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }}>
-                  <Glyph name="magic" size={10} />
-                  <Text variant="caption" style={{ flex: 1, fontSize: 11.5 }} numberOfLines={2}>
-                    {c.reason}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : (
-          <OrnateFrame>
-            <EmptyState
-              compact
-              icon="book"
-              title="Your unread shelf is empty"
-              body="Add the books you own but haven’t read yet (mark them as Want to Read) and GriMore will help you choose between them."
-              actionLabel="Add books"
-              onAction={() => router.push('/add-book')}
-            />
-          </OrnateFrame>
-        )}
-      </View>
-
-      {/* Currently reading */}
-      <View style={{ marginBottom: spacing.xxl }}>
-        <SectionHeader eyebrow="By candlelight" title="Currently reading" actionLabel={reading.data && reading.data.items.length > 1 ? 'All' : undefined} onAction={() => router.push({ pathname: '/library', params: { status: 'reading' } })} />
-        {reading.isLoading ? (
-          <Skeleton height={170} />
-        ) : current ? (
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/book/[id]', params: { id: current.book.id } })}>
-            <OrnateFrame padding={spacing.base}>
-              <View style={{ flexDirection: 'row', gap: spacing.base, alignItems: 'center' }}>
-                <BookCover title={current.book.title} author={current.book.authors} uri={current.book.cover_url} width={84} accessible={false} />
-                <View style={{ flex: 1, gap: spacing.sm }}>
-                  <View style={{ gap: 2 }}>
-                    <Text variant="title3" numberOfLines={2}>
-                      {current.book.title}
-                    </Text>
-                    <Text variant="caption">{current.book.authors}</Text>
-                  </View>
-                  <ProgressBar value={(current.progress_percent ?? 0) / 100} />
-                  <Text variant="caption">
-                    {current.progress_percent ? `${current.progress_percent}% · ` : ''}
-                    {current.started_on ? `since ${new Date(`${current.started_on}T12:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : 'just started'}
-                  </Text>
-                </View>
-              </View>
-            </OrnateFrame>
-          </Pressable>
-        ) : (
-          <Text variant="callout" tone="muted">
-            Nothing open on the desk. Choose your next read above and mark it as Reading.
-          </Text>
-        )}
-      </View>
-
-      {/* Quest */}
-      {goal.data?.target ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/profile')} style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Text variant="eyebrow">The {goal.data.year} quest</Text>
-            <Text variant="caption">
-              {goal.data.read} of {goal.data.target} books
-            </Text>
-          </View>
-          <ProgressBar value={goal.data.read / goal.data.target} tone="olive" height={6} />
-        </Pressable>
-      ) : null}
-
-      {/* Recently added, standing on a shelf */}
-      {recent.data && recent.data.items.length > 0 ? (
-        <View style={{ marginBottom: spacing.xxl }}>
-          <SectionHeader eyebrow="New arrivals" title="Recently shelved" actionLabel="Library" onAction={() => router.push('/library')} />
-          <BookShelf books={recent.data.items.slice(0, 12).map((e) => e.book)} width={78} />
-        </View>
-      ) : null}
-
-      <Flourish glyph="dragon" style={{ marginBottom: spacing.xxl }} />
-
-      {/* Beyond your shelves */}
-      <View style={{ marginBottom: spacing.xxl }}>
-        <SectionHeader eyebrow="Beyond your shelves" title={favGenres.data?.length ? `For a lover of ${favGenres.data[0].name.toLowerCase()}` : 'Classics worth an evening'} />
-        <Shelf books={suggestions.data ?? []} loading={suggestions.isLoading || !favGenres.isSuccess} />
-      </View>
-
-      {/* Readers */}
-      {activity.data && activity.data.length > 0 ? (
-        <View style={{ marginBottom: spacing.xxl }}>
-          <SectionHeader eyebrow="Fellow readers" title="In other Nooks" actionLabel="Readers" onAction={() => router.push('/social')} />
-          <View style={{ gap: spacing.base }}>
-            {activity.data.map((a) => (
-              <Pressable key={a.id} accessibilityRole="button" onPress={() => a.book && router.push({ pathname: '/book/[id]', params: { id: a.book.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Avatar name={a.user?.display_name ?? a.user?.username ?? '?'} uri={a.user?.avatar_url} size={36} />
-                <View style={{ flex: 1 }}>
-                  <Text variant="callout" numberOfLines={2}>
-                    <Text variant="callout" style={{ fontFamily: fonts.sansSemibold }}>
-                      {a.user?.display_name ?? a.user?.username}
-                    </Text>
-                    {a.status === 'reading' ? ' opened ' : ' finished '}
-                    <Text variant="callout" style={{ fontFamily: fonts.serifItalic, fontSize: 16 }}>
-                      {a.book?.title}
-                    </Text>
-                  </Text>
-                  <Text variant="caption">{relativeTime(a.updated_at)}</Text>
-                </View>
-                {a.book ? <BookCover title={a.book.title} uri={a.book.cover_url} size="xs" accessible={false} /> : null}
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Daily riddles: a small extra */}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Daily riddles, ${riddlesDone} of 3 solved today`} onPress={() => router.push('/play')}>
-        <View style={{ borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: spacing.base, gap: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <Glyph name="hat-wizard" size={20} color={colors.accent} />
             <View style={{ flex: 1 }}>
-              <Text variant="bookTitle">Daily riddles</Text>
-              <Text variant="caption">Three small literary puzzles · {riddlesDone}/3 today</Text>
+              <Text variant="title">What are you reading?</Text>
+              <Text variant="small" tone="muted">
+                Scan, search or photograph your shelf to start.
+              </Text>
             </View>
-            <Text variant="callout" tone="accent">
-              Play
+            <ArrowRightIcon size={18} weight="bold" color={colors.muted} />
+          </Press>
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={312} decelerationRate="fast" contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+          {(reading.data ?? []).map((r, i) => {
+            const total = r.book.page_count_estimate;
+            const page = r.current_page ?? 0;
+            const pct = total ? page / total : (r.progress_percent ?? 0) / 100;
+            return (
+              <Stagger key={r.id} i={i}>
+                <View style={{ width: 300, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
+                  <View style={{ flexDirection: 'row', gap: spacing.base }}>
+                    <Press onPress={() => router.push({ pathname: '/book/[id]', params: { id: r.book.id } })}>
+                      <Cover uri={r.book.cover_url} title={r.book.title} author={r.book.authors} width={76} />
+                    </Press>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text variant="caption" tone="accent" style={{ fontFamily: fonts.medium }}>
+                        Reading
+                      </Text>
+                      <Text variant="title" numberOfLines={1} style={{ marginTop: 2 }}>
+                        {r.book.title}
+                      </Text>
+                      <Text variant="small" tone="muted" numberOfLines={1}>
+                        {r.book.authors}
+                      </Text>
+                      <View style={{ marginTop: 'auto' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text variant="caption" tone="muted">
+                            {total ? `p. ${page} of ${total}` : `p. ${page}`}
+                          </Text>
+                          <Text variant="caption" tone="muted">
+                            {Math.round(pct * 100)}%
+                          </Text>
+                        </View>
+                        <Progress value={pct} />
+                      </View>
+                    </View>
+                  </View>
+                  <Btn variant="secondary" size="sm" full style={{ marginTop: spacing.base }} onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: r.book.id } })}>
+                    Update page
+                  </Btn>
+                </View>
+              </Stagger>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      <View style={{ flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+        <Press onPress={() => router.push('/goals')} style={{ flex: 1.25, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
+          <Ring value={goal.data?.target ? goal.data.read / goal.data.target : 0} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5 }}>
+              {goal.data?.read ?? 0}
+              <Text variant="body" tone="muted" style={{ fontFamily: fonts.medium }}>
+                {goal.data?.target ? `/${goal.data.target}` : ''}
+              </Text>
+            </Text>
+            <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
+              {goal.data?.target ? `books in your ${new Date().getFullYear()} goal` : 'Set a reading goal'}
             </Text>
           </View>
-          <DailyStrip challenges={today.data} loading={today.isLoading} compact />
+        </Press>
+        <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base, justifyContent: 'space-between', gap: spacing.sm }}>
+          <FireIcon size={22} weight="fill" color={colors.accent} />
+          <View>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5 }}>
+              {streak.data?.current ?? 0} {streak.data?.current === 1 ? 'day' : 'days'}
+            </Text>
+            <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
+              reading in a row
+            </Text>
+          </View>
         </View>
-      </Pressable>
+      </View>
+
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+        <Press onPress={() => router.push({ pathname: '/wrapped', params: { period: 'month' } })} style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.accent, padding: spacing.lg }}>
+          <View pointerEvents="none" style={{ position: 'absolute', right: -40, top: -64, width: 192, height: 192, borderRadius: 96, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: 64, bottom: -80, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(0,0,0,0.15)' }} />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.base }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="small" tone="onAccent" style={{ fontFamily: fonts.semibold, opacity: 0.8 }}>
+                {monthName(month)} Wrapped
+              </Text>
+              <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 27, letterSpacing: -0.9, marginTop: 4 }}>
+                {monthPages ? `${fmt(monthPages)} pages.\nYour month, told.` : 'Your month,\ntold in pages.'}
+              </Text>
+            </View>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.onAccent, alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowRightIcon size={20} weight="bold" color={colors.accent} />
+            </View>
+          </View>
+        </Press>
+      </View>
+
+      {hangman ? (
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+          <Press onPress={() => router.push({ pathname: '/game/[id]', params: { id: hangman.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, paddingRight: spacing.base }}>
+            <View style={{ width: 48, height: 48, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontFamily: fonts.monoBold, fontSize: 15 }}>{(hangman.view.mask ?? '___').replace(/\s/g, '').slice(0, 3)}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text variant="bodyStrong">Hangman #{hangman.number}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {leader ? <Avatar uri={leader.avatar_url} name={leader.display_name} size={16} /> : null}
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {hangman.attempt?.status === 'won'
+                    ? `Solved in ${Math.floor((hangman.attempt.time_seconds ?? 0) / 60)}:${String((hangman.attempt.time_seconds ?? 0) % 60).padStart(2, '0')}`
+                    : leader
+                      ? `${(leader.display_name ?? leader.username).split(' ')[0]} solved it in ${Math.floor(leader.time_seconds / 60)}:${String(leader.time_seconds % 60).padStart(2, '0')}`
+                      : 'Today’s title is waiting'}
+                </Text>
+              </View>
+            </View>
+            <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
+              {hangman.attempt?.status && hangman.attempt.status !== 'in_progress' ? 'Results' : 'Play'}
+            </Text>
+          </Press>
+        </View>
+      ) : null}
+
+      <View style={{ marginTop: spacing.xxl }}>
+        <SectionHead title="From people you follow" />
+        <View style={{ paddingHorizontal: spacing.md, gap: spacing.md }}>
+          {feed.isLoading ? (
+            [0, 1].map((k) => <Skeleton key={k} height={180} rounded={radius.card} />)
+          ) : items.length === 0 ? (
+            <EmptyState title="Your feed is quiet" body="Follow readers in Explore, or share what you are reading." action="Find readers" onAction={() => router.push('/explore')} />
+          ) : (
+            items.map((p, i) => (
+              <Stagger key={`${p.item_type}-${p.id}`} i={i + 2}>
+                <PostCard post={p} />
+              </Stagger>
+            ))
+          )}
+        </View>
+        {feed.hasNextPage ? (
+          <Btn variant="ghost" size="sm" loading={feed.isFetchingNextPage} onPress={() => feed.fetchNextPage()} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+            Load more
+          </Btn>
+        ) : items.length ? (
+          <Text variant="small" tone="faint" align="center" style={{ paddingVertical: spacing.xxl }}>
+            You are all caught up. Follow more readers in Explore.
+          </Text>
+        ) : null}
+      </View>
     </Screen>
   );
 }

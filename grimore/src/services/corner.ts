@@ -1,54 +1,79 @@
 import { unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 
-export async function getQuotes(userId: string) {
-  return unwrap(
-    await supabase.from('user_quotes').select('id, body, attribution, book_id, position').eq('user_id', userId).order('position').order('created_at').limit(20),
-  );
+export type CornerRow = Database['public']['Tables']['corners']['Row'];
+export type CornerItem = Database['public']['Tables']['corner_items']['Row'];
+
+export type Widget =
+  | 'status'
+  | 'top4'
+  | 'reading'
+  | 'goal'
+  | 'year'
+  | 'quote'
+  | 'review'
+  | 'wrapped'
+  | 'badges'
+  | 'shelf'
+  | 'genres'
+  | 'authors'
+  | 'tbr'
+  | 'communities'
+  | 'guestbook';
+
+export const WIDGETS: Record<Widget, { name: string; desc: string }> = {
+  status: { name: 'Status and soundtrack', desc: 'What you are reading and listening to now' },
+  top4: { name: 'My four', desc: 'Your all-time books' },
+  reading: { name: 'Reading now', desc: 'Live progress' },
+  goal: { name: 'Goal and streak', desc: 'Yearly goal ring' },
+  year: { name: 'Your year in numbers', desc: 'Books, pages, days' },
+  quote: { name: 'Favourite quote', desc: 'One quote, in the spotlight' },
+  review: { name: 'Pinned review', desc: 'Your best review' },
+  wrapped: { name: 'Wrapped', desc: 'Shortcuts to your month and year' },
+  badges: { name: 'Achievements', desc: 'The ones you earned' },
+  shelf: { name: 'Virtual shelf', desc: 'Spines on a shelf' },
+  genres: { name: 'Genres and moods', desc: 'Your taste in tags' },
+  authors: { name: 'Favourite authors', desc: 'Up to six authors' },
+  tbr: { name: 'Up next pile', desc: 'What comes next' },
+  communities: { name: 'Communities', desc: 'Where you take part' },
+  guestbook: { name: 'Guestbook', desc: 'Notes from your visitors' },
+};
+export const ALL_WIDGETS = Object.keys(WIDGETS) as Widget[];
+
+export async function getCorner(userId: string): Promise<CornerRow | null> {
+  return unwrap(await supabase.from('corners').select('*').eq('user_id', userId).maybeSingle());
 }
 
-export async function addQuote(userId: string, body: string, attribution?: string) {
-  unwrap(await supabase.from('user_quotes').insert({ user_id: userId, body: body.trim(), attribution: attribution?.trim() || null }));
+export async function saveCorner(userId: string, patch: Partial<Omit<CornerRow, 'user_id' | 'updated_at'>>) {
+  unwrap(await supabase.from('corners').upsert({ user_id: userId, ...patch }, { onConflict: 'user_id' }));
 }
 
-export async function deleteQuote(id: string) {
-  unwrap(await supabase.from('user_quotes').delete().eq('id', id));
+export async function getShop(): Promise<CornerItem[]> {
+  return unwrap(await supabase.from('corner_items').select('*').order('kind').order('sort_order'));
 }
 
-export async function getFavoriteAuthors(userId: string) {
-  const rows = unwrap(await supabase.from('user_favorite_authors').select('position, author:authors(id, name, nationality_code)').eq('user_id', userId).order('position'));
-  return rows.map((r) => r.author).filter((a): a is NonNullable<typeof a> => !!a);
+export async function getPurchases(userId: string): Promise<string[]> {
+  return unwrap(await supabase.from('corner_purchases').select('item_key').eq('user_id', userId)).map((r) => r.item_key);
 }
 
-export async function addFavoriteAuthor(userId: string, authorId: string, position: number) {
-  unwrap(await supabase.from('user_favorite_authors').upsert({ user_id: userId, author_id: authorId, position }));
-}
+export type GuestbookEntry = { id: string; body: string; created_at: string; author: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
 
-export async function removeFavoriteAuthor(userId: string, authorId: string) {
-  unwrap(await supabase.from('user_favorite_authors').delete().eq('user_id', userId).eq('author_id', authorId));
-}
-
-export async function searchAuthors(query: string) {
-  const term = query.trim().replace(/[%_]/g, '');
-  if (term.length < 2) return [];
-  return unwrap(await supabase.from('authors').select('id, name, nationality_code').ilike('name', `%${term}%`).limit(15));
-}
-
-export async function getLists(userId: string) {
+export async function listGuestbook(ownerId: string): Promise<GuestbookEntry[]> {
   return unwrap(
     await supabase
-      .from('reading_lists')
-      .select('id, title, description, is_public, reading_list_books(book:books(id, title, cover_url))')
-      .eq('user_id', userId)
-      .order('position')
-      .limit(20),
-  );
+      .from('corner_guestbook')
+      .select('id, body, created_at, author:profiles!corner_guestbook_author_id_fkey(id, username, display_name, avatar_url)')
+      .eq('owner_id', ownerId)
+      .order('created_at', { ascending: false })
+      .limit(30),
+  ) as unknown as GuestbookEntry[];
 }
 
-export async function createList(userId: string, title: string, description?: string) {
-  return unwrap(await supabase.from('reading_lists').insert({ user_id: userId, title: title.trim(), description: description?.trim() || null }).select('id').single());
+export async function signGuestbook(ownerId: string, authorId: string, body: string) {
+  unwrap(await supabase.from('corner_guestbook').insert({ owner_id: ownerId, author_id: authorId, body: body.trim().slice(0, 280) }));
 }
 
-export async function addToList(listId: string, bookId: string) {
-  unwrap(await supabase.from('reading_list_books').upsert({ list_id: listId, book_id: bookId }, { ignoreDuplicates: true }));
+export async function deleteGuestbookEntry(id: string) {
+  unwrap(await supabase.from('corner_guestbook').delete().eq('id', id));
 }

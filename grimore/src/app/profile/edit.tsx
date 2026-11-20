@@ -1,106 +1,81 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { TopBar } from '@/components/top-bar';
-import { Avatar, Button, InlineAlert, Screen, Text, TextField } from '@/components/ui';
-import { useMyProfile } from '@/hooks/queries';
+import { Avatar, Btn, Press, Screen, Text, TextField, toast } from '@/components/ui';
+import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { isUsernameAvailable, updateProfile, uploadAvatar } from '@/services/profile';
-import { spacing, useTheme } from '@/theme';
-import { profileSchema, type ProfileValues } from '@/validation/schemas';
+import { fonts, spacing } from '@/theme';
+import { usernameSchema } from '@/validation/schemas';
 
 export default function EditProfile() {
+  const me = useMyId()!;
+  const qc = useQueryClient();
   const profile = useMyProfile();
-  const { colors } = useTheme();
-  const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-  const [uploadedAvatar, setAvatar] = useState<string | null>(null);
-  const avatar = uploadedAvatar ?? profile.data?.avatar_url ?? null;
-  const [uploading, setUploading] = useState(false);
+  const p = profile.data;
+  const [name, setName] = useState<string | null>(null);
+  const [handle, setHandle] = useState<string | null>(null);
+  const [bio, setBio] = useState<string | null>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const v = { name: name ?? p?.display_name ?? '', handle: handle ?? p?.username ?? '', bio: bio ?? p?.bio ?? '', city: city ?? p?.city ?? '' };
 
-  const { control, handleSubmit, reset, formState, setError: setFieldError } = useForm<ProfileValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: { display_name: '', username: '', bio: '' },
-  });
-
-  useEffect(() => {
-    if (profile.data) {
-      reset({ display_name: profile.data.display_name ?? '', username: profile.data.username, bio: profile.data.bio ?? '' });
-    }
-  }, [profile.data, reset]);
-
-  const pickAvatar = async () => {
-    setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true });
-    if (result.canceled || !result.assets[0]?.base64 || !profile.data) return;
-    setUploading(true);
+  const pickPhoto = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true });
+    const a = res.assets?.[0];
+    if (res.canceled || !a?.base64) return;
     try {
-      const asset = result.assets[0];
-      const url = await uploadAvatar(profile.data.id, asset.base64!, asset.mimeType ?? 'image/jpeg');
-      const updated = await updateProfile(profile.data.id, { avatar_url: url });
-      queryClient.setQueryData(qk.profile(profile.data.id), updated);
-      setAvatar(url);
+      setAvatar(await uploadAvatar(me, a.base64, a.mimeType ?? 'image/jpeg'));
     } catch (e) {
-      setError(toAppError(e).message);
-    } finally {
-      setUploading(false);
+      toast(toAppError(e).message);
     }
   };
 
-  const onSubmit = handleSubmit(async (v) => {
-    if (!profile.data) return;
-    setError(null);
-    try {
-      if (v.username.toLowerCase() !== profile.data.username.toLowerCase() && !(await isUsernameAvailable(v.username))) {
-        setFieldError('username', { message: 'That username is taken' });
-        return;
-      }
-      const updated = await updateProfile(profile.data.id, { display_name: v.display_name, username: v.username.toLowerCase(), bio: v.bio || null });
-      queryClient.setQueryData(qk.profile(profile.data.id), updated);
+  const save = useMutation({
+    mutationFn: async () => {
+      const u = usernameSchema.safeParse(v.handle);
+      if (!u.success) throw new Error(u.error.issues[0]?.message ?? 'Check your username');
+      if (u.data.toLowerCase() !== p?.username.toLowerCase() && !(await isUsernameAvailable(u.data))) throw new Error('That username is taken');
+      await updateProfile(me, { display_name: v.name.trim() || null, username: u.data.toLowerCase(), bio: v.bio.trim() || null, city: v.city.trim() || null, ...(avatar ? { avatar_url: avatar } : {}) });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.profile(me) });
       router.back();
-    } catch (e) {
-      setError(toAppError(e).message);
-    }
+      toast('Profile saved');
+    },
+    onError: (e) => toast(e instanceof Error && !('code' in e) ? e.message : toAppError(e).message),
   });
 
-  const name = profile.data?.display_name ?? profile.data?.username ?? '';
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <TopBar mode="close" title="Edit profile" />
-      <Screen keyboard edgeTop={false}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Change profile picture" onPress={() => void pickAvatar()} style={{ alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl }}>
-          <Avatar name={name} uri={avatar} size={96} />
-          <Text variant="callout" tone="accent">
-            {uploading ? 'Uploading…' : 'Change photo'}
+    <Screen
+      title="Edit profile"
+      large={false}
+      back
+      keyboard
+      actions={
+        <Btn size="sm" variant="ghost" loading={save.isPending} onPress={() => save.mutate()}>
+          Save
+        </Btn>
+      }
+    >
+      <View style={{ alignItems: 'center', paddingBottom: spacing.xl, paddingTop: spacing.sm }}>
+        <Avatar uri={avatar ?? p?.avatar_url} name={v.name} size={96} />
+        <Press onPress={pickPhoto} style={{ marginTop: spacing.md }}>
+          <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
+            Change photo
           </Text>
-        </Pressable>
-        <View style={{ gap: spacing.lg }}>
-          {error ? <InlineAlert>{error}</InlineAlert> : null}
-          <Controller control={control} name="display_name" render={({ field, fieldState }) => <TextField label="Name" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
-          <Controller
-            control={control}
-            name="username"
-            render={({ field, fieldState }) => (
-              <TextField label="Username" value={field.value} onChangeText={(t) => field.onChange(t.replace(/\s/g, '').toLowerCase())} error={fieldState.error?.message} autoCapitalize="none" autoCorrect={false} leadingIcon="at-sign" />
-            )}
-          />
-          <Controller
-            control={control}
-            name="bio"
-            render={({ field, fieldState }) => (
-              <TextField label="Bio" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} multiline maxLength={280} placeholder="What kind of reader are you?" hint={`${field.value.length}/280`} />
-            )}
-          />
-          <Button title="Save" size="lg" fullWidth loading={formState.isSubmitting} onPress={onSubmit} />
-        </View>
-      </Screen>
-    </View>
+        </Press>
+      </View>
+      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.base }}>
+        <TextField label="Name" value={v.name} onChangeText={setName} maxLength={60} autoCapitalize="words" />
+        <TextField label="Username" value={v.handle} onChangeText={(x) => setHandle(x.toLowerCase().replace(/[^a-z0-9._]/g, ''))} prefix="@" autoCapitalize="none" maxLength={24} />
+        <TextField label="Bio" value={v.bio} onChangeText={(x) => setBio(x.slice(0, 160))} multiline helper={`${v.bio.length}/160`} />
+        <TextField label="City" value={v.city} onChangeText={setCity} maxLength={60} helper="Only used for the Market, never your exact location." />
+      </View>
+    </Screen>
   );
 }

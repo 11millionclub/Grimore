@@ -50,3 +50,12 @@ export async function consumeAuthLink(url: string) {
   }
   return null;
 }
+
+/** Passwordless sign-in: emails a one-tap link that opens the app signed in. */
+export async function sendMagicLink(email: string) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.trim(),
+    options: { shouldCreateUser: false, emailRedirectTo: Linking.createURL('/') },
+  });
+  if (error) throw toAppError(error);
+}

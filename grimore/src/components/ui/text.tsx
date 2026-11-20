@@ -2,33 +2,33 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 import { typeScale, useTheme, type Palette, type TypeVariant } from '@/theme';
 
-export type TextTone = 'ink' | 'muted' | 'subtle' | 'accent' | 'olive' | 'danger' | 'onAccent' | 'ochre';
+export type TextTone = 'ink' | 'muted' | 'faint' | 'accent' | 'good' | 'danger' | 'onAccent' | 'bg';
 
-const toneToColor: Record<TextTone, keyof Palette> = {
+const toneKey: Record<TextTone, keyof Palette> = {
   ink: 'ink',
-  muted: 'inkMuted',
-  subtle: 'inkSubtle',
+  muted: 'muted',
+  faint: 'faint',
   accent: 'accent',
-  olive: 'olive',
+  good: 'good',
   danger: 'danger',
   onAccent: 'onAccent',
-  ochre: 'ochre',
+  bg: 'bg',
 };
 
 export type TextProps = RNTextProps & {
   variant?: TypeVariant;
   tone?: TextTone;
   align?: 'left' | 'center' | 'right';
+  color?: string;
 };
 
-export function Text({ variant = 'body', tone, align, style, ...props }: TextProps) {
+export function Text({ variant = 'body', tone = 'ink', align, color, style, ...props }: TextProps) {
   const { colors } = useTheme();
-  const defaultTone: TextTone = variant === 'caption' || variant === 'eyebrow' ? 'muted' : 'ink';
   return (
     <RNText
-      maxFontSizeMultiplier={1.6}
+      maxFontSizeMultiplier={1.5}
       {...props}
-      style={[typeScale[variant], { color: colors[toneToColor[tone ?? defaultTone]] }, align && { textAlign: align }, style]}
+      style={[typeScale[variant], { color: color ?? colors[toneKey[tone]] }, align && { textAlign: align }, style]}
     />
   );
 }

@@ -56,3 +56,14 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
   if (diff < 7 * 86_400) return `${Math.floor(diff / 86_400)}d`;
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
+
+/** h:mm:ss until the next UTC midnight (new daily games). */
+export function clockUntilNextChallenge(now: Date = new Date()): string {
+  const s = Math.max(0, Math.floor(msUntilNextChallenge(now) / 1000));
+  return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/** 14 482 style thousands separator (thin, readable, locale neutral). */
+export function fmt(n: number): string {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}

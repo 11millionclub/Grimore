@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { useAppearance } from '@/stores/appearance';
+
 import { palettes, type Palette } from './colors';
 import { fonts, layout, motion, radius, spacing, typeScale } from './tokens';
 
@@ -10,38 +12,29 @@ export * from './tokens';
 export type Theme = {
   scheme: 'light' | 'dark';
   colors: Palette;
-  /** Soft elevation, used sparingly (floating tab bar, sheets). */
-  shadow: { card: string; raised: string };
 };
 
-function buildTheme(scheme: 'light' | 'dark'): Theme {
-  const colors = palettes[scheme];
-  return {
-    scheme,
-    colors,
-    shadow: {
-      card: `0 1px 2px ${colors.shadow}`,
-      raised: `0 10px 30px ${colors.shadow}`,
-    },
-  };
-}
-
-const ThemeContext = createContext<Theme>(buildTheme('light'));
+const ThemeContext = createContext<Theme>({ scheme: 'dark', colors: palettes.dark });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const theme = useMemo(() => buildTheme(scheme), [scheme]);
+  const system = useColorScheme();
+  const appearance = useAppearance((s) => s.appearance);
+  const scheme = appearance === 'system' ? (system === 'light' ? 'light' : 'dark') : appearance;
+  const theme = useMemo<Theme>(() => ({ scheme, colors: palettes[scheme] }), [scheme]);
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
+
+/** Forces the dark palette for a subtree (camera, Wrapped). */
+export function DarkTheme({ children }: { children: ReactNode }) {
+  return <ThemeContext.Provider value={DARK}>{children}</ThemeContext.Provider>;
+}
+const DARK: Theme = { scheme: 'dark', colors: palettes.dark };
 
 export function useTheme(): Theme {
   return useContext(ThemeContext);
 }
 
-/**
- * Define styles that depend on the active palette once, outside the
- * component, and get a memoised StyleSheet back.
- */
+/** Palette-dependent styles defined once, memoised per theme. */
 export function makeStyles<T>(factory: (theme: Theme) => T) {
   return function useStyles(): T {
     const theme = useTheme();

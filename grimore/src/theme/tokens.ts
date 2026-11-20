@@ -1,6 +1,6 @@
 import type { TextStyle } from 'react-native';
 
-/** 4-point spacing scale. Screens use `spacing.lg` (20) as edge padding. */
+/** 4-point spacing scale. Screens use 20 as edge padding. */
 export const spacing = {
   xxs: 2,
   xs: 4,
@@ -14,52 +14,39 @@ export const spacing = {
   huge: 64,
 } as const;
 
+/** Cards 20, tiles/inputs 14, buttons and chips are full pills, covers 4 (they are physical objects). */
 export const radius = {
-  xs: 3,
-  sm: 5,
-  md: 8,
-  lg: 12,
-  xl: 18,
+  cover: 4,
+  sm: 8,
+  tile: 14,
+  card: 20,
+  sheet: 28,
   full: 999,
 } as const;
 
-/**
- * Three families, each with one job:
- *  - Cinzel: inscriptions. Wordmark, mastheads, small-caps labels. Used sparingly.
- *  - Cormorant Garamond: the book itself. Headings, titles, quotes.
- *  - Inter: the interface. Controls, metadata, long UI text.
- */
 export const fonts = {
-  display: 'Cinzel_600SemiBold',
-  displayBold: 'Cinzel_700Bold',
-  inscription: 'Cinzel_500Medium',
-  serif: 'CormorantGaramond_600SemiBold',
-  serifMedium: 'CormorantGaramond_500Medium',
-  serifBold: 'CormorantGaramond_700Bold',
-  serifItalic: 'CormorantGaramond_500Medium_Italic',
-  sans: 'Inter_400Regular',
-  sansMedium: 'Inter_500Medium',
-  sansSemibold: 'Inter_600SemiBold',
-  /** Kept for components that ask for the old names. */
-  serifSemibold: 'CormorantGaramond_700Bold',
-  serifRegular: 'CormorantGaramond_500Medium',
+  regular: 'Geist_400Regular',
+  medium: 'Geist_500Medium',
+  semibold: 'Geist_600SemiBold',
+  bold: 'Geist_700Bold',
+  mono: 'GeistMono_500Medium',
+  monoBold: 'GeistMono_600SemiBold',
 } as const;
 
 export const typeScale = {
-  display: { fontFamily: fonts.display, fontSize: 30, lineHeight: 38, letterSpacing: 1.2 },
-  title1: { fontFamily: fonts.serifBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.3 },
-  title2: { fontFamily: fonts.serifBold, fontSize: 27, lineHeight: 32, letterSpacing: -0.2 },
-  title3: { fontFamily: fonts.serifBold, fontSize: 22, lineHeight: 27 },
-  bookTitle: { fontFamily: fonts.serifBold, fontSize: 18, lineHeight: 21 },
-  quote: { fontFamily: fonts.serifItalic, fontSize: 21, lineHeight: 29 },
-  serifBody: { fontFamily: fonts.serifMedium, fontSize: 19, lineHeight: 27 },
-  body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 22 },
-  bodyStrong: { fontFamily: fonts.sansMedium, fontSize: 15, lineHeight: 22 },
-  callout: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20 },
-  caption: { fontFamily: fonts.sans, fontSize: 12.5, lineHeight: 17 },
-  eyebrow: { fontFamily: fonts.inscription, fontSize: 11, lineHeight: 15, letterSpacing: 2.2, textTransform: 'uppercase' },
-  button: { fontFamily: fonts.sansSemibold, fontSize: 15, lineHeight: 20, letterSpacing: 0.1 },
-  numeral: { fontFamily: fonts.serifBold, fontSize: 32, lineHeight: 34 },
+  display: { fontFamily: fonts.bold, fontSize: 34, lineHeight: 36, letterSpacing: -1.2 },
+  h1: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.95 },
+  h2: { fontFamily: fonts.semibold, fontSize: 19, lineHeight: 24, letterSpacing: -0.4 },
+  title: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.34 },
+  body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
+  bodyStrong: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21 },
+  callout: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
+  small: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18 },
+  caption: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16 },
+  micro: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14 },
+  button: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20 },
+  mono: { fontFamily: fonts.monoBold, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
+  num: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.9, fontVariant: ['tabular-nums'] },
 } as const satisfies Record<string, TextStyle>;
 
 export type TypeVariant = keyof typeof typeScale;
@@ -68,13 +55,15 @@ export const motion = {
   fast: 140,
   base: 240,
   slow: 420,
-  spring: { damping: 18, stiffness: 220, mass: 0.9 },
+  spring: { damping: 20, stiffness: 260, mass: 0.9 },
+  sheet: { damping: 26, stiffness: 260, mass: 1 },
 } as const;
 
 export const layout = {
   screenPadding: spacing.lg,
-  maxContentWidth: 720,
-  tabBarHeight: 66,
+  maxContentWidth: 640,
+  navBarHeight: 52,
+  tabBarHeight: 62,
   coverAspect: 1.5,
   hitSlop: { top: 10, bottom: 10, left: 10, right: 10 },
 } as const;

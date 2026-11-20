@@ -6,19 +6,19 @@ import { authorLine } from './catalogue';
 
 export type ReadingStatus = Database['public']['Enums']['reading_status'];
 
-export const STATUS_META: Record<ReadingStatus, { label: string; short: string; icon: 'bookmark' | 'book-open' | 'check' | 'pause' | 'x' }> = {
-  want_to_read: { label: 'Want to Read', short: 'Want', icon: 'bookmark' },
-  reading: { label: 'Currently Reading', short: 'Reading', icon: 'book-open' },
-  read: { label: 'Read', short: 'Read', icon: 'check' },
-  on_hold: { label: 'On Hold', short: 'On hold', icon: 'pause' },
-  dnf: { label: 'Did Not Finish', short: 'DNF', icon: 'x' },
+export const STATUS_META: Record<ReadingStatus, { label: string; short: string }> = {
+  want_to_read: { label: 'Want to read', short: 'Want' },
+  reading: { label: 'Reading', short: 'Reading' },
+  read: { label: 'Read', short: 'Read' },
+  on_hold: { label: 'On hold', short: 'On hold' },
+  dnf: { label: 'Abandoned', short: 'DNF' },
 };
 export const STATUS_ORDER: ReadingStatus[] = ['reading', 'want_to_read', 'read', 'on_hold', 'dnf'];
 
 export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
 export const PAGE_SIZE = 30;
 
-const entrySelect = `id, status, rating, progress_percent, current_page, started_on, finished_on, notes, is_private, added_at, updated_at,
+const entrySelect = `id, status, rating, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
   book:books!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, book_authors(position, role, authors(name)))` as const;
 
 type RawEntry = {
@@ -31,6 +31,7 @@ type RawEntry = {
   finished_on: string | null;
   notes: string | null;
   is_private: boolean;
+  is_owned: boolean;
   added_at: string;
   updated_at: string;
   book: {
@@ -93,7 +94,7 @@ export async function getEntry(userId: string, bookId: string): Promise<LibraryE
   return row ? mapEntry(row as unknown as RawEntry) : null;
 }
 
-export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private'>>;
+export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
 
 export async function saveEntry(userId: string, bookId: string, patch: EntryPatch) {
   return unwrap(
@@ -178,4 +179,109 @@ export async function getNextReads(userId: string, favouriteGenreIds: number[], 
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+}
+
+/** All entries of one status (for shelves and pickers), newest first. */
+export async function listByStatus(userId: string, status: ReadingStatus | 'owned', limit = 200): Promise<LibraryEntry[]> {
+  let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);
+  q = status === 'owned' ? q.eq('is_owned', true) : q.eq('status', status);
+  const rows = unwrap(await q.order('updated_at', { ascending: false }).limit(limit)) as unknown as RawEntry[];
+  return rows.map(mapEntry);
+}
+
+/** Log the page you are on. Records a reading session, updates progress, optionally posts. */
+export async function logProgress(input: { bookId: string; page: number; note?: string; share?: boolean; audience?: 'public' | 'followers' }) {
+  return unwrap(
+    await supabase.rpc('log_progress', {
+      p_book: input.bookId,
+      p_page: Math.max(0, Math.round(input.page)),
+      p_note: input.note?.trim() || undefined,
+      p_share: input.share ?? false,
+      p_audience: input.audience ?? 'public',
+    }),
+  ) as { user_book_id: string; page: number; total: number | null; pages_logged: number; post_id: string | null };
+}
+
+export type Streak = { current: number; longest: number; today_pages: number; daily_goal: number; week: { date: string; pages: number }[] };
+
+export async function getReadingStreak(userId?: string): Promise<Streak> {
+  return unwrap(await supabase.rpc('get_reading_streak', userId ? { p_user: userId } : {})) as unknown as Streak;
+}
+
+/** Add many books at once (shelf scan, imports). Existing entries keep their status unless `overwrite`. */
+export async function addMany(userId: string, bookIds: string[], patch: EntryPatch, overwrite = false) {
+  if (!bookIds.length) return 0;
+  const existing = unwrap(await supabase.from('user_books').select('book_id').eq('user_id', userId).in('book_id', bookIds));
+  const have = new Set(existing.map((e) => e.book_id));
+  const fresh = bookIds.filter((id) => !have.has(id));
+  if (fresh.length) unwrap(await supabase.from('user_books').insert(fresh.map((book_id) => ({ user_id: userId, book_id, status: 'want_to_read' as ReadingStatus, ...patch }))));
+  const old = bookIds.filter((id) => have.has(id));
+  if (old.length) {
+    const update: EntryPatch = overwrite ? patch : patch.is_owned ? { is_owned: true } : {};
+    if (Object.keys(update).length) unwrap(await supabase.from('user_books').update(update).eq('user_id', userId).in('book_id', old));
+  }
+  return bookIds.length;
+}
+
+/* ---------- Custom shelves (reading lists) ---------- */
+
+export type Shelf = { id: string; title: string; description: string | null; is_public: boolean; count: number; covers: { id: string; title: string; cover_url: string | null }[] };
+
+export async function listShelves(userId: string): Promise<Shelf[]> {
+  const rows = unwrap(
+    await supabase
+      .from('reading_lists')
+      .select('id, title, description, is_public, reading_list_books(position, book:books(id, title, cover_url))')
+      .eq('user_id', userId)
+      .order('position'),
+  ) as unknown as { id: string; title: string; description: string | null; is_public: boolean; reading_list_books: { position: number; book: { id: string; title: string; cover_url: string | null } | null }[] }[];
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    is_public: r.is_public,
+    count: r.reading_list_books.length,
+    covers: r.reading_list_books
+      .sort((a, b) => a.position - b.position)
+      .map((x) => x.book)
+      .filter((b): b is NonNullable<typeof b> => !!b)
+      .slice(0, 3),
+  }));
+}
+
+export async function createShelf(userId: string, title: string, isPublic: boolean) {
+  return unwrap(await supabase.from('reading_lists').insert({ user_id: userId, title: title.trim(), is_public: isPublic }).select('id').single());
+}
+
+export async function getShelfBooks(listId: string) {
+  const rows = unwrap(
+    await supabase
+      .from('reading_list_books')
+      .select('position, book:books(id, title, cover_url, first_published_year, book_authors(position, role, authors(name)))')
+      .eq('list_id', listId)
+      .order('position'),
+  ) as unknown as { book: { id: string; title: string; cover_url: string | null; first_published_year: number | null; book_authors: Parameters<typeof authorLine>[0] } | null }[];
+  return rows.filter((r) => r.book).map((r) => ({ id: r.book!.id, title: r.book!.title, cover_url: r.book!.cover_url, authors: authorLine(r.book!.book_authors) }));
+}
+
+export async function addToShelf(listId: string, bookId: string) {
+  unwrap(await supabase.from('reading_list_books').upsert({ list_id: listId, book_id: bookId, position: Date.now() % 1_000_000 }, { onConflict: 'list_id,book_id', ignoreDuplicates: true }));
+}
+
+/* ---------- Quotes ---------- */
+
+export async function listQuotes(userId: string) {
+  return unwrap(
+    await supabase.from('user_quotes').select('id, body, attribution, book_id, created_at, book:books(id, title, cover_url)').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+  ) as unknown as { id: string; body: string; attribution: string | null; book_id: string | null; created_at: string; book: { id: string; title: string; cover_url: string | null } | null }[];
+}
+
+export async function saveQuote(userId: string, input: { body: string; bookId?: string | null; attribution?: string | null }) {
+  return unwrap(
+    await supabase
+      .from('user_quotes')
+      .insert({ user_id: userId, body: input.body.trim().slice(0, 1000), book_id: input.bookId ?? null, attribution: input.attribution ?? null, position: 0 })
+      .select('id')
+      .single(),
+  );
 }
