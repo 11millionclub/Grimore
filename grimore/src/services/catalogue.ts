@@ -43,7 +43,7 @@ export async function getBook(id: string) {
     await supabase
       .from('books')
       .select(
-        `id, title, subtitle, description, first_published_year, page_count_estimate, cover_url, cover_source, original_language,
+        `id, title, subtitle, description, first_published_year, page_count_estimate, cover_url, cover_source, original_language, moods,
          primary_genre:genres(id, name, slug),
          book_genres(genres(id, name, slug)),
          book_authors(position, role, authors(id, name, nationality_code)),
@@ -84,4 +84,25 @@ export async function getBookCommunity(bookId: string) {
   const ratings = (reviews.data ?? []).map((r) => Number(r.rating));
   const average = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
   return { readers: readers.count ?? 0, reviewCount: ratings.length, average };
+}
+
+/** People I follow who have this book, and their average rating. */
+export async function friendsWithBook(viewerId: string, bookId: string) {
+  const follows = unwrap(await supabase.from('follows').select('followee_id').eq('follower_id', viewerId).eq('status', 'accepted').limit(2000));
+  const ids = follows.map((f) => f.followee_id);
+  if (!ids.length) return { readers: [] as { id: string; username: string; display_name: string | null; avatar_url: string | null }[], read: 0, avg: null as number | null };
+  const rows = unwrap(
+    await supabase
+      .from('user_books')
+      .select('status, rating, who:profiles!user_books_user_id_fkey(id, username, display_name, avatar_url)')
+      .eq('book_id', bookId)
+      .in('user_id', ids)
+      .limit(200),
+  ) as unknown as { status: string; rating: number | null; who: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null }[];
+  const rated = rows.filter((r) => r.rating !== null);
+  return {
+    readers: rows.map((r) => r.who).filter((w): w is NonNullable<typeof w> => !!w),
+    read: rows.filter((r) => r.status === 'read').length,
+    avg: rated.length ? rated.reduce((a, r) => a + Number(r.rating), 0) / rated.length : null,
+  };
 }

@@ -10,7 +10,7 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Preferences = Database['public']['Tables']['user_preferences']['Row'];
 export type Statistics = Database['public']['Tables']['user_statistics']['Row'];
 
-const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at';
+const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at, archetype, city';
 
 export async function getProfile(id: string): Promise<Profile> {
   return unwrap(await supabase.from('profiles').select(profileSelect).eq('id', id).single());
@@ -20,7 +20,7 @@ export async function getProfileByUsername(username: string): Promise<Profile | 
   return unwrap(await supabase.from('profiles').select(profileSelect).eq('username', username).maybeSingle());
 }
 
-export async function updateProfile(id: string, patch: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'avatar_url' | 'is_private' | 'onboarding_completed_at' | 'country_code'>>) {
+export async function updateProfile(id: string, patch: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'avatar_url' | 'is_private' | 'onboarding_completed_at' | 'country_code' | 'archetype' | 'city'>>) {
   return unwrap(await supabase.from('profiles').update(patch).eq('id', id).select(profileSelect).single());
 }
 
@@ -94,14 +94,68 @@ export async function searchReaders(query: string) {
   const term = query.trim().replace(/[%_]/g, '');
   if (term.length < 2) return [];
   return unwrap(
-    await supabase.from('profiles').select('id, username, display_name, avatar_url').or(`username.ilike.%${term}%,display_name.ilike.%${term}%`).limit(20),
+    await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, archetype')
+      .or(`username.ilike.%${term}%,display_name.ilike.%${term}%`)
+      .not('onboarding_completed_at', 'is', null)
+      .limit(20),
   );
 }
 
-/** Upload a reader's own Nook background under <uid>/nook-<ts>.<ext>; returns its public URL. */
-export async function uploadNookBackground(userId: string, base64: string, mimeType = 'image/jpeg'): Promise<string> {
-  const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
-  const path = `${userId}/nook-${Date.now()}.${ext}`;
-  unwrap(await supabase.storage.from('nook-backgrounds').upload(path, decode(base64), { contentType: mimeType, upsert: true }));
-  return supabase.storage.from('nook-backgrounds').getPublicUrl(path).data.publicUrl;
+export type ReaderCard = { id: string; username: string; display_name: string | null; avatar_url: string | null; archetype: string | null };
+
+/** Readers to follow: same archetype first, then recently active. Excludes me and people I follow. */
+export async function suggestReaders(userId: string, archetype: string | null, limit = 12): Promise<ReaderCard[]> {
+  const follows = unwrap(await supabase.from('follows').select('followee_id').eq('follower_id', userId).limit(1000));
+  const exclude = [userId, ...follows.map((f) => f.followee_id)];
+  const base = () =>
+    supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, archetype')
+      .not('onboarding_completed_at', 'is', null)
+      .not('id', 'in', `(${exclude.join(',')})`)
+      .limit(limit);
+  const same = archetype ? unwrap(await base().eq('archetype', archetype)) : [];
+  if (same.length >= limit) return same;
+  const rest = unwrap(await base().order('updated_at', { ascending: false }));
+  const seen = new Set(same.map((r) => r.id));
+  return [...same, ...rest.filter((r) => !seen.has(r.id))].slice(0, limit);
+}
+
+export async function getCounts(userId: string) {
+  const [followers, following, books] = await Promise.all([
+    supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followee_id', userId).eq('status', 'accepted'),
+    supabase.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', userId).eq('status', 'accepted'),
+    supabase.from('user_books').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+  ]);
+  return { followers: followers.count ?? 0, following: following.count ?? 0, books: books.count ?? 0 };
+}
+
+export async function listFollows(userId: string, direction: 'followers' | 'following'): Promise<ReaderCard[]> {
+  if (direction === 'followers') {
+    const rows = unwrap(
+      await supabase
+        .from('follows')
+        .select('who:profiles!follows_follower_id_fkey(id, username, display_name, avatar_url, archetype)')
+        .eq('followee_id', userId)
+        .eq('status', 'accepted')
+        .limit(500),
+    ) as unknown as { who: ReaderCard | null }[];
+    return rows.map((r) => r.who).filter((r): r is ReaderCard => !!r);
+  }
+  const rows = unwrap(
+    await supabase
+      .from('follows')
+      .select('who:profiles!follows_followee_id_fkey(id, username, display_name, avatar_url, archetype)')
+      .eq('follower_id', userId)
+      .eq('status', 'accepted')
+      .limit(500),
+  ) as unknown as { who: ReaderCard | null }[];
+  return rows.map((r) => r.who).filter((r): r is ReaderCard => !!r);
+}
+
+export async function getMyFollowingIds(userId: string): Promise<string[]> {
+  const rows = unwrap(await supabase.from('follows').select('followee_id').eq('follower_id', userId).limit(2000));
+  return rows.map((r) => r.followee_id);
 }

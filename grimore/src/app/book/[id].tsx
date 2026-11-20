@@ -2,281 +2,332 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FeedCard } from '@/components/feed-card';
-import { TopBar } from '@/components/top-bar';
-import {
-  BookCover,
-  Button,
-  Chip,
-  ChipGroup,
-  Divider,
-  EmptyState,
-  ErrorState,
-  IconButton,
-  InlineAlert,
-  ProgressBar,
-  Rating,
-  Screen,
-  SectionHeader,
-  Skeleton,
-  Stat,
-  Text,
-  TextField,
-} from '@/components/ui';
-import { countryName } from '@/features/games/presentation';
-import { useFavoriteBooks, useMyId } from '@/hooks/queries';
+import { CommunityCover, openCommunity } from '@/components/books';
+import { BellIcon, BookmarkSimpleIcon, CaretRightIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, StorefrontIcon } from '@/components/icons';
+import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast } from '@/components/ui';
+import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { qk } from '@/lib/query-client';
-import { getBook, getBookCommunity } from '@/services/catalogue';
-import { STATUS_META, STATUS_ORDER, getEntry, removeEntry, saveEntry, type EntryPatch } from '@/services/library';
-import { addFavoriteBook, removeFavoriteBook } from '@/services/profile';
-import { getFeed } from '@/services/social';
-import { radius, spacing, useTheme } from '@/theme';
+import { friendsWithBook, getBook } from '@/services/catalogue';
+import { communitiesForBook } from '@/services/communities';
+import { getEntry, removeEntry, saveEntry, type EntryPatch } from '@/services/library';
+import { hasAlert, listingsForBook, money, setAlert } from '@/services/market';
+import { getBookReviews } from '@/services/social';
+import { fonts, radius, spacing, useTheme } from '@/theme';
 
 export default function BookScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const userId = useMyId()!;
-  const { colors, scheme } = useTheme();
-  const queryClient = useQueryClient();
-
-  const book = useQuery({ queryKey: qk.book(id), queryFn: () => getBook(id) });
-  const entry = useQuery({ queryKey: qk.libraryEntry(id), queryFn: () => getEntry(userId, id) });
-  const community = useQuery({ queryKey: [...qk.book(id), 'community'], queryFn: () => getBookCommunity(id) });
-  const reviews = useQuery({ queryKey: qk.bookReviews(id), queryFn: () => getFeed({ viewerId: userId, scope: 'reviews', bookId: id }) });
-  const favourites = useFavoriteBooks(userId);
-  const isFavourite = !!favourites.data?.some((b) => b.id === id);
-
-  // Drafts fall back to the saved values until the reader edits them.
-  const [notesDraft, setNotes] = useState<string | null>(null);
-  const [pageDraft, setPage] = useState<string | null>(null);
-  const notes = notesDraft ?? entry.data?.notes ?? '';
-  const page = pageDraft ?? (entry.data?.current_page ? String(entry.data.current_page) : '');
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
-
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: qk.libraryEntry(id) });
-    void queryClient.invalidateQueries({ queryKey: qk.libraryAll });
-    void queryClient.invalidateQueries({ queryKey: qk.stats(userId) });
-    void queryClient.invalidateQueries({ queryKey: ['goal'] });
-  };
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const me = useMyId()!;
+  const qc = useQueryClient();
+  const book = useQuery({ queryKey: ['book', id], queryFn: () => getBook(id) });
+  const entry = useQuery({ queryKey: ['library', 'entry', id], queryFn: () => getEntry(me, id) });
+  const reviews = useQuery({ queryKey: ['book', id, 'reviews'], queryFn: () => getBookReviews(id, me) });
+  const friends = useQuery({ queryKey: ['book', id, 'friends'], queryFn: () => friendsWithBook(me, id) });
+  const comms = useQuery({ queryKey: ['book', id, 'communities'], queryFn: () => communitiesForBook(id) });
+  const listings = useQuery({ queryKey: ['book', id, 'listings'], queryFn: () => listingsForBook(id) });
+  const alert = useQuery({ queryKey: ['alert', id], queryFn: () => hasAlert(me, id) });
 
   const save = useMutation({
-    mutationFn: (patch: EntryPatch) => saveEntry(userId, id, patch),
-    onMutate: () => setError(null),
-    onSuccess: () => {
-      setNotes(null);
-      setPage(null);
-      invalidate();
+    mutationFn: async (patch: EntryPatch | null) => {
+      if (patch) await saveEntry(me, id, patch);
+      else await removeEntry(me, id);
     },
-    onError: (e) => setError(toAppError(e).message),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['library'] });
+      void qc.invalidateQueries({ queryKey: ['readingStats'] });
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const toggleAlert = useMutation({
+    mutationFn: (on: boolean) => setAlert(me, id, on),
+    onSuccess: (_d, on) => {
+      void qc.invalidateQueries({ queryKey: ['alert', id] });
+      toast(on ? 'We will tell you when someone lists it' : 'Alert removed');
+    },
   });
 
-  const remove = useMutation({
-    mutationFn: () => removeEntry(userId, id),
-    onSuccess: invalidate,
-    onError: (e) => setError(toAppError(e).message),
-  });
-
-  const favourite = useMutation({
-    mutationFn: () => (isFavourite ? removeFavoriteBook(userId, id) : addFavoriteBook(userId, id, favourites.data?.length ?? 0)),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: qk.favorites(userId) }),
-    onError: (e) => setError(toAppError(e).message),
-  });
-
-  if (book.isError) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <TopBar />
-        <ErrorState onRetry={() => void book.refetch()} />
-      </View>
-    );
-  }
-
+  if (book.isError) return <Screen title="Book" back><ErrorState onRetry={() => book.refetch()} /></Screen>;
   const b = book.data;
   const e = entry.data;
-  const pages = b?.page_count_estimate ?? null;
-  const author = b?.book_authors?.find((x) => x.position === 0)?.authors;
-  const genres = [b?.primary_genre, ...(b?.book_genres ?? []).map((g) => g.genres)].filter(
-    (g, i, arr): g is NonNullable<typeof g> => !!g && arr.findIndex((x) => x?.id === g.id) === i,
+  const total = e?.book.page_count_estimate ?? b?.page_count_estimate ?? null;
+  const reading = e?.status === 'reading';
+  const want = e?.status === 'want_to_read';
+  const myStars = e?.rating ?? 0;
+  const genres = [b?.primary_genre?.name, ...(b?.book_genres ?? []).map((g) => g.genres?.name)].filter((g, i, a): g is string => !!g && a.indexOf(g) === i);
+  const myReview = reviews.data?.list.find((r) => r.author?.id === me);
+  const topReview = reviews.data?.list.find((r) => r.author?.id !== me);
+
+  const hero = (
+    <View style={{ overflow: 'hidden', paddingTop: insets.top + 56 }}>
+      {b?.cover_url ? <Image source={{ uri: b.cover_url }} blurRadius={40} style={{ position: 'absolute', inset: 0, opacity: 0.6, transform: [{ scale: 1.5 }] }} contentFit="cover" /> : null}
+      <LinearGradient colors={['transparent', colors.bg + '66', colors.bg]} style={{ position: 'absolute', inset: 0 }} />
+      <View style={{ alignItems: 'center', paddingHorizontal: spacing.xxl, paddingBottom: spacing.xl }}>
+        {b ? (
+          <Animated.View entering={FadeInDown.springify().damping(14)}>
+            <Cover uri={b.cover_url} title={b.title} author={b.authorsLine} width={150} />
+          </Animated.View>
+        ) : (
+          <Skeleton width={150} height={225} rounded={4} />
+        )}
+        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.95, marginTop: spacing.xl }}>
+          {b?.title ?? ' '}
+        </Text>
+        <Text variant="body" tone="muted" align="center" style={{ marginTop: 4 }}>
+          {b?.authorsLine ? (
+            <Text variant="body" style={{ fontFamily: fonts.medium, textDecorationLine: 'underline', textDecorationColor: colors.lineStrong }} onPress={() => router.push({ pathname: '/author/[name]', params: { name: b.authorsLine.split(',')[0] } })}>
+              {b.authorsLine}
+            </Text>
+          ) : null}
+          {b?.first_published_year ? ` · ${b.first_published_year}` : ''}
+        </Text>
+        {reviews.data?.avg ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md }}>
+            <Stars value={reviews.data.avg} size={14} />
+            <Text variant="small" style={{ fontFamily: fonts.semibold }}>
+              {reviews.data.avg.toFixed(1)}
+            </Text>
+            <Text variant="small" tone="muted">
+              {reviews.data.count} {reviews.data.count === 1 ? 'rating' : 'ratings'}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 
-  const saveProgress = () => {
-    const n = Number.parseInt(page, 10);
-    if (!Number.isFinite(n) || n < 0) return;
-    const percent = pages ? Math.min(100, Math.round((n / pages) * 100)) : null;
-    save.mutate({ current_page: n, progress_percent: percent, ...(percent === 100 ? { status: 'read' } : {}) });
-  };
-
-  const confirmRemove = () =>
-    Alert.alert('Remove from library?', 'Your rating and notes for this book will be deleted.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => remove.mutate() },
-    ]);
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      {/* Soft blurred backdrop from the cover */}
-      {b?.cover_url ? (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 380, overflow: 'hidden' }} pointerEvents="none">
-          <Image source={{ uri: b.cover_url }} style={{ width: '100%', height: '100%', opacity: scheme === 'dark' ? 0.25 : 0.35 }} blurRadius={40} contentFit="cover" />
-          <LinearGradient colors={['transparent', colors.canvas]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 220 }} />
+    <Screen
+      title={b?.title}
+      large={false}
+      back
+      hero={hero}
+      barTransparent
+      actions={
+        <IconBtn label="Share" glass onPress={() => b && void Share.share({ message: `${b.title} by ${b.authorsLine}, on Grimore` })}>
+          <ShareNetworkIcon size={20} color={colors.ink} />
+        </IconBtn>
+      }
+    >
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        {reading ? (
+          <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+              <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
+                Reading
+              </Text>
+              <Text variant="small" tone="muted">
+                {total ? `p. ${e?.current_page ?? 0} of ${total}` : `p. ${e?.current_page ?? 0}`}
+              </Text>
+            </View>
+            <Progress value={total ? (e?.current_page ?? 0) / total : (e?.progress_percent ?? 0) / 100} />
+            <Btn full style={{ marginTop: spacing.base }} onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: id } })}>
+              Update page
+            </Btn>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Btn
+              style={{ flex: 1 }}
+              loading={save.isPending}
+              onPress={() => {
+                save.mutate({ status: 'reading', started_on: new Date().toISOString().slice(0, 10) });
+                toast(`${b?.title ?? 'Book'} is now in Reading`);
+              }}
+            >
+              {e?.status === 'read' ? 'Read it again' : 'Start reading'}
+            </Btn>
+            <Btn
+              variant="secondary"
+              accessibilityLabel={want ? 'Remove from Want to read' : 'Add to Want to read'}
+              style={{ width: 48, paddingHorizontal: 0 }}
+              onPress={() => {
+                save.mutate(want ? null : { status: 'want_to_read' });
+                toast(want ? 'Removed from Want to read' : 'Added to Want to read');
+              }}
+            >
+              {want ? <CheckIcon size={18} weight="bold" color={colors.ink} /> : <BookmarkSimpleIcon size={18} color={colors.ink} />}
+            </Btn>
+          </View>
+        )}
+
+        <View style={{ marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, paddingVertical: spacing.md }}>
+          <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+            Your rating
+          </Text>
+          <View style={{ flexDirection: 'row' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => save.mutate({ rating: i, ...(e ? {} : { status: 'read' as const }) })} style={{ padding: 4 }}>
+                <StarIcon size={24} weight="fill" color={i <= myStars ? colors.accent : colors.surface3} />
+              </Press>
+            ))}
+          </View>
+        </View>
+        <Press onPress={() => router.push({ pathname: '/review/[bookId]', params: { bookId: id } })} style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start', paddingVertical: spacing.xs }}>
+          <PencilSimpleLineIcon size={16} color={colors.accent} />
+          <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
+            {myReview ? 'Edit your review' : 'Write a review'}
+          </Text>
+        </Press>
+
+        <View style={{ marginTop: spacing.lg, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {(b?.moods ?? []).map((m) => (
+            <View key={m} style={{ borderRadius: radius.full, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 12, paddingVertical: 4 }}>
+              <Text variant="small">{m}</Text>
+            </View>
+          ))}
+          {genres.slice(0, 2).map((g) => (
+            <View key={g} style={{ borderRadius: radius.full, backgroundColor: colors.accentSoft, paddingHorizontal: 12, paddingVertical: 4 }}>
+              <Text variant="small" tone="accent" style={{ fontFamily: fonts.medium }}>
+                {g}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {b?.description ? (
+          <Text variant="body" style={{ marginTop: spacing.base, opacity: 0.9 }} numberOfLines={10}>
+            {b.description}
+          </Text>
+        ) : null}
+
+        <View style={{ marginTop: spacing.xl, flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.card, paddingVertical: spacing.base }}>
+          <Stat value={total ? String(total) : '—'} label="pages" />
+          <Stat value={total ? `${Math.max(1, Math.round(total / 42))} h` : '—'} label="at your pace" border />
+          <Stat value={b?.first_published_year ? String(b.first_published_year) : '—'} label="published" border />
+        </View>
+      </View>
+
+      {friends.data && friends.data.readers.length ? (
+        <View style={{ marginTop: spacing.xxl }}>
+          <SectionHead title="People you follow" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg }}>
+            <View style={{ flexDirection: 'row' }}>
+              {friends.data.readers.slice(0, 5).map((u, i) => (
+                <View key={u.id} style={{ marginLeft: i ? -10 : 0, borderRadius: 20, borderWidth: 2, borderColor: colors.bg }}>
+                  <Avatar uri={u.avatar_url} name={u.display_name ?? u.username} size={34} />
+                </View>
+              ))}
+            </View>
+            <Text variant="small" tone="muted" style={{ flex: 1 }}>
+              <Text variant="small" style={{ fontFamily: fonts.semibold }}>
+                {friends.data.readers
+                  .slice(0, 2)
+                  .map((u) => (u.display_name ?? u.username).split(' ')[0])
+                  .join(', ')}
+              </Text>
+              {friends.data.readers.length > 2 ? ` and ${friends.data.readers.length - 2} more have it.` : ' have it.'}
+              {friends.data.avg ? (
+                <>
+                  {' '}Friends’ average:{' '}
+                  <Text variant="small" style={{ fontFamily: fonts.semibold }}>
+                    {friends.data.avg.toFixed(1)}
+                  </Text>
+                </>
+              ) : null}
+            </Text>
+          </View>
         </View>
       ) : null}
 
-      <TopBar
-        transparent
-        right={<IconButton icon="heart" label={isFavourite ? 'Remove from favourites' : 'Add to favourites'} tone={isFavourite ? 'accent' : 'ink'} onPress={() => favourite.mutate()} />}
-      />
-
-      <Screen edgeTop={false} background="transparent">
-        {/* Hero */}
-        <View style={{ alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xxl }}>
-          {b ? <BookCover title={b.title} author={b.authorsLine} uri={b.cover_url} size="xl" /> : <Skeleton width={180} height={270} />}
-          <View style={{ alignItems: 'center', gap: spacing.xs, maxWidth: 520 }}>
-            {b ? (
-              <>
-                <Text variant="title1" align="center" accessibilityRole="header">
-                  {b.title}
-                </Text>
-                {b.subtitle ? (
-                  <Text variant="serifBody" tone="muted" align="center">
-                    {b.subtitle}
-                  </Text>
-                ) : null}
-                <Text variant="bodyStrong" tone="muted" align="center">
-                  {b.authorsLine || 'Unknown author'}
-                </Text>
-                <Text variant="caption" align="center">
-                  {[b.first_published_year, author?.nationality_code ? countryName(author.nationality_code) : null, pages ? `about ${pages} pages` : null]
-                    .filter(Boolean)
-                    .join('  ·  ')}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Skeleton width={220} height={28} />
-                <Skeleton width={140} height={14} />
-              </>
-            )}
-          </View>
-          {genres.length ? (
-            <ChipGroup>
-              {genres.map((g) => (
-                <Chip key={g.id} label={g.name} />
-              ))}
-            </ChipGroup>
-          ) : null}
-        </View>
-
-        {error ? (
-          <View style={{ marginBottom: spacing.base }}>
-            <InlineAlert>{error}</InlineAlert>
-          </View>
-        ) : null}
-
-        {/* My shelf */}
-        <View style={{ gap: spacing.base, marginBottom: spacing.xxl }}>
-          <SectionHeader eyebrow="Your shelf" title={e ? STATUS_META[e.status].label : 'Add to your library'} />
-          <ChipGroup>
-            {STATUS_ORDER.map((s) => (
-              <Chip key={s} label={STATUS_META[s].short} icon={STATUS_META[s].icon} selected={e?.status === s} onPress={() => save.mutate({ status: s })} />
-            ))}
-          </ChipGroup>
-
-          {e ? (
-            <View style={{ gap: spacing.lg, marginTop: spacing.sm }}>
-              <View style={{ gap: spacing.sm }}>
-                <Text variant="eyebrow">Your rating</Text>
-                <Rating value={e.rating} size={30} onChange={(r) => save.mutate({ rating: r })} />
-              </View>
-
-              {e.status === 'reading' ? (
-                <View style={{ gap: spacing.sm }}>
-                  <Text variant="eyebrow">Progress</Text>
-                  <ProgressBar value={(e.progress_percent ?? 0) / 100} height={6} />
-                  <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
-                    <View style={{ flex: 1 }}>
-                      <TextField value={page} onChangeText={(t) => setPage(t.replace(/\D/g, ''))} placeholder={pages ? `Page (of ~${pages})` : 'Current page'} keyboardType="number-pad" returnKeyType="done" onSubmitEditing={saveProgress} />
-                    </View>
-                    <Button title="Update" variant="secondary" onPress={saveProgress} loading={save.isPending} />
-                  </View>
-                </View>
-              ) : null}
-
-              <View style={{ gap: spacing.sm }}>
-                <TextField label="Private notes" value={notes} onChangeText={setNotes} placeholder="Thoughts, favourite lines, where you read it…" multiline maxLength={10000} />
-                {notes !== (e.notes ?? '') ? (
-                  <Button title="Save notes" size="sm" variant="secondary" onPress={() => save.mutate({ notes: notes.trim() || null })} style={{ alignSelf: 'flex-start' }} />
-                ) : null}
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-                <Button title="Write a review" icon="edit-3" onPress={() => router.push({ pathname: '/review/[bookId]', params: { bookId: id } })} />
-                <Button title="Recommend" icon="gift" variant="secondary" onPress={() => router.push({ pathname: '/compose', params: { bookId: id, kind: 'recommendation' } })} />
-              </View>
-              <Pressable accessibilityRole="button" onPress={confirmRemove} style={{ alignSelf: 'flex-start' }} hitSlop={8}>
-                <Text variant="caption" tone="danger">
-                  Remove from library
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
-
-        {/* About */}
-        {b?.description ? (
-          <View style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
-            <Text variant="eyebrow">About the book</Text>
-            <Text variant="serifBody" numberOfLines={expanded ? undefined : 6}>
-              {b.description.replace(/<[^>]+>/g, '')}
-            </Text>
-            <Pressable onPress={() => setExpanded((x) => !x)} accessibilityRole="button" hitSlop={8}>
-              <Text variant="callout" tone="accent">
-                {expanded ? 'Show less' : 'Read more'}
+      <View style={{ marginTop: spacing.xxl }}>
+        <SectionHead title="Reviews" action={reviews.data?.count ? `See ${reviews.data.count}` : undefined} onAction={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} />
+        {topReview ? (
+          <Press onPress={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Avatar uri={topReview.author?.avatar_url} name={topReview.author?.display_name} size={28} />
+              <Text variant="callout" style={{ fontFamily: fonts.semibold, flex: 1 }} numberOfLines={1}>
+                {topReview.author?.display_name ?? topReview.author?.username}
               </Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {/* Community */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border, marginBottom: spacing.xxl }}>
-          <Stat align="center" value={community.data?.readers ?? '–'} label="readers" />
-          <Stat align="center" value={community.data?.average ? community.data.average.toFixed(1) : '–'} label="avg rating" />
-          <Stat align="center" value={community.data?.reviewCount ?? '–'} label="reviews" />
-        </View>
-
-        <SectionHeader eyebrow="Community" title="Reviews" actionLabel={e ? 'Write' : undefined} onAction={() => router.push({ pathname: '/review/[bookId]', params: { bookId: id } })} />
-        {reviews.data?.items.length ? (
-          reviews.data.items.map((item) => <FeedCard key={item.id} item={item} />)
-        ) : reviews.isLoading ? (
-          <Skeleton height={120} />
+              <Stars value={topReview.rating} size={12} />
+            </View>
+            <Text variant="callout" style={{ marginTop: spacing.sm }} numberOfLines={5}>
+              {topReview.has_spoilers ? 'Contains spoilers. Open the reviews to read it.' : topReview.body ?? topReview.headline ?? ''}
+            </Text>
+          </Press>
         ) : (
-          <EmptyState compact icon="feather" title="No reviews yet" body="Be the first to tell other readers what this book meant to you." />
-        )}
-
-        {b?.book_editions?.length ? (
-          <View style={{ gap: spacing.sm, marginTop: spacing.xxl }}>
-            <Text variant="eyebrow">Editions in GriMore</Text>
-            {b.book_editions.map((ed, i) => (
-              <View key={ed.id} style={{ gap: spacing.xs }}>
-                {i > 0 ? <Divider spacingY={spacing.xs} /> : null}
-                <Text variant="callout">{[ed.publisher, ed.published_date, ed.page_count ? `${ed.page_count} pages` : null].filter(Boolean).join(' · ') || 'Edition'}</Text>
-                <Text variant="caption">{ed.book_identifiers.map((x) => `${x.type.replace('_', '-').toUpperCase()} ${x.value}`).join('   ')}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {b?.cover_source === 'open_library' ? (
-          <Text variant="caption" tone="subtle" style={{ marginTop: spacing.xxl, borderRadius: radius.sm }}>
-            Cover courtesy of Open Library.
+          <Text variant="callout" tone="muted" style={{ paddingHorizontal: spacing.lg }}>
+            No reviews yet. Be the first to say what you thought.
           </Text>
+        )}
+      </View>
+
+      {(comms.data ?? []).length ? (
+        <View style={{ marginTop: spacing.xxl }}>
+          <SectionHead title="Communities discussing it" />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+            {(comms.data ?? []).map((c) => (
+              <Press key={c.id} onPress={() => openCommunity(c.id)} style={{ width: 230, backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>
+                <CommunityCover c={c} height={96} />
+                <View style={{ padding: spacing.md }}>
+                  <Text variant="callout" style={{ fontFamily: fonts.semibold }} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                  <Text variant="caption" tone="muted">
+                    {c.member_count} members · {c.price_cents ? `${money(c.price_cents)}/month` : 'Free'}
+                  </Text>
+                </View>
+              </Press>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      <View style={{ marginTop: spacing.xxl, paddingHorizontal: spacing.lg, gap: spacing.sm }}>
+        <Press
+          onPress={() => (listings.data?.[0] ? router.push({ pathname: '/listing/[id]', params: { id: listings.data[0].id } }) : router.push({ pathname: '/sell', params: { bookId: id } }))}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}
+        >
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <StorefrontIcon size={20} weight="bold" color={colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyStrong">{listings.data?.length ? `${listings.data.length} ${listings.data.length === 1 ? 'copy' : 'copies'} on the Market` : 'Nobody is selling it'}</Text>
+            <Text variant="small" tone="muted">
+              {listings.data?.length
+                ? listings.data[0].mode === 'trade'
+                  ? 'Available to trade'
+                  : `from ${money(listings.data[0].price_cents, listings.data[0].currency)}${listings.data[0].mode === 'both' ? ' or trade' : ''}`
+                : 'Sell or trade your copy'}
+            </Text>
+          </View>
+          <CaretRightIcon size={18} color={colors.muted} />
+        </Press>
+        {!listings.data?.length ? (
+          <Btn variant="ghost" size="sm" icon={<BellIcon size={14} weight={alert.data ? 'fill' : 'regular'} color={colors.ink} />} onPress={() => toggleAlert.mutate(!alert.data)}>
+            {alert.data ? 'Alert on: we will tell you' : 'Alert me when someone lists it'}
+          </Btn>
         ) : null}
-      </Screen>
+        {e ? (
+          <Press
+            onPress={() => {
+              save.mutate(null);
+              toast('Removed from your library');
+            }}
+            style={{ alignSelf: 'center', padding: spacing.md }}
+          >
+            <Text variant="small" tone="faint">
+              Remove from my library
+            </Text>
+          </Press>
+        ) : null}
+      </View>
+    </Screen>
+  );
+}
+
+function Stat({ value, label, border }: { value: string; label: string; border?: boolean }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: border ? 1 : 0, borderLeftColor: colors.line }}>
+      <Text style={{ fontFamily: fonts.bold, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text variant="caption" tone="muted">
+        {label}
+      </Text>
     </View>
   );
 }

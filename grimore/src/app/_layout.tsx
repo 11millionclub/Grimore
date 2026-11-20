@@ -1,23 +1,18 @@
-import { Cinzel_500Medium, Cinzel_600SemiBold, Cinzel_700Bold } from '@expo-google-fonts/cinzel';
-import {
-  CormorantGaramond_500Medium,
-  CormorantGaramond_500Medium_Italic,
-  CormorantGaramond_600SemiBold,
-  CormorantGaramond_700Bold,
-} from '@expo-google-fonts/cormorant-garamond';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold } from '@expo-google-fonts/geist';
+import { GeistMono_500Medium, GeistMono_600SemiBold } from '@expo-google-fonts/geist-mono';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
-import { Stack } from 'expo-router';
+import { Stack, type NativeStackNavigationOptions } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Text } from '@/components/ui';
+import { Text, ToastHost } from '@/components/ui';
 import { useMyProfile } from '@/hooks/queries';
 import { envError } from '@/lib/env';
 import { queryClient } from '@/lib/query-client';
@@ -30,30 +25,26 @@ startSessionListener();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Cinzel_500Medium,
-    Cinzel_600SemiBold,
-    Cinzel_700Bold,
-    CormorantGaramond_500Medium,
-    CormorantGaramond_500Medium_Italic,
-    CormorantGaramond_600SemiBold,
-    CormorantGaramond_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    GeistMono_500Medium,
+    GeistMono_600SemiBold,
   });
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <QueryClientProvider client={queryClient}>
-            {fontsLoaded || fontError ? <Navigation /> : null}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{fontsLoaded || fontError ? <Navigation /> : null}</QueryClientProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+const sheet: NativeStackNavigationOptions = { presentation: 'formSheet', sheetAllowedDetents: [0.75, 1], sheetGrabberVisible: false, sheetCornerRadius: 28 };
+const fullscreen: NativeStackNavigationOptions = { presentation: 'fullScreenModal', animation: 'slide_from_bottom' };
 
 function Navigation() {
   const theme = useTheme();
@@ -70,30 +61,30 @@ function Navigation() {
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
   }, [loaded]);
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(theme.colors.bg);
+  }, [theme.colors.bg]);
 
-  // Password-recovery and email-confirmation links.
+  // Magic-link, password-recovery and email-confirmation links.
   const url = Linking.useLinkingURL();
   useEffect(() => {
     if (url && url.includes('access_token')) {
-      consumeAuthLink(url).then((type) => {
-        if (type === 'recovery') useSessionStore.getState().setRecovering(true);
-      }, () => undefined);
+      consumeAuthLink(url).then(
+        (type) => {
+          if (type === 'recovery') useSessionStore.getState().setRecovering(true);
+        },
+        () => undefined,
+      );
     }
   }, [url]);
 
   if (envError) return <ConfigError message={envError} />;
-  if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.colors.canvas }} />;
+  if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.colors.bg }} />;
 
   return (
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.canvas },
-          animation: 'default',
-        }}
-      >
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bg }, animation: 'default' }}>
         <Stack.Protected guard={recovering}>
           <Stack.Screen name="reset-password" />
         </Stack.Protected>
@@ -108,25 +99,46 @@ function Navigation() {
 
         <Stack.Protected guard={signedIn && onboarded && !recovering}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="book/[id]" />
-          <Stack.Screen name="add-book" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="add-book-manual" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="review/[bookId]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="add" options={sheet} />
+          <Stack.Screen name="search" options={sheet} />
+          <Stack.Screen name="progress/[bookId]" options={sheet} />
+          <Stack.Screen name="sell" options={sheet} />
+          <Stack.Screen name="trade/[id]" options={sheet} />
+          <Stack.Screen name="community/join/[id]" options={sheet} />
+          <Stack.Screen name="shelves/new" options={sheet} />
+          <Stack.Screen name="scan" options={fullscreen} />
+          <Stack.Screen name="game/[id]" options={{ ...fullscreen, gestureEnabled: false }} />
+          <Stack.Screen name="wrapped" options={fullscreen} />
+          <Stack.Screen name="corner/edit" options={fullscreen} />
+          <Stack.Screen name="community/new" options={fullscreen} />
+          <Stack.Screen name="quiz" options={fullscreen} />
           <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="item/[type]/[id]" />
-          <Stack.Screen name="user/[username]" />
-          <Stack.Screen name="play/index" />
-          <Stack.Screen name="play/bookle" />
-          <Stack.Screen name="play/cover-reveal" />
-          <Stack.Screen name="play/quiz" />
-          <Stack.Screen name="play/streak" />
-          <Stack.Screen name="profile/edit" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="nook/edit" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="settings" />
+          <Stack.Screen name="review/[bookId]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="thread/new/[communityId]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="profile/edit" />
+          <Stack.Screen name="post/[id]" />
+          <Stack.Screen name="messages" />
+          <Stack.Screen name="chat/[id]" />
           <Stack.Screen name="notifications" />
-          <Stack.Screen name="find-readers" />
+          <Stack.Screen name="book/[id]" />
+          <Stack.Screen name="reviews/[bookId]" />
+          <Stack.Screen name="author/[name]" />
+          <Stack.Screen name="user/[username]" />
+          <Stack.Screen name="follows/[userId]" />
+          <Stack.Screen name="community/[id]" />
+          <Stack.Screen name="thread/[id]" />
+          <Stack.Screen name="listing/[id]" />
+          <Stack.Screen name="checkout/[id]" />
+          <Stack.Screen name="leaderboard" />
+          <Stack.Screen name="dna" />
+          <Stack.Screen name="shelf/[id]" />
+          <Stack.Screen name="achievements" />
+          <Stack.Screen name="goals" />
+          <Stack.Screen name="settings" />
         </Stack.Protected>
       </Stack>
+      <ToastHost />
     </>
   );
 }
@@ -134,8 +146,8 @@ function Navigation() {
 function ConfigError({ message }: { message: string }) {
   const { colors } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas, justifyContent: 'center', padding: spacing.xxl, gap: spacing.md }}>
-      <Text variant="title2">Almost there</Text>
+    <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: spacing.xxl, gap: spacing.md }}>
+      <Text variant="h1">Almost there</Text>
       <Text variant="body" tone="muted">
         {message}
       </Text>

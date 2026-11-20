@@ -1,141 +1,132 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { TopBar } from '@/components/top-bar';
-import { Button, EmptyState, InlineAlert, Screen, Text, TextField } from '@/components/ui';
+import { CheckIcon, EnvelopeSimpleIcon } from '@/components/icons';
+import { Btn, Card, Screen, Text, TextField } from '@/components/ui';
 import { toAppError } from '@/lib/errors';
 import { signUp } from '@/services/auth';
 import { isUsernameAvailable } from '@/services/profile';
-import { spacing } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 import { signUpSchema, type SignUpValues } from '@/validation/schemas';
 
 export default function SignUp() {
+  const { colors } = useTheme();
   const [error, setError] = useState<string | null>(null);
-  const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
-  const { control, handleSubmit, formState, setError: setFieldError } = useForm<SignUpValues>({
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const { control, handleSubmit, formState, watch } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { displayName: '', username: '', email: '', password: '' },
   });
+  const username = watch('username');
+
+  useEffect(() => {
+    if (!/^[A-Za-z0-9_.]{3,24}$/.test(username)) return;
+    let live = true;
+    const t = setTimeout(() => {
+      isUsernameAvailable(username).then((ok) => live && setAvailable(ok), () => live && setAvailable(null));
+    }, 350);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [username]);
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    if (available === false) return setError('That username is taken.');
     try {
-      if (!(await isUsernameAvailable(values.username))) {
-        setFieldError('username', { message: 'That username is taken' });
-        return;
-      }
-      const result = await signUp(values);
-      if (result.needsConfirmation) setConfirmEmail(values.email);
+      const { needsConfirmation } = await signUp(values);
+      if (needsConfirmation) setSentTo(values.email);
     } catch (e) {
       setError(toAppError(e).message);
     }
   });
 
-  if (confirmEmail) {
+  if (sentTo)
     return (
-      <View style={{ flex: 1 }}>
-        <TopBar />
-        <Screen edgeTop={false}>
-          <EmptyState
-            icon="mail"
-            title="Check your inbox"
-            body={`We sent a confirmation link to ${confirmEmail}. Open it on this device, then sign in.`}
-            actionLabel="Go to sign in"
-            onAction={() => router.replace('/sign-in')}
-          />
-        </Screen>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ flex: 1 }}>
-      <TopBar />
-      <Screen keyboard edgeTop={false}>
-        <View style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
-          <Text variant="title1" accessibilityRole="header">
-            Begin your library
-          </Text>
-          <Text variant="body" tone="muted">
-            It takes a minute. Your reading life will thank you.
-          </Text>
-        </View>
-        <View style={{ gap: spacing.lg }}>
-          {error ? <InlineAlert>{error}</InlineAlert> : null}
-          <Controller
-            control={control}
-            name="displayName"
-            render={({ field, fieldState }) => (
-              <TextField label="Your name" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} autoComplete="name" textContentType="name" />
-            )}
-          />
-          <Controller
-            control={control}
-            name="username"
-            render={({ field, fieldState }) => (
-              <TextField
-                label="Username"
-                value={field.value}
-                onChangeText={(t) => field.onChange(t.replace(/\s/g, '').toLowerCase())}
-                onBlur={field.onBlur}
-                error={fieldState.error?.message}
-                hint="This is how other readers find you."
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="username"
-                leadingIcon="at-sign"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="email"
-            render={({ field, fieldState }) => (
-              <TextField
-                label="Email"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={fieldState.error?.message}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="password"
-            render={({ field, fieldState }) => (
-              <TextField
-                label="Password"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={fieldState.error?.message}
-                hint="8+ characters, with a letter and a number."
-                secureTextEntry
-                secureToggle
-                autoComplete="new-password"
-                textContentType="newPassword"
-              />
-            )}
-          />
-          <Button title="Create account" size="lg" fullWidth loading={formState.isSubmitting} onPress={onSubmit} style={{ marginTop: spacing.sm }} />
-          <Text variant="caption" align="center">
-            By continuing you agree to treat fellow readers with kindness.
-          </Text>
-          <Pressable accessibilityRole="link" onPress={() => router.replace('/sign-in')} style={{ alignSelf: 'center', padding: spacing.sm }}>
-            <Text variant="callout" tone="muted">
-              Already a member? <Text variant="callout" tone="accent">Sign in</Text>
+      <Screen title="Check your email" back>
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <Card style={{ alignItems: 'center', gap: spacing.sm, padding: spacing.xl }}>
+            <EnvelopeSimpleIcon size={32} color={colors.accent} />
+            <Text variant="title">Confirm your email</Text>
+            <Text variant="callout" tone="muted" align="center">
+              We sent a link to {sentTo}. Open it on this phone to finish creating your account.
             </Text>
-          </Pressable>
+            <Btn size="sm" variant="secondary" onPress={() => router.replace('/sign-in')} style={{ marginTop: spacing.sm, alignSelf: 'center' }}>
+              Back to sign in
+            </Btn>
+          </Card>
         </View>
       </Screen>
-    </View>
+    );
+
+  const usernameOk = available === true && /^[A-Za-z0-9_.]{3,24}$/.test(username);
+
+  return (
+    <Screen title="What should we call you?" back keyboard>
+      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.base }}>
+        <Text variant="body" tone="muted" style={{ marginTop: -spacing.sm }}>
+          This is what other readers will see.
+        </Text>
+        <Controller
+          control={control}
+          name="displayName"
+          render={({ field, fieldState }) => (
+            <TextField label="Name" placeholder="e.g. Carolina Reis" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} autoComplete="name" autoCapitalize="words" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="username"
+          render={({ field, fieldState }) => (
+            <TextField
+              label="Username"
+              prefix="@"
+              placeholder="carol.reads"
+              value={field.value}
+              onChangeText={(v) => {
+                setAvailable(null);
+                field.onChange(v.toLowerCase().replace(/[^a-z0-9._]/g, ''));
+              }}
+              onBlur={field.onBlur}
+              autoCapitalize="none"
+              autoComplete="username"
+              error={fieldState.error?.message ?? (available === false ? 'That username is taken' : undefined)}
+              helper={usernameOk ? 'Available' : 'Letters, numbers, dots and underscores.'}
+              right={usernameOk ? <CheckIcon size={18} weight="bold" color={colors.good} /> : undefined}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <TextField label="Email" placeholder="name@example.com" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <TextField label="Password" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} secureTextEntry autoComplete="new-password" helper="8+ characters with a letter and a number." />
+          )}
+        />
+        {error ? (
+          <Text variant="callout" tone="danger">
+            {error}
+          </Text>
+        ) : null}
+        <Btn size="lg" full loading={formState.isSubmitting} onPress={onSubmit} style={{ marginTop: spacing.sm }}>
+          Create account
+        </Btn>
+        <Text variant="caption" tone="faint" align="center">
+          By continuing you agree to read responsibly and be kind to other readers.
+        </Text>
+      </View>
+    </Screen>
   );
 }

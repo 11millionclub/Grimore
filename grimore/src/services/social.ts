@@ -7,16 +7,8 @@ import { authorLine } from './catalogue';
 export type PostKind = Database['public']['Enums']['post_kind'];
 export type ReportReason = Database['public']['Enums']['report_reason'];
 
-export const POST_KIND_META: Record<PostKind, { label: string; icon: 'feather' | 'help-circle' | 'gift' | 'book-open' | 'message-circle'; prompt: string }> = {
-  thought: { label: 'Thought', icon: 'feather', prompt: 'What are you thinking about?' },
-  question: { label: 'Question', icon: 'help-circle', prompt: 'Ask other readers…' },
-  recommendation: { label: 'Recommendation', icon: 'gift', prompt: 'Why should others read it?' },
-  reading_update: { label: 'Reading update', icon: 'book-open', prompt: 'Where are you in your reading?' },
-  discussion: { label: 'Discussion', icon: 'message-circle', prompt: 'Start a conversation about a book…' },
-};
-
 export type FeedAuthor = { id: string; username: string; display_name: string | null; avatar_url: string | null };
-export type FeedBook = { id: string; title: string; cover_url: string | null; authors: string };
+export type FeedBook = { id: string; title: string; cover_url: string | null; authors: string; pages: number | null; avg: number | null };
 
 export type FeedItem = {
   item_type: 'post' | 'review';
@@ -29,9 +21,16 @@ export type FeedItem = {
   like_count: number;
   comment_count: number;
   created_at: string;
+  page: number | null;
+  quote: string | null;
+  stars: number | null;
+  days: number | null;
+  audience: string;
+  community_id: string | null;
   author: FeedAuthor | null;
   book: FeedBook | null;
   liked: boolean;
+  saved: boolean;
 };
 
 export const FEED_PAGE = 20;
@@ -45,21 +44,29 @@ async function hydrate(rows: FeedRow[], viewerId: string): Promise<FeedItem[]> {
   const postIds = rows.filter((r) => r.item_type === 'post').map((r) => r.id!) ;
   const reviewIds = rows.filter((r) => r.item_type === 'review').map((r) => r.id!);
 
-  const [authors, books, postLikes, reviewLikes] = await Promise.all([
+  const [authors, books, postLikes, reviewLikes, ratings, saves] = await Promise.all([
     userIds.length ? supabase.from('profiles').select('id, username, display_name, avatar_url').in('id', userIds) : Promise.resolve({ data: [], error: null }),
     bookIds.length
-      ? supabase.from('books').select('id, title, cover_url, book_authors(position, role, authors(name))').in('id', bookIds)
+      ? supabase.from('books').select('id, title, cover_url, page_count_estimate, book_authors(position, role, authors(name))').in('id', bookIds)
       : Promise.resolve({ data: [], error: null }),
     postIds.length ? supabase.from('post_reactions').select('post_id').eq('user_id', viewerId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
     reviewIds.length ? supabase.from('review_reactions').select('review_id').eq('user_id', viewerId).in('review_id', reviewIds) : Promise.resolve({ data: [], error: null }),
+    bookIds.length ? supabase.from('reviews').select('book_id, rating').in('book_id', bookIds).limit(2000) : Promise.resolve({ data: [], error: null }),
+    rows.length ? supabase.from('saved_items').select('post_id, review_id').eq('user_id', viewerId) : Promise.resolve({ data: [], error: null }),
   ]);
+  const sums = new Map<string, { n: number; t: number }>();
+  (unwrap(ratings) as { book_id: string; rating: number }[]).forEach((r) => {
+    const x = sums.get(r.book_id) ?? { n: 0, t: 0 };
+    sums.set(r.book_id, { n: x.n + 1, t: x.t + Number(r.rating) });
+  });
+  const savedSet = new Set((unwrap(saves) as { post_id: string | null; review_id: string | null }[]).map((x) => (x.post_id ? `post:${x.post_id}` : `review:${x.review_id}`)));
 
   const authorMap = new Map((unwrap(authors) as FeedAuthor[]).map((a) => [a.id, a]));
   const bookMap = new Map(
-    (unwrap(books) as { id: string; title: string; cover_url: string | null; book_authors: Parameters<typeof authorLine>[0] }[]).map((b) => [
-      b.id,
-      { id: b.id, title: b.title, cover_url: b.cover_url, authors: authorLine(b.book_authors) },
-    ]),
+    (unwrap(books) as { id: string; title: string; cover_url: string | null; page_count_estimate: number | null; book_authors: Parameters<typeof authorLine>[0] }[]).map((b) => {
+      const sum = sums.get(b.id);
+      return [b.id, { id: b.id, title: b.title, cover_url: b.cover_url, authors: authorLine(b.book_authors), pages: b.page_count_estimate, avg: sum ? sum.t / sum.n : null }];
+    }),
   );
   const liked = new Set([
     ...(unwrap(postLikes) as { post_id: string }[]).map((l) => `post:${l.post_id}`),
@@ -77,9 +84,16 @@ async function hydrate(rows: FeedRow[], viewerId: string): Promise<FeedItem[]> {
     like_count: r.like_count ?? 0,
     comment_count: r.comment_count ?? 0,
     created_at: r.created_at!,
+    page: r.page ?? null,
+    quote: r.quote ?? null,
+    stars: r.stars === null || r.stars === undefined ? null : Number(r.stars),
+    days: r.days ?? null,
+    audience: r.audience ?? 'public',
+    community_id: r.community_id ?? null,
     author: authorMap.get(r.user_id!) ?? null,
     book: r.book_id ? bookMap.get(r.book_id) ?? null : null,
     liked: liked.has(`${r.item_type}:${r.id}`),
+    saved: savedSet.has(`${r.item_type}:${r.id}`),
   }));
 }
 
@@ -93,8 +107,11 @@ export async function getFeed(opts: {
   cursor?: string | null;
   userId?: string;
   bookId?: string;
+  communityId?: string;
 }): Promise<{ items: FeedItem[]; nextCursor: string | null }> {
   let q = supabase.from('feed_items').select('*').order('created_at', { ascending: false }).limit(FEED_PAGE);
+  if (opts.communityId) q = q.eq('community_id', opts.communityId);
+  else if (!opts.userId) q = q.neq('audience', 'community');
   if (opts.cursor) q = q.lt('created_at', opts.cursor);
   if (opts.userId) q = q.eq('user_id', opts.userId);
   if (opts.bookId) q = q.eq('book_id', opts.bookId);
@@ -114,14 +131,58 @@ export async function getFeedItem(viewerId: string, type: 'post' | 'review', id:
   return (await hydrate(rows, viewerId))[0];
 }
 
-export async function createPost(input: { userId: string; kind: PostKind; body: string; bookId?: string | null; hasSpoilers?: boolean }) {
+export async function createPost(input: {
+  userId: string;
+  kind: PostKind;
+  body?: string | null;
+  bookId?: string | null;
+  hasSpoilers?: boolean;
+  page?: number | null;
+  quote?: string | null;
+  stars?: number | null;
+  days?: number | null;
+  audience?: 'public' | 'followers' | 'community';
+  communityId?: string | null;
+}) {
   return unwrap(
     await supabase
       .from('posts')
-      .insert({ user_id: input.userId, kind: input.kind, body: input.body.trim(), book_id: input.bookId ?? null, has_spoilers: !!input.hasSpoilers })
+      .insert({
+        user_id: input.userId,
+        kind: input.kind,
+        body: input.body?.trim() || null,
+        book_id: input.bookId ?? null,
+        has_spoilers: !!input.hasSpoilers,
+        page: input.page ?? null,
+        quote: input.quote?.trim() || null,
+        stars: input.stars ?? null,
+        days: input.days ?? null,
+        audience: input.audience ?? 'public',
+        community_id: input.audience === 'community' ? input.communityId ?? null : null,
+      })
       .select('id')
       .single(),
   );
+}
+
+export type BookReview = { id: string; rating: number; body: string | null; headline: string | null; has_spoilers: boolean; like_count: number; created_at: string; author: FeedAuthor | null; friend: boolean };
+
+/** All reviews of a book plus the rating distribution (5 to 1). */
+export async function getBookReviews(bookId: string, viewerId: string) {
+  const [rows, follows] = await Promise.all([
+    supabase
+      .from('reviews')
+      .select('id, rating, body, headline, has_spoilers, like_count, created_at, author:profiles(id, username, display_name, avatar_url)')
+      .eq('book_id', bookId)
+      .order('like_count', { ascending: false })
+      .limit(200),
+    supabase.from('follows').select('followee_id').eq('follower_id', viewerId).eq('status', 'accepted').limit(2000),
+  ]);
+  const friends = new Set((unwrap(follows) ?? []).map((f) => f.followee_id));
+  const list = (unwrap(rows) as unknown as Omit<BookReview, 'friend'>[]).map((r) => ({ ...r, rating: Number(r.rating), friend: !!r.author && friends.has(r.author.id) }));
+  const dist = [5, 4, 3, 2, 1].map((star) => list.filter((r) => Math.round(r.rating) === star).length);
+  const avg = list.length ? list.reduce((a, r) => a + r.rating, 0) / list.length : null;
+  return { list, dist, avg, count: list.length };
 }
 
 export async function upsertReview(input: { userId: string; bookId: string; rating: number; headline?: string; body?: string; hasSpoilers?: boolean }) {
@@ -239,11 +300,16 @@ export async function getNotifications(userId: string) {
   return unwrap(
     await supabase
       .from('notifications')
-      .select('id, type, read_at, created_at, post_id, review_id, achievement_id, actor:profiles!notifications_actor_id_fkey(id, username, display_name, avatar_url)')
+      .select('id, type, read_at, created_at, post_id, review_id, achievement_id, data, actor:profiles!notifications_actor_id_fkey(id, username, display_name, avatar_url)')
       .eq('recipient_id', userId)
       .order('created_at', { ascending: false })
       .limit(50),
   );
+}
+
+export async function unreadNotificationCount(userId: string) {
+  const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', userId).is('read_at', null);
+  return count ?? 0;
 }
 
 export async function markNotificationsRead(userId: string) {

@@ -44,7 +44,8 @@
           "photosPermission": "GriMore uses your photo library so you can choose a profile picture."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
