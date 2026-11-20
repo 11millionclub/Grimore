@@ -8,6 +8,7 @@ module.exports = defineConfig([
     ignores: ['dist/*', '.expo/*', 'src/types/database.ts', 'supabase/functions/*'],
   },
   {
+    files: ['**/*.ts', '**/*.tsx'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
     },

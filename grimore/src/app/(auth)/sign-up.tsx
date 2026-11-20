@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { CheckIcon, EnvelopeSimpleIcon } from '@/components/icons';
@@ -17,11 +17,11 @@ export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
-  const { control, handleSubmit, formState, watch } = useForm<SignUpValues>({
+  const { control, handleSubmit, formState } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { displayName: '', username: '', email: '', password: '' },
   });
-  const username = watch('username');
+  const username = useWatch({ control, name: 'username' });
 
   useEffect(() => {
     if (!/^[A-Za-z0-9_.]{3,24}$/.test(username)) return;

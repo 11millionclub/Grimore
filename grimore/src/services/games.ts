@@ -109,7 +109,7 @@ export async function guessClues(id: string, bookId: string): Promise<GameState>
 export async function submitTimeline(id: string, order: string[]): Promise<GameState> {
   return unwrap(await supabase.rpc('timeline_submit', { p_challenge: id, p_order: order })) as unknown as GameState;
 }
-export async function useHint(id: string): Promise<GameState> {
+export async function takeHint(id: string): Promise<GameState> {
   return unwrap(await supabase.rpc('game_hint', { p_challenge: id })) as unknown as GameState;
 }
 export async function getLeaderboard(id: string): Promise<BoardRow[]> {
