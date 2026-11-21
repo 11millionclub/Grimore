@@ -12,7 +12,7 @@ import { fonts, layout, radius, spacing, useTheme } from '@/theme';
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
   index: { label: 'Home', Icon: HouseIcon },
   explore: { label: 'Explore', Icon: CompassIcon },
-  add: { label: 'Add', Icon: PlusIcon },
+  log: { label: 'Log', Icon: PlusIcon },
   play: { label: 'Play', Icon: GameControllerIcon },
   me: { label: 'Me', Icon: UserCircleIcon },
 };
@@ -47,10 +47,10 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
             const focused = state.index === index;
             const tap = () => {
               if (Platform.OS !== 'web') void Haptics.selectionAsync();
-              if (route.name === 'add') return router.push('/add');
+              if (route.name === 'log') return router.push('/add');
               if (!focused) navigateToTab(route.key);
             };
-            if (route.name === 'add')
+            if (route.name === 'log')
               return (
                 <Press
                   key={route.key}

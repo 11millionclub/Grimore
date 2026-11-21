@@ -132,6 +132,32 @@ npm run typecheck && npm run lint && npm test
 npx expo export --platform web --platform android
 ```
 
+### End-to-end tests (Playwright, web build)
+
+First time on a machine: `npx playwright install chromium`.
+
+```bash
+npm run e2e          # mock mode: builds the web app, serves it on :4173 and fakes Supabase with fixtures
+npm run e2e:report   # open the HTML report (screenshots of the main screens are attached)
+```
+
+**Live mode** runs smoke tests against the real backend with a dedicated **test account** (never your own). Set the variables in your terminal, not in a file that gets committed:
+
+```bat
+:: Windows (cmd)
+set E2E_EMAIL=test@example.com
+set E2E_PASSWORD=your-test-password
+set E2E_BASE_URL=https://grimore.expo.app
+npm run e2e
+```
+
+```bash
+# macOS / Linux
+E2E_EMAIL=test@example.com E2E_PASSWORD=… E2E_BASE_URL=https://grimore.expo.app npm run e2e
+```
+
+Without `E2E_BASE_URL`, live mode uses the local build. Live tests only read and open screens: they do not post, buy or play.
+
 ---
 
 ## Limitations and next steps
