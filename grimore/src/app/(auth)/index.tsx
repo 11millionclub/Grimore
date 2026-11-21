@@ -21,7 +21,7 @@ export default function Welcome() {
               g
             </Text>
           </View>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 40, lineHeight: 41, letterSpacing: -1.4, marginTop: spacing.lg }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 40, lineHeight: 41, marginTop: spacing.lg }}>
             Everything you read,{'\n'}in one place.
           </Text>
           <Text variant="body" tone="muted" style={{ marginTop: spacing.md, fontSize: 16, lineHeight: 24, maxWidth: 340 }}>

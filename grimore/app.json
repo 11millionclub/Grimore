@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "grimore",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true
@@ -29,11 +29,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0c0d0f",
+          "backgroundColor": "#efe6d4",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76,
           "dark": {
-            "backgroundColor": "#0c0d0f",
+            "backgroundColor": "#efe6d4",
             "image": "./assets/images/splash-icon.png"
           }
         }
@@ -58,7 +58,7 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0c0d0f",
+    "backgroundColor": "#efe6d4",
     "runtimeVersion": {
       "policy": "sdkVersion"
     },

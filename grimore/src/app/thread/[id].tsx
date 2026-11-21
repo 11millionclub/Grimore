@@ -61,7 +61,7 @@ export default function ThreadScreen() {
               · {relativeTime(d.created_at)}
             </Text>
           </View>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 28, letterSpacing: -0.9, marginTop: spacing.base }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 28, marginTop: spacing.base }}>
             {d.title}
           </Text>
           {d.body ? (

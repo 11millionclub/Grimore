@@ -33,29 +33,29 @@ function Count({ to, color, size }: { to: number; color: string; size: number })
     }, 30);
     return () => clearInterval(t);
   }, [to]);
-  return <Text style={{ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, letterSpacing: -size * 0.035, fontVariant: ['tabular-nums'] }} color={color}>{fmt(v)}</Text>;
+  return <Text style={{ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, fontVariant: ['tabular-nums'] }} color={color}>{fmt(v)}</Text>;
 }
 
-const big = (size: number, color: string) => ({ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, letterSpacing: -size * 0.035, color });
+const big = (size: number, color: string) => ({ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, color });
 
 function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Slide[] {
   const s: Slide[] = [];
   const month = d.period === 'month';
   s.push({
-    bg: month ? '#ff6a3d' : '#0c0d0f',
-    fg: month ? '#160803' : '#f2f2f0',
+    bg: month ? '#c39a45' : '#1d140d',
+    fg: month ? '#1f130a' : '#f1e6d0',
     body: (
       <View style={{ flex: 1, justifyContent: 'flex-end', paddingBottom: spacing.xxl }}>
         <R>
-          <Text style={{ fontFamily: fonts.semibold, fontSize: 17, opacity: 0.7 }} color={month ? '#160803' : '#f2f2f0'}>
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 17, opacity: 0.7 }} color={month ? '#1f130a' : '#f1e6d0'}>
             {month ? 'Your Wrapped for' : 'Grimore Wrapped'}
           </Text>
         </R>
         <R i={1}>
-          <Text style={big(month ? 84 : 120, month ? '#160803' : '#ff6a3d')}>{d.label}</Text>
+          <Text style={big(month ? 84 : 120, month ? '#1f130a' : '#c39a45')}>{d.label}</Text>
         </R>
         <R i={2}>
-          <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.lg, opacity: 0.8, maxWidth: 300 }} color={month ? '#160803' : '#f2f2f0'}>
+          <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.lg, opacity: 0.8, maxWidth: 300 }} color={month ? '#1f130a' : '#f1e6d0'}>
             {d.pages || d.books.length ? (month ? 'Let’s see what you read, when, and how it went.' : 'A whole year of pages. Ready?') : 'A quiet one so far. Log a few pages and come back.'}
           </Text>
         </R>
@@ -64,24 +64,24 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
   });
   if (d.pages)
     s.push({
-      bg: '#10261b',
-      fg: '#e9f5ee',
+      bg: '#1f2a1c',
+      fg: '#efe6d4',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#e9f5ee">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#efe6d4">
               You read
             </Text>
           </R>
           <R i={1}>
-            <Count to={d.pages} size={96} color="#7ee2a8" />
+            <Count to={d.pages} size={96} color="#d4b05e" />
           </R>
           <R i={2}>
-            <Text style={big(34, '#e9f5ee')}>pages.</Text>
+            <Text style={big(34, '#efe6d4')}>pages.</Text>
           </R>
           {d.previousPages ? (
             <R i={3}>
-              <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.xl, opacity: 0.8 }} color="#e9f5ee">
+              <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.xl, opacity: 0.8 }} color="#efe6d4">
                 {d.pages >= d.previousPages ? `${fmt(d.pages - d.previousPages)} more than the ${month ? 'month' : 'year'} before.` : `${fmt(d.previousPages - d.pages)} fewer than the ${month ? 'month' : 'year'} before. Quality over quantity.`}
               </Text>
             </R>
@@ -91,32 +91,32 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
     });
   if (!month && d.books.length)
     s.push({
-      bg: '#ff6a3d',
-      fg: '#160803',
+      bg: '#c39a45',
+      fg: '#1f130a',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#160803">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#1f130a">
               You finished
             </Text>
           </R>
           <R i={1}>
-            <Count to={d.books.length} size={150} color="#160803" />
+            <Count to={d.books.length} size={150} color="#1f130a" />
           </R>
           <R i={2}>
-            <Text style={big(34, '#160803')}>{d.books.length === 1 ? 'book.' : 'books.'}</Text>
+            <Text style={big(34, '#1f130a')}>{d.books.length === 1 ? 'book.' : 'books.'}</Text>
           </R>
         </View>
       ),
     });
   if (d.topBook)
     s.push({
-      bg: '#1b2f8f',
-      fg: '#eef1ff',
+      bg: '#22306b',
+      fg: '#f1e6d0',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#eef1ff">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#f1e6d0">
               {month ? 'Book of the month' : 'Book of the year'}
             </Text>
           </R>
@@ -126,10 +126,10 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
             </View>
           </R>
           <R i={2}>
-            <Text style={big(38, '#eef1ff')}>{d.topBook.title}</Text>
+            <Text style={big(38, '#f1e6d0')}>{d.topBook.title}</Text>
           </R>
           <R i={3}>
-            <Text style={{ fontSize: 17, marginTop: spacing.sm, opacity: 0.8 }} color="#eef1ff">
+            <Text style={{ fontSize: 17, marginTop: spacing.sm, opacity: 0.8 }} color="#f1e6d0">
               {d.topBook.authors}
               {d.topBook.rating ? ` · ${d.topBook.rating} stars` : ''}
             </Text>
@@ -139,17 +139,17 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
     });
   if (!month && d.topAuthor && d.topAuthor.books.length > 1)
     s.push({
-      bg: '#10261b',
-      fg: '#e9f5ee',
+      bg: '#1f2a1c',
+      fg: '#efe6d4',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#e9f5ee">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#efe6d4">
               Author of your year
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(52, '#e9f5ee')}>{d.topAuthor.name}</Text>
+            <Text style={big(52, '#efe6d4')}>{d.topAuthor.name}</Text>
           </R>
           <R i={2}>
             <View style={{ flexDirection: 'row', gap: spacing.base, marginTop: spacing.xxl }}>
@@ -165,31 +165,31 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
     });
   if (d.topGenre.length)
     s.push({
-      bg: '#15171a',
-      fg: '#f2f2f0',
+      bg: '#241a12',
+      fg: '#f1e6d0',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#f2f2f0">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#f1e6d0">
               Your genre
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(56, '#ff6a3d')}>{d.topGenre[0].name}</Text>
+            <Text style={big(56, '#c39a45')}>{d.topGenre[0].name}</Text>
           </R>
           <R i={2}>
             <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
               {d.topGenre.map((g, i) => (
                 <View key={g.name}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 15 }} color="#f2f2f0">
+                    <Text style={{ fontSize: 15 }} color="#f1e6d0">
                       {g.name}
                     </Text>
-                    <Text style={{ fontSize: 15, opacity: 0.6 }} color="#f2f2f0">
+                    <Text style={{ fontSize: 15, opacity: 0.6 }} color="#f1e6d0">
                       {g.pct}%
                     </Text>
                   </View>
-                  <View style={{ height: 8, borderRadius: 4, width: `${(g.pct / d.topGenre[0].pct) * 100}%`, backgroundColor: '#ff6a3d', opacity: 1 - i * 0.3 }} />
+                  <View style={{ height: 8, borderRadius: 4, width: `${(g.pct / d.topGenre[0].pct) * 100}%`, backgroundColor: '#c39a45', opacity: 1 - i * 0.3 }} />
                 </View>
               ))}
             </View>
@@ -199,18 +199,18 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
     });
   if (d.peakHour !== null)
     s.push({
-      bg: '#0b0f1f',
-      fg: '#e8ecff',
+      bg: '#151a30',
+      fg: '#efe6d4',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <MoonStarsIcon size={56} weight="fill" color="#ffd36a" />
+            <MoonStarsIcon size={56} weight="fill" color="#d9b25c" />
           </R>
           <R i={1}>
-            <Text style={[big(52, '#e8ecff'), { marginTop: spacing.xl }]}>{`The ${d.peakHour}:00 reader`}</Text>
+            <Text style={[big(52, '#efe6d4'), { marginTop: spacing.xl }]}>{`The ${d.peakHour}:00 reader`}</Text>
           </R>
           <R i={2}>
-            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#e8ecff">
+            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#efe6d4">
               {Math.round(d.lateShare * 100)}% of your pages were read after 10 pm.{d.streak > 1 ? ` Your longest streak: ${d.streak} days in a row.` : ''}
             </Text>
           </R>
@@ -219,44 +219,44 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
     });
   if (d.percentile !== null)
     s.push({
-      bg: '#ece9ff',
-      fg: '#17142e',
+      bg: '#efe6d4',
+      fg: '#241a12',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#17142e">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#241a12">
               Among the people you follow
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(52, '#17142e')}>{`You read more than ${d.percentile}%.`}</Text>
+            <Text style={big(52, '#241a12')}>{`You read more than ${d.percentile}%.`}</Text>
           </R>
         </View>
       ),
     });
   if (!month && archetype)
     s.push({
-      bg: '#0b0f1f',
-      fg: '#e8ecff',
+      bg: '#151a30',
+      fg: '#efe6d4',
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#e8ecff">
+            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#efe6d4">
               This year you were
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(52, '#e8ecff')}>{ARCHETYPES[archetype].name}</Text>
+            <Text style={big(52, '#efe6d4')}>{ARCHETYPES[archetype].name}</Text>
           </R>
           <R i={2}>
-            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#e8ecff">
+            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#efe6d4">
               {ARCHETYPES[archetype].line}
             </Text>
           </R>
         </View>
       ),
     });
-  s.push({ bg: '#0c0d0f', fg: '#f2f2f0', body: summary });
+  s.push({ bg: '#1d140d', fg: '#f1e6d0', body: summary });
   return s;
 }
 
@@ -287,15 +287,15 @@ export default function Wrapped() {
     <View style={{ flex: 1, justifyContent: 'center' }}>
       <R>
         <ViewShot ref={shot} options={{ format: 'png', quality: 1 }}>
-          <View style={{ borderRadius: 24, backgroundColor: '#ff6a3d', padding: spacing.lg }}>
+          <View style={{ borderRadius: 24, backgroundColor: '#c39a45', padding: spacing.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <Avatar uri={p?.avatar_url} name={p?.display_name} size={30} />
-                <Text style={{ fontFamily: fonts.semibold, fontSize: 14 }} color="#160803">
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 14 }} color="#1f130a">
                   @{p?.username}
                 </Text>
               </View>
-              <Text style={{ fontFamily: fonts.semibold, fontSize: 13, opacity: 0.7 }} color="#160803">
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 13, opacity: 0.7 }} color="#1f130a">
                 {d.label}
               </Text>
             </View>
@@ -314,16 +314,16 @@ export default function Wrapped() {
                 [d.topGenre[0]?.name ?? '—', 'genre'],
               ].map(([v, l]) => (
                 <View key={l} style={{ width: '50%' }}>
-                  <Text style={big(30, '#160803')} numberOfLines={1}>
+                  <Text style={big(30, '#1f130a')} numberOfLines={1}>
                     {v}
                   </Text>
-                  <Text style={{ fontFamily: fonts.medium, fontSize: 13, opacity: 0.7 }} color="#160803">
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 13, opacity: 0.7 }} color="#1f130a">
                     {l}
                   </Text>
                 </View>
               ))}
             </View>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 13, marginTop: spacing.lg }} color="#160803">
+            <Text style={{ fontFamily: fonts.bold, fontSize: 13, marginTop: spacing.lg }} color="#1f130a">
               grimore
             </Text>
           </View>
@@ -366,7 +366,7 @@ export default function Wrapped() {
   }, [i, paused, n]);
 
   const s = list[Math.min(i, n - 1)];
-  if (!s) return <View style={{ flex: 1, backgroundColor: '#0c0d0f' }} />;
+  if (!s) return <View style={{ flex: 1, backgroundColor: '#1d140d' }} />;
   const go = (k: number) => {
     setI(Math.max(0, Math.min(n - 1, k)));
     setProgress(0);

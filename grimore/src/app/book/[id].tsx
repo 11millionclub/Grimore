@@ -74,7 +74,7 @@ export default function BookScreen() {
         ) : (
           <Skeleton width={150} height={225} rounded={4} />
         )}
-        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.95, marginTop: spacing.xl }}>
+        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, marginTop: spacing.xl }}>
           {b?.title ?? ' '}
         </Text>
         <Text variant="body" tone="muted" align="center" style={{ marginTop: 4 }}>

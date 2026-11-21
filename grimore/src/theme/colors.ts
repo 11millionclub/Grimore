@@ -1,9 +1,11 @@
 /**
  * Grimore colour tokens.
  *
- * Dark is the default: near-black paper with one warm accent (ember).
- * Light is a soft off-white. No hex values live outside this file, except
- * the decorative Corner themes and Wrapped story fields.
+ * The app is an illuminated manuscript: aged parchment, iron-gall ink, wine
+ * red for actions and gilt for ornaments. Parchment is the only app theme.
+ * "dark" is a candle-lit leather palette kept for the camera, which needs a
+ * dark surround. No hex values live outside this file, except the decorative
+ * Corner themes and Wrapped story fields.
  */
 
 export type Palette = {
@@ -19,6 +21,8 @@ export type Palette = {
   accent: string;
   accentSoft: string;
   onAccent: string;
+  gold: string;
+  goldSoft: string;
   good: string;
   goodSoft: string;
   danger: string;
@@ -29,46 +33,50 @@ export type Palette = {
 };
 
 export const palettes: Record<'light' | 'dark', Palette> = {
-  dark: {
-    bg: '#0c0d0f',
-    surface: '#15171a',
-    surface2: '#1e2125',
-    surface3: '#2a2e33',
-    line: 'rgba(255,255,255,0.08)',
-    lineStrong: 'rgba(255,255,255,0.14)',
-    ink: '#f2f2f0',
-    muted: '#9a9ea5',
-    faint: '#6b6f76',
-    accent: '#ff6a3d',
-    accentSoft: 'rgba(255,106,61,0.14)',
-    onAccent: '#160803',
-    good: '#4fd18b',
-    goodSoft: 'rgba(79,209,139,0.14)',
-    danger: '#ff5a5f',
-    glass: 'rgba(21,23,26,0.9)',
-    glassEdge: 'rgba(255,255,255,0.1)',
-    scrim: 'rgba(0,0,0,0.55)',
-    shadow: 'rgba(0,0,0,0.45)',
-  },
   light: {
-    bg: '#f3f4f2',
-    surface: '#ffffff',
-    surface2: '#eaebe8',
-    surface3: '#dcddd9',
-    line: 'rgba(17,18,20,0.08)',
-    lineStrong: 'rgba(17,18,20,0.14)',
-    ink: '#111214',
-    muted: '#5c6066',
-    faint: '#8a8e94',
-    accent: '#e5501f',
-    accentSoft: 'rgba(229,80,31,0.1)',
-    onAccent: '#ffffff',
-    good: '#1f9d5c',
-    goodSoft: 'rgba(31,157,92,0.12)',
-    danger: '#d9363e',
-    glass: 'rgba(250,250,249,0.9)',
-    glassEdge: 'rgba(255,255,255,0.7)',
-    scrim: 'rgba(17,18,20,0.35)',
-    shadow: 'rgba(40,44,50,0.16)',
+    bg: '#efe6d4',
+    surface: '#f8f2e5',
+    surface2: '#e6dac3',
+    surface3: '#d8c9ac',
+    line: 'rgba(84,58,30,0.16)',
+    lineStrong: 'rgba(84,58,30,0.3)',
+    ink: '#241a12',
+    muted: '#6b5b49',
+    faint: '#9c8b74',
+    accent: '#6e2333',
+    accentSoft: 'rgba(110,35,51,0.1)',
+    onAccent: '#fbf3e4',
+    gold: '#a3803c',
+    goldSoft: 'rgba(163,128,60,0.16)',
+    good: '#4e5e45',
+    goodSoft: 'rgba(78,94,69,0.14)',
+    danger: '#963530',
+    glass: 'rgba(244,236,220,0.96)',
+    glassEdge: 'rgba(163,128,60,0.5)',
+    scrim: 'rgba(36,26,18,0.42)',
+    shadow: 'rgba(60,40,18,0.22)',
+  },
+  dark: {
+    bg: '#17110c',
+    surface: '#221911',
+    surface2: '#2e2318',
+    surface3: '#3c2e20',
+    line: 'rgba(232,210,170,0.1)',
+    lineStrong: 'rgba(232,210,170,0.2)',
+    ink: '#f1e6d0',
+    muted: '#b8a68a',
+    faint: '#86765f',
+    accent: '#c9a45a',
+    accentSoft: 'rgba(201,164,90,0.16)',
+    onAccent: '#1a120a',
+    gold: '#c9a45a',
+    goldSoft: 'rgba(201,164,90,0.16)',
+    good: '#8fa67f',
+    goodSoft: 'rgba(143,166,127,0.16)',
+    danger: '#d66a5f',
+    glass: 'rgba(34,25,17,0.92)',
+    glassEdge: 'rgba(201,164,90,0.35)',
+    scrim: 'rgba(0,0,0,0.55)',
+    shadow: 'rgba(0,0,0,0.5)',
   },
 };

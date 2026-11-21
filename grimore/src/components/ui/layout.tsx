@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
   FadeInDown,
   ReduceMotion,
@@ -32,15 +33,43 @@ export function Progress({ value, height = 4, style, color }: { value: number; h
   );
 }
 
+/** Gilt fleuron: a small lozenge with a curl either side, used before headings and as a rule. */
+export function Fleuron({ size = 14, color }: { size?: number; color?: string }) {
+  const { colors } = useTheme();
+  const c = color ?? colors.gold;
+  return (
+    <Svg width={size * 2} height={size} viewBox="0 0 28 14">
+      <Path d="M14 2 L18 7 L14 12 L10 7 Z" fill={c} />
+      <Path d="M9 7 C6 3, 2 4, 3 7 C4 9, 6 8, 5.5 7" stroke={c} strokeWidth={1.1} fill="none" strokeLinecap="round" />
+      <Path d="M19 7 C22 3, 26 4, 25 7 C24 9, 22 8, 22.5 7" stroke={c} strokeWidth={1.1} fill="none" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Ornamental rule: hairline, fleuron, hairline. */
+export function Flourish({ style }: { style?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.gold, opacity: 0.45 }} />
+      <Fleuron />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.gold, opacity: 0.45 }} />
+    </View>
+  );
+}
+
 export function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Text variant="h2" accessibilityRole="header">
-        {title}
-      </Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+        <Fleuron size={10} />
+        <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {title}
+        </Text>
+      </View>
       {action ? (
         <Press onPress={onAction} accessibilityRole="button">
-          <Text variant="small" tone="muted">
+          <Text variant="small" tone="accent" style={{ fontStyle: 'italic' }}>
             {action}
           </Text>
         </Press>
@@ -56,7 +85,7 @@ export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
 
 export function Card({ children, style, onPress, padded = true }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; padded?: boolean }) {
   const { colors } = useTheme();
-  const s = [{ backgroundColor: colors.surface, borderRadius: radius.card, padding: padded ? spacing.base : 0 }, style];
+  const s = [{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: padded ? spacing.base : 0 }, style];
   if (onPress)
     return (
       <Press onPress={onPress} style={s}>
@@ -91,7 +120,7 @@ export function EmptyState({ icon, title, body, action, onAction }: { icon?: Rea
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xxxl, paddingHorizontal: spacing.xl, gap: spacing.sm }}>
       {icon ? (
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>{icon}</View>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>{icon}</View>
       ) : null}
       <Text variant="title" align="center">
         {title}
@@ -120,11 +149,11 @@ export function Group({ title, children }: { title?: string; children: ReactNode
   return (
     <View style={{ marginTop: spacing.xl, paddingHorizontal: spacing.lg }}>
       {title ? (
-        <Text variant="small" tone="muted" style={{ marginBottom: spacing.sm, paddingHorizontal: spacing.xs }}>
+        <Text variant="h2" tone="muted" style={{ fontSize: 13, marginBottom: spacing.sm, paddingHorizontal: spacing.xs }}>
           {title}
         </Text>
       ) : null}
-      <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>{children}</View>
+      <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' }}>{children}</View>
     </View>
   );
 }

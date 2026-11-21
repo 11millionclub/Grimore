@@ -72,7 +72,7 @@ export default function Play() {
                     <GameGlyph id={g.game} onAccent={featured} cover={g.payload.cover_url} />
                     <View style={{ marginTop: 'auto' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ fontFamily: fonts.bold, fontSize: 18, letterSpacing: -0.4 }} tone={featured ? 'onAccent' : 'ink'}>
+                        <Text style={{ fontFamily: fonts.bold, fontSize: 18 }} tone={featured ? 'onAccent' : 'ink'}>
                           {meta.name}
                         </Text>
                         {finished ? g.attempt!.status === 'won' ? <CheckCircleIcon size={20} weight="fill" color={colors.good} /> : <SkullIcon size={20} weight="fill" color={colors.muted} /> : null}

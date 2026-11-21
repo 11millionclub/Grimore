@@ -1,0 +1,18 @@
+# Publishes an over-the-air update to the app every time main changes,
+# so fixes reach phones (Expo Go / installed builds) without a computer.
+# Needs: the GitHub repo linked to the Expo project (base directory: grimore)
+# and EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY set as
+# EAS environment variables for "production".
+name: Publish update
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  publish_update:
+    name: Publish update to main
+    type: update
+    environment: production
+    params:
+      branch: main

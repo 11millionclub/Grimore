@@ -49,7 +49,7 @@ export function Btn({
         {
           height: heights[size],
           paddingHorizontal: pads[size],
-          borderRadius: radius.full,
+          borderRadius: radius.sm,
           backgroundColor: bg,
           flexDirection: 'row',
           alignItems: 'center',
@@ -58,12 +58,13 @@ export function Btn({
           alignSelf: full ? 'stretch' : 'flex-start',
         },
         variant === 'ghost' && { borderWidth: 1, borderColor: colors.lineStrong },
+        variant === 'primary' && { borderWidth: 1, borderColor: colors.gold },
         style,
       ]}
     >
       {loading ? <ActivityIndicator color={fg} /> : icon}
       {typeof children === 'string' ? (
-        <Text numberOfLines={1} color={fg} style={{ fontFamily: fonts.semibold, fontSize: fontSizes[size], lineHeight: fontSizes[size] + 4 }}>
+        <Text numberOfLines={1} color={fg} style={{ fontFamily: fonts.displayMedium, fontSize: fontSizes[size] - 1, lineHeight: fontSizes[size] + 4, letterSpacing: 0.5 }}>
           {children}
         </Text>
       ) : (

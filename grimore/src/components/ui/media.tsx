@@ -41,7 +41,7 @@ export function Cover({
         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={250} onError={() => setFailed(true)} recyclingKey={uri} />
       ) : (
         <View style={{ flex: 1, padding: Math.max(5, width * 0.08), justifyContent: 'space-between', backgroundColor: colors.surface3 }}>
-          <Text numberOfLines={4} style={{ fontFamily: fonts.semibold, fontSize: Math.max(8, Math.min(13, width / 7)), lineHeight: Math.max(10, Math.min(16, width / 5.6)) }}>
+          <Text numberOfLines={4} style={{ fontFamily: fonts.serifBold, fontSize: Math.max(9, Math.min(15, width / 6)), lineHeight: Math.max(11, Math.min(17, width / 5.2)) }}>
             {title}
           </Text>
           {author ? (

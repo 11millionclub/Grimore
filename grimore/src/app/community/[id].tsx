@@ -52,7 +52,7 @@ export default function CommunityScreen() {
       <CommunityCover c={d} height={300} />
       <LinearGradient colors={['rgba(0,0,0,0.3)', colors.bg + '4d', colors.bg]} locations={[0, 0.5, 1]} style={{ position: 'absolute', inset: 0 }} />
       <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.md }}>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 33, letterSpacing: -1.1 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 33 }}>
           {d.name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
@@ -157,7 +157,7 @@ export default function CommunityScreen() {
                 <Text variant="callout" style={{ fontFamily: fonts.semibold }} color={i === 1 ? colors.bg : colors.ink}>
                   {t.name}
                 </Text>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 28, letterSpacing: -0.9, marginTop: 4 }} color={i === 1 ? colors.bg : colors.ink}>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 28, marginTop: 4 }} color={i === 1 ? colors.bg : colors.ink}>
                   {t.price ? money(t.price) : 'Free'}
                   {t.price ? <Text variant="small" color={i === 1 ? colors.bg : colors.muted}> /month</Text> : null}
                 </Text>

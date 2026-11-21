@@ -4,12 +4,13 @@ import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-/** Translucent bar background: real blur on iOS, a tinted glass colour elsewhere. */
+/** Bar background: parchment wash over a light blur on iOS, the plain parchment colour elsewhere. */
 export function Glass({ children, style }: { children?: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors, scheme } = useTheme();
   if (Platform.OS === 'ios') {
     return (
-      <BlurView intensity={60} tint={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'} style={[{ overflow: 'hidden' }, style]}>
+      <BlurView intensity={40} tint={scheme === 'dark' ? 'dark' : 'light'} style={[{ overflow: 'hidden' }, style]}>
+        <View style={{ position: 'absolute', inset: 0, backgroundColor: colors.glass, opacity: 0.85 }} />
         {children}
       </BlurView>
     );

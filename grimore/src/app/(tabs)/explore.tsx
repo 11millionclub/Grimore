@@ -78,7 +78,7 @@ function ForYou() {
           <Text variant="small" tone="muted" style={{ marginTop: spacing.md }}>
             Your reader profile
           </Text>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 26, letterSpacing: -0.8, marginTop: 2 }}>{arch ? ARCHETYPES[arch].name : 'Take the reader test'}</Text>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 26, marginTop: 2 }}>{arch ? ARCHETYPES[arch].name : 'Take the reader test'}</Text>
           <Text variant="small" tone="muted" style={{ marginTop: 4, maxWidth: 300 }}>
             {arch ? ARCHETYPES[arch].traits : 'Four questions, two minutes. We use it to suggest books and people.'}
           </Text>

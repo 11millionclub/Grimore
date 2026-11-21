@@ -1,7 +1,4 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
-
-import { useAppearance } from '@/stores/appearance';
 
 import { palettes, type Palette } from './colors';
 import { fonts, layout, motion, radius, spacing, typeScale } from './tokens';
@@ -14,17 +11,15 @@ export type Theme = {
   colors: Palette;
 };
 
-const ThemeContext = createContext<Theme>({ scheme: 'dark', colors: palettes.dark });
+const PARCHMENT: Theme = { scheme: 'light', colors: palettes.light };
+const ThemeContext = createContext<Theme>(PARCHMENT);
 
+/** Parchment everywhere; the manuscript has one look. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const system = useColorScheme();
-  const appearance = useAppearance((s) => s.appearance);
-  const scheme = appearance === 'system' ? (system === 'light' ? 'light' : 'dark') : appearance;
-  const theme = useMemo<Theme>(() => ({ scheme, colors: palettes[scheme] }), [scheme]);
-  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={PARCHMENT}>{children}</ThemeContext.Provider>;
 }
 
-/** Forces the dark palette for a subtree (camera, Wrapped). */
+/** Candle-lit leather palette for a subtree that needs a dark surround (camera). */
 export function DarkTheme({ children }: { children: ReactNode }) {
   return <ThemeContext.Provider value={DARK}>{children}</ThemeContext.Provider>;
 }

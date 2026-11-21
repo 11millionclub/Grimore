@@ -50,7 +50,7 @@ export default function Goals() {
             <IconBtn label="Fewer" filled onPress={() => setTarget(Math.max(1, t - 1))}>
               <MinusIcon size={18} weight="bold" color={colors.ink} />
             </IconBtn>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 56, lineHeight: 60, letterSpacing: -2 }}>{t}</Text>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 56, lineHeight: 60 }}>{t}</Text>
             <IconBtn label="More" filled onPress={() => setTarget(Math.min(1000, t + 1))}>
               <PlusIcon size={18} weight="bold" color={colors.ink} />
             </IconBtn>

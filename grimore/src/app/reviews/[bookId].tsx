@@ -23,7 +23,7 @@ export default function Reviews() {
     <Screen title="Reviews" back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
       <View style={{ marginHorizontal: spacing.lg, flexDirection: 'row', gap: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 44, lineHeight: 46, letterSpacing: -1.5 }}>{d?.avg ? d.avg.toFixed(1) : '—'}</Text>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 44, lineHeight: 46 }}>{d?.avg ? d.avg.toFixed(1) : '—'}</Text>
           <Stars value={d?.avg ?? 0} size={12} />
           <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
             {d?.count ?? 0}

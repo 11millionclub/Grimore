@@ -154,7 +154,7 @@ export default function Game() {
             <View style={{ marginTop: spacing.xxl, width: 80, height: 80, borderRadius: 24, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
               <GameGlyph id={s.game} cover={s.payload.cover_url} />
             </View>
-            <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36, letterSpacing: -1.2, marginTop: spacing.xl }}>
+            <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36, marginTop: spacing.xl }}>
               {meta.name}
             </Text>
             <Text variant="body" tone="muted" style={{ marginTop: 4 }}>

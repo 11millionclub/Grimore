@@ -54,7 +54,7 @@ export default function ReaderDNA() {
           <Text variant="small" tone="muted" style={{ marginTop: spacing.base }}>
             {isMe ? 'You are a' : `${(profile.data?.display_name ?? profile.data?.username ?? '').split(' ')[0]} is a`}
           </Text>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36, letterSpacing: -1.2 }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36 }}>
             {arch ? ARCHETYPES[arch].name : 'Reader in the making'}
           </Text>
           <Text variant="body" style={{ marginTop: spacing.sm, opacity: 0.85 }}>

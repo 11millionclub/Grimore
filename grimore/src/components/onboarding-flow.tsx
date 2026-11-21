@@ -150,7 +150,7 @@ export function OnboardingFlow({ quizOnly = false, onExit, onFinish, userId }: {
               <IconBtn label="One less" size={56} filled onPress={() => setGoal(Math.max(1, goal - 1))}>
                 <MinusIcon size={22} weight="bold" color={colors.ink} />
               </IconBtn>
-              <Text style={{ fontFamily: fonts.bold, fontSize: 96, lineHeight: 100, letterSpacing: -3, fontVariant: ['tabular-nums'] }}>{goal}</Text>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 96, lineHeight: 100, fontVariant: ['tabular-nums'] }}>{goal}</Text>
               <IconBtn label="One more" size={56} filled onPress={() => setGoal(Math.min(1000, goal + 1))}>
                 <PlusIcon size={22} weight="bold" color={colors.ink} />
               </IconBtn>
@@ -189,7 +189,7 @@ function Frame({ title, sub, children, cta, onNext, disabled, ctaVariant = 'prim
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 60, paddingBottom: insets.bottom + spacing.md }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34, letterSpacing: -1.1 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34 }}>
           {title}
         </Text>
         {sub ? (
@@ -217,7 +217,7 @@ function Question({ n, value, onPick }: { n: number; value?: string; onPick: (id
       <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
         Question {n + 1} of {QUESTIONS.length}
       </Text>
-      <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34, letterSpacing: -1.1, marginTop: spacing.sm }}>
+      <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34, marginTop: spacing.sm }}>
         {q.title}
       </Text>
       <View style={{ marginTop: 'auto', gap: 10 }}>
@@ -343,7 +343,7 @@ function Reveal({ arch, genres, cta, onNext, busy }: { arch: Arch; genres: strin
         <Text variant="body" tone="muted" style={{ marginTop: spacing.xxl }}>
           Your reader profile
         </Text>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 42, lineHeight: 44, letterSpacing: -1.5, marginTop: 4 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 42, lineHeight: 44, marginTop: 4 }}>
           {a.name}
         </Text>
         <Text variant="body" style={{ fontSize: 17, lineHeight: 26, marginTop: spacing.base, opacity: 0.85 }}>

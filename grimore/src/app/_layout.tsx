@@ -1,5 +1,6 @@
-import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold } from '@expo-google-fonts/geist';
-import { GeistMono_500Medium, GeistMono_600SemiBold } from '@expo-google-fonts/geist-mono';
+import { Cinzel_600SemiBold, Cinzel_700Bold } from '@expo-google-fonts/cinzel';
+import { CormorantGaramond_500Medium_Italic, CormorantGaramond_600SemiBold, CormorantGaramond_700Bold } from '@expo-google-fonts/cormorant-garamond';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
@@ -25,12 +26,14 @@ startSessionListener();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Geist_400Regular,
-    Geist_500Medium,
-    Geist_600SemiBold,
-    Geist_700Bold,
-    GeistMono_500Medium,
-    GeistMono_600SemiBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Cinzel_600SemiBold,
+    Cinzel_700Bold,
+    CormorantGaramond_500Medium_Italic,
+    CormorantGaramond_600SemiBold,
+    CormorantGaramond_700Bold,
   });
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -43,7 +46,7 @@ export default function RootLayout() {
   );
 }
 
-const sheet: NativeStackNavigationOptions = { presentation: 'formSheet', sheetAllowedDetents: [0.75, 1], sheetGrabberVisible: false, sheetCornerRadius: 28 };
+const sheet: NativeStackNavigationOptions = { presentation: 'formSheet', sheetAllowedDetents: [0.75, 1], sheetGrabberVisible: false, sheetCornerRadius: 18 };
 const fullscreen: NativeStackNavigationOptions = { presentation: 'fullScreenModal', animation: 'slide_from_bottom' };
 
 function Navigation() {

@@ -208,7 +208,7 @@ export function FramedAvatar({ frame, uri, name, size = 92 }: { frame: string; u
 export function StyledName({ name, style: nameStyle, size = 26 }: { name: string; style: string; size?: number }) {
   const { colors } = useTheme();
   const s = NAME_STYLES[nameStyle]?.stops;
-  const width = Math.max(40, Math.round(name.length * size * 0.56));
+  const width = Math.max(40, Math.round(name.length * size * 0.76));
   const height = Math.round(size * 1.3);
   const id = `name-${nameStyle}`;
   return (
@@ -222,7 +222,7 @@ export function StyledName({ name, style: nameStyle, size = 26 }: { name: string
           </LinearGradient>
         </Defs>
       ) : null}
-      <SvgText x={0} y={size} fontFamily={fonts.bold} fontSize={size} letterSpacing={-size * 0.035} fill={s ? `url(#${id})` : colors.ink}>
+      <SvgText x={0} y={size} fontFamily={fonts.bold} fontSize={size} fill={s ? `url(#${id})` : colors.ink}>
         {name}
       </SvgText>
     </Svg>

@@ -60,13 +60,13 @@ export default function ListingScreen() {
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 28, letterSpacing: -0.9 }}>{d.book?.title}</Text>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 28 }}>{d.book?.title}</Text>
             <Text variant="body" tone="muted">
               {d.book?.authors}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 26, letterSpacing: -0.9 }}>{sale ? money(d.price_cents, d.currency) : 'Trade'}</Text>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 26 }}>{sale ? money(d.price_cents, d.currency) : 'Trade'}</Text>
             {d.mode === 'both' ? (
               <Text variant="caption" tone="muted">
                 or trade

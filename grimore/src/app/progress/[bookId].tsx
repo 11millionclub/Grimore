@@ -68,7 +68,7 @@ export default function ProgressSheet() {
             <MinusIcon size={20} weight="bold" color={colors.ink} />
           </IconBtn>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 64, lineHeight: 66, letterSpacing: -2, fontVariant: ['tabular-nums'] }}>{current}</Text>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 64, lineHeight: 66, fontVariant: ['tabular-nums'] }}>{current}</Text>
             <Text variant="small" tone="muted">
               of {total} · {Math.round((current / Math.max(1, total)) * 100)}%
             </Text>

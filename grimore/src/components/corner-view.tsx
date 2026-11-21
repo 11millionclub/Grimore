@@ -222,7 +222,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
           <Text variant="small" tone="onAccent" style={{ fontFamily: fonts.semibold, opacity: 0.75 }}>
             This month
           </Text>
-          <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 25, letterSpacing: -0.8 }}>
+          <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 25 }}>
             Monthly{'\n'}Wrapped
           </Text>
         </Press>
@@ -230,7 +230,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
           <Text variant="small" color={colors.bg} style={{ fontFamily: fonts.semibold, opacity: 0.6 }}>
             {year}
           </Text>
-          <Text color={colors.bg} style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 25, letterSpacing: -0.8 }}>
+          <Text color={colors.bg} style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 25 }}>
             Your year{'\n'}in books
           </Text>
         </Press>

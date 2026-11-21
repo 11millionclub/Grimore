@@ -9,6 +9,7 @@ import { layout, spacing, useTheme } from '@/theme';
 
 import { IconBtn } from './button';
 import { Glass } from './glass';
+import { Flourish } from './layout';
 import { Text } from './text';
 
 export function goBack() {
@@ -77,9 +78,12 @@ export function Screen({
     <>
       {hero ?? <View style={{ height: barHeight }} />}
       {large && title && !hero ? (
-        <Text variant="display" accessibilityRole="header" style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, paddingTop: spacing.xs }}>
-          {title}
-        </Text>
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, paddingTop: spacing.xs, gap: spacing.sm }}>
+          <Text variant="display" accessibilityRole="header">
+            {title}
+          </Text>
+          <Flourish style={{ maxWidth: 220 }} />
+        </View>
       ) : null}
       {children}
     </>
@@ -119,7 +123,7 @@ export function Screen({
             <View style={{ width: 40 }} />
           )}
           <Animated.View style={[{ flex: 1 }, smallTitle]}>
-            <Text variant="title" numberOfLines={1} align="center" style={{ fontSize: 16 }}>
+            <Text variant="h2" numberOfLines={1} align="center" style={{ fontSize: 15 }}>
               {title}
             </Text>
           </Animated.View>

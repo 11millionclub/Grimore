@@ -123,7 +123,7 @@ export default function Home() {
         <Press onPress={() => router.push('/goals')} style={{ flex: 1.25, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
           <Ring value={goal.data?.target ? goal.data.read / goal.data.target : 0} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5 }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24 }}>
               {goal.data?.read ?? 0}
               <Text variant="body" tone="muted" style={{ fontFamily: fonts.medium }}>
                 {goal.data?.target ? `/${goal.data.target}` : ''}
@@ -137,7 +137,7 @@ export default function Home() {
         <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base, justifyContent: 'space-between', gap: spacing.sm }}>
           <FireIcon size={22} weight="fill" color={colors.accent} />
           <View>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5 }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 22, lineHeight: 24 }}>
               {streak.data?.current ?? 0} {streak.data?.current === 1 ? 'day' : 'days'}
             </Text>
             <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
@@ -156,7 +156,7 @@ export default function Home() {
               <Text variant="small" tone="onAccent" style={{ fontFamily: fonts.semibold, opacity: 0.8 }}>
                 {monthName(month)} Wrapped
               </Text>
-              <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 27, letterSpacing: -0.9, marginTop: 4 }}>
+              <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 27, marginTop: 4 }}>
                 {monthPages ? `${fmt(monthPages)} pages.\nYour month, told.` : 'Your month,\ntold in pages.'}
               </Text>
             </View>

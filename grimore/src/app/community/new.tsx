@@ -91,7 +91,7 @@ export default function CreateCommunity() {
           ) : step === 1 ? (
             <>
               <View>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 24, letterSpacing: -0.8 }}>Who can join?</Text>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 24 }}>Who can join?</Text>
                 <Text variant="callout" tone="muted" style={{ marginTop: 4 }}>
                   You can change this later.
                 </Text>
@@ -154,7 +154,7 @@ export default function CreateCommunity() {
           ) : step === 2 ? (
             <>
               <View>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 24, letterSpacing: -0.8 }}>How it works</Text>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 24 }}>How it works</Text>
                 <Text variant="callout" tone="muted" style={{ marginTop: 4 }}>
                   Simple rules make better conversations.
                 </Text>

@@ -31,7 +31,7 @@ export default function Author() {
             {initials}
           </Text>
         </View>
-        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.9, marginTop: spacing.base }}>
+        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, marginTop: spacing.base }}>
           {name}
         </Text>
         <Text variant="callout" tone="muted" style={{ marginTop: 4 }}>

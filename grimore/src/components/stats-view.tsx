@@ -42,7 +42,7 @@ export function StatsView({ userId }: { userId: string }) {
         {tiles.map(([v, l], i) => (
           <Stagger key={l} i={i} style={{ width: '47.5%' }}>
             <Press disabled={i !== 0} onPress={() => router.push('/goals')} style={card}>
-              <Text style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.9 }}>{v}</Text>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30 }}>{v}</Text>
               <Text variant="small" tone="muted">
                 {l}
               </Text>

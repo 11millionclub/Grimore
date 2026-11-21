@@ -114,3 +114,8 @@ export { UsersThreeIcon } from 'phosphor-react-native/src/icons/UsersThree';
 export { WarningIcon } from 'phosphor-react-native/src/icons/Warning';
 export { WifiHighIcon } from 'phosphor-react-native/src/icons/WifiHigh';
 export { XIcon } from 'phosphor-react-native/src/icons/X';
+export { CastleTurretIcon } from 'phosphor-react-native/src/icons/CastleTurret';
+export { CompassRoseIcon } from 'phosphor-react-native/src/icons/CompassRose';
+export { DiceFiveIcon } from 'phosphor-react-native/src/icons/DiceFive';
+export { ShieldChevronIcon } from 'phosphor-react-native/src/icons/ShieldChevron';
+export { ScrollIcon } from 'phosphor-react-native/src/icons/Scroll';
