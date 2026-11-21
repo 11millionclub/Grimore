@@ -65,6 +65,13 @@ test.describe('@mock signed-in app', () => {
     await expect(page.getByText('Coming soon')).toBeVisible();
   });
 
+  test('import offers Kindle and Kobo alongside the CSV exports', async ({ page }) => {
+    await page.goto('/import');
+    await expect(page.getByText('Kindle highlights')).toBeVisible();
+    await expect(page.getByText('Kobo library')).toBeVisible();
+    await expect(page.getByText('Import from Goodreads')).toBeVisible();
+  });
+
   test('screenshots of the main screens', async ({ page }, info) => {
     for (const path of ['/', '/explore', '/play', '/me', '/book/b3', '/community/cm1', '/listing/l1']) {
       await page.goto(path);

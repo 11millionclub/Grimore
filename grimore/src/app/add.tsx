@@ -62,7 +62,7 @@ export default function AddSheet() {
         <Press onPress={() => go('/import')} style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }}>
           <FileArrowUpIcon size={18} color={colors.muted} />
           <Text variant="small" tone="muted">
-            Import from Goodreads or StoryGraph
+            Import from Kindle, Kobo, Goodreads or StoryGraph
           </Text>
         </Press>
       </View>

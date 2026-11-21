@@ -12,6 +12,8 @@ export type ImportRow = {
   status: ReadingStatus;
   rating?: number;
   finishedOn?: string;
+  /** 0-100, for books in progress (Kobo). */
+  percent?: number;
 };
 
 /** Minimal RFC 4180 CSV parser (quotes, escaped quotes, newlines inside quotes). */
@@ -110,10 +112,15 @@ export function rowsFromExport(text: string): { source: 'goodreads' | 'storygrap
   return { source, rows };
 }
 
-/** Creates (or reuses) catalogue records and adds them to the reader's library. */
-export async function importRows(userId: string, rows: ImportRow[], onProgress?: (done: number) => void) {
+/**
+ * Creates (or reuses) catalogue records and adds them to the reader's library.
+ * With `overwrite: false`, books already in the library keep their status.
+ * Returns how many were added and each title's (lower-cased) book id.
+ */
+export async function importRows(userId: string, rows: ImportRow[], onProgress?: (done: number) => void, { overwrite = true }: { overwrite?: boolean } = {}) {
   let done = 0;
   let added = 0;
+  const ids = new Map<string, string>();
   for (const r of rows) {
     try {
       const bookId = unwrap(
@@ -127,6 +134,7 @@ export async function importRows(userId: string, rows: ImportRow[], onProgress?:
           },
         }),
       );
+      ids.set(r.title.toLowerCase(), bookId as string);
       unwrap(
         await supabase.from('user_books').upsert(
           {
@@ -135,8 +143,9 @@ export async function importRows(userId: string, rows: ImportRow[], onProgress?:
             status: r.status,
             rating: r.rating ?? null,
             finished_on: r.status === 'read' ? r.finishedOn ?? null : null,
+            ...(r.percent != null && r.status === 'reading' ? { progress_percent: Math.max(0, Math.min(100, Math.round(r.percent))) } : {}),
           },
-          { onConflict: 'user_id,book_id' },
+          { onConflict: 'user_id,book_id', ignoreDuplicates: !overwrite },
         ),
       );
       added++;
@@ -146,5 +155,5 @@ export async function importRows(userId: string, rows: ImportRow[], onProgress?:
     done++;
     onProgress?.(done);
   }
-  return added;
+  return { added, ids };
 }
