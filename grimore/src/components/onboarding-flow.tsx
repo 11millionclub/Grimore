@@ -20,7 +20,7 @@ import {
   PlusIcon,
   QuotesIcon,
   ShuffleIcon,
-  SparkleIcon,
+  CompassRoseIcon,
   StackIcon,
   SunHorizonIcon,
   TrophyIcon,
@@ -189,7 +189,7 @@ function Frame({ title, sub, children, cta, onNext, disabled, ctaVariant = 'prim
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 60, paddingBottom: insets.bottom + spacing.md }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 37, lineHeight: 40 }}>
           {title}
         </Text>
         {sub ? (
@@ -217,7 +217,7 @@ function Question({ n, value, onPick }: { n: number; value?: string; onPick: (id
       <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
         Question {n + 1} of {QUESTIONS.length}
       </Text>
-      <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 34, marginTop: spacing.sm }}>
+      <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 37, lineHeight: 40, marginTop: spacing.sm }}>
         {q.title}
       </Text>
       <View style={{ marginTop: 'auto', gap: 10 }}>
@@ -312,7 +312,7 @@ function Calc({ onDone }: { onDone: () => void }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxl }}>
       <Animated.View style={style}>
-        <SparkleIcon size={40} weight="fill" color={colors.accent} />
+        <CompassRoseIcon size={44} weight="duotone" color={colors.accent} />
       </Animated.View>
       <Animated.View key={k} entering={FadeInDown.duration(300)} style={{ marginTop: spacing.xl }}>
         <Text variant="title" tone="muted">

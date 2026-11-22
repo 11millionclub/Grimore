@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { radius, spacing, useTheme } from '@/theme';
+import { fonts, radius, spacing, useTheme } from '@/theme';
 
 import { Btn } from './button';
 import { Press } from './press';
@@ -46,14 +46,19 @@ export function Fleuron({ size = 14, color }: { size?: number; color?: string })
   );
 }
 
-/** Ornamental rule: hairline, fleuron, hairline. */
-export function Flourish({ style }: { style?: StyleProp<ViewStyle> }) {
+/** Small gilt mark under page titles: a fleuron trailing into a hairline. */
+export function Flourish({ style, centered }: { style?: StyleProp<ViewStyle>; centered?: boolean }) {
   const { colors } = useTheme();
+  const rule = <View style={{ width: 44, height: 1, backgroundColor: colors.gold, opacity: 0.5 }} />;
   return (
-    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.gold, opacity: 0.45 }} />
-      <Fleuron />
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.gold, opacity: 0.45 }} />
+    <View
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: centered ? 'center' : 'flex-start' }, style]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {centered ? rule : null}
+      <Fleuron size={10} />
+      {rule}
     </View>
   );
 }
@@ -61,15 +66,12 @@ export function Flourish({ style }: { style?: StyleProp<ViewStyle> }) {
 export function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-        <Fleuron size={10} />
-        <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {title}
-        </Text>
-      </View>
+      <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 18 }}>
+        {title}
+      </Text>
       {action ? (
-        <Press onPress={onAction} accessibilityRole="button">
-          <Text variant="small" tone="accent" style={{ fontStyle: 'italic' }}>
+        <Press onPress={onAction} accessibilityRole="button" hitSlop={8}>
+          <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
             {action}
           </Text>
         </Press>
@@ -120,7 +122,7 @@ export function EmptyState({ icon, title, body, action, onAction }: { icon?: Rea
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xxxl, paddingHorizontal: spacing.xl, gap: spacing.sm }}>
       {icon ? (
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>{icon}</View>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>{icon}</View>
       ) : null}
       <Text variant="title" align="center">
         {title}
@@ -149,7 +151,7 @@ export function Group({ title, children }: { title?: string; children: ReactNode
   return (
     <View style={{ marginTop: spacing.xl, paddingHorizontal: spacing.lg }}>
       {title ? (
-        <Text variant="h2" tone="muted" style={{ fontSize: 13, marginBottom: spacing.sm, paddingHorizontal: spacing.xs }}>
+        <Text variant="micro" tone="muted" style={{ marginBottom: spacing.sm, paddingHorizontal: spacing.xs, textTransform: 'uppercase' }}>
           {title}
         </Text>
       ) : null}

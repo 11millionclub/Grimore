@@ -80,7 +80,7 @@ export function Screen({
           <Text variant="display" accessibilityRole="header">
             {title}
           </Text>
-          <Flourish style={{ maxWidth: 220 }} />
+          <Flourish />
         </View>
       ) : null}
       {children}
@@ -109,7 +109,7 @@ export function Screen({
         <View style={{ borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: insets.bottom + tabSpace + spacing.sm }}>{footer}</View>
       ) : null}
       <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: barHeight }}>
-        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.gold + '66' }} />
+        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.line }} />
         <View style={{ marginTop: insets.top, height: layout.navBarHeight, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, gap: 4 }}>
           {showBack ? (
             <IconBtn label="Back" onPress={goBack}>
@@ -119,7 +119,7 @@ export function Screen({
             <View style={{ width: 40 }} />
           )}
           <Animated.View style={[{ flex: 1 }, smallTitle]}>
-            <Text variant="h2" numberOfLines={1} align="center" style={{ fontSize: 15 }}>
+            <Text variant="h2" numberOfLines={1} align="center" style={{ fontSize: 16 }}>
               {title}
             </Text>
           </Animated.View>
@@ -144,7 +144,7 @@ export function Sheet({ children, title, subtitle, scroll = true }: { children: 
   const head = (
     <>
       <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
-        <View style={{ width: 40, height: 6, borderRadius: 3, backgroundColor: colors.surface3 }} />
+        <View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: colors.surface3 }} />
       </View>
       <IconBtn label="Close" filled size={36} onPress={goBack} style={{ position: 'absolute', top: 14, right: spacing.lg, zIndex: 5 }}>
         <XIcon size={18} color={colors.ink} />

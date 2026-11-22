@@ -3,19 +3,19 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Share, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
 import { ShelfPicker } from '@/components/shelf-picker';
 import { BellIcon, BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, StorefrontIcon } from '@/components/icons';
-import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast } from '@/components/ui';
+import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
-import { addToShelf, getEntry, removeEntry, saveEntry, STATUS_META, type EntryPatch } from '@/services/library';
+import { addToShelf, getEntry, removeEntry, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
 import { hasAlert, listingsForBook, money, setAlert } from '@/services/market';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -36,13 +36,15 @@ export default function BookScreen() {
   const alert = useQuery({ queryKey: ['alert', id], queryFn: () => hasAlert(me, id) });
 
   const save = useMutation({
-    mutationFn: async (patch: EntryPatch | null) => {
+    mutationFn: async ({ patch }: { patch: EntryPatch | null; done?: string }) => {
       if (patch) await saveEntry(me, id, patch);
       else await removeEntry(me, id);
     },
-    onSuccess: () => {
+    onSuccess: (_d, { done }) => {
       void qc.invalidateQueries({ queryKey: ['library'] });
       void qc.invalidateQueries({ queryKey: ['readingStats'] });
+      void qc.invalidateQueries({ queryKey: ['streak'] });
+      if (done) toast(done);
     },
     onError: (e) => toast(toAppError(e).message),
   });
@@ -77,7 +79,7 @@ export default function BookScreen() {
         ) : (
           <Skeleton width={150} height={225} rounded={4} />
         )}
-        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, marginTop: spacing.xl }}>
+        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 35, marginTop: spacing.xl }}>
           {b?.title ?? ' '}
         </Text>
         <Text variant="body" tone="muted" align="center" style={{ marginTop: 4 }}>
@@ -111,7 +113,7 @@ export default function BookScreen() {
       hero={hero}
       barTransparent
       actions={
-        <IconBtn label="Share" glass onPress={() => b && void Share.share({ message: `${b.title} by ${b.authorsLine}, on Grimore` })}>
+        <IconBtn label="Share" glass onPress={() => b && void shareText(`${b.title} by ${b.authorsLine}, on Grimore`)}>
           <ShareNetworkIcon size={20} color={colors.ink} />
         </IconBtn>
       }
@@ -137,10 +139,7 @@ export default function BookScreen() {
             <Btn
               style={{ flex: 1 }}
               loading={save.isPending}
-              onPress={() => {
-                save.mutate({ status: 'reading', started_on: new Date().toISOString().slice(0, 10) });
-                toast(`${b?.title ?? 'Book'} is now in Reading`);
-              }}
+              onPress={() => save.mutate({ patch: statusPatch('reading', e), done: `${b?.title ?? 'Book'} is now in Reading` })}
             >
               {e?.status === 'read' ? 'Read it again' : 'Start reading'}
             </Btn>
@@ -148,10 +147,7 @@ export default function BookScreen() {
               variant="secondary"
               accessibilityLabel={want ? 'Remove from Want to read' : 'Add to Want to read'}
               style={{ width: 48, paddingHorizontal: 0 }}
-              onPress={() => {
-                save.mutate(want ? null : { status: 'want_to_read' });
-                toast(want ? 'Removed from Want to read' : 'Added to Want to read');
-              }}
+              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from Want to read' : 'Added to Want to read' })}
             >
               {want ? <CheckIcon size={18} weight="bold" color={colors.ink} /> : <BookmarkSimpleIcon size={18} color={colors.ink} />}
             </Btn>
@@ -193,19 +189,14 @@ export default function BookScreen() {
           title={b?.title}
           current={e?.status ?? null}
           onClose={() => setPicking(false)}
-          onRemove={() => {
-            save.mutate(null);
-            toast('Removed from your library');
-          }}
+          onRemove={() => save.mutate({ patch: null, done: 'Removed from your library' })}
           onPick={(choice) => {
             if (choice.kind === 'status') {
-              const today = new Date().toISOString().slice(0, 10);
-              save.mutate({ status: choice.status, ...(choice.status === 'reading' && !e?.started_on ? { started_on: today } : {}), ...(choice.status === 'read' ? { finished_on: today } : {}) });
-              toast(`Moved to ${STATUS_META[choice.status].label}`);
+              if (choice.status !== e?.status) save.mutate({ patch: statusPatch(choice.status, e), done: `Moved to ${STATUS_META[choice.status].label}` });
             } else
               void addToShelf(choice.shelfId, id).then(
                 () => {
-                  if (!e) save.mutate({ status: 'want_to_read' });
+                  if (!e) save.mutate({ patch: statusPatch('want_to_read') });
                   void qc.invalidateQueries({ queryKey: ['shelves'] });
                   toast(`Added to ${choice.title}`);
                 },
@@ -220,7 +211,7 @@ export default function BookScreen() {
           </Text>
           <View style={{ flexDirection: 'row' }}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => save.mutate({ rating: i, ...(e ? {} : { status: 'read' as const }) })} style={{ padding: 4 }}>
+              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => save.mutate({ patch: { rating: i, ...(e ? {} : statusPatch('read')) } })} style={{ padding: 4 }}>
                 <StarIcon size={24} weight="fill" color={i <= myStars ? colors.accent : colors.surface3} />
               </Press>
             ))}
@@ -363,10 +354,7 @@ export default function BookScreen() {
         ) : null}
         {e ? (
           <Press
-            onPress={() => {
-              save.mutate(null);
-              toast('Removed from your library');
-            }}
+            onPress={() => save.mutate({ patch: null, done: 'Removed from your library' })}
             style={{ alignSelf: 'center', padding: spacing.md }}
           >
             <Text variant="small" tone="faint">

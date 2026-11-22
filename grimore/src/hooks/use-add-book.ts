@@ -4,7 +4,7 @@ import type { ShelfChoice } from '@/components/shelf-picker';
 import { toast } from '@/components/ui';
 import { toAppError } from '@/lib/errors';
 import { importBook, type ExternalBook } from '@/services/books';
-import { addToShelf, getEntry, saveEntry, STATUS_META, type ReadingStatus } from '@/services/library';
+import { addToShelf, getEntry, saveEntry, setStatus, STATUS_META, type ReadingStatus } from '@/services/library';
 
 import { useMyId } from './queries';
 
@@ -34,13 +34,7 @@ export function useAddToLibrary() {
         if (!(await getEntry(me!, id))) await saveEntry(me!, id, { status: 'want_to_read', ...(owned ? { is_owned: true } : {}) });
         return { id, title: book.title, label: pick.title };
       }
-      const today = new Date().toISOString().slice(0, 10);
-      await saveEntry(me!, id, {
-        status: pick.status,
-        ...(owned ? { is_owned: true } : {}),
-        ...(pick.status === 'reading' ? { started_on: today } : {}),
-        ...(pick.status === 'read' ? { finished_on: today } : {}),
-      });
+      await setStatus(me!, id, pick.status, owned ? { is_owned: true } : {});
       return { id, title: book.title, label: STATUS_META[pick.status].label };
     },
     onSuccess: ({ title, label }) => {

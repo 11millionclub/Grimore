@@ -20,7 +20,8 @@ export default function SortingScreen() {
   const { colors } = useTheme();
   const dob = useQuery({ queryKey: ['hasBirthDate', me], queryFn: () => hasBirthDate(me) });
   const [stage, setStage] = useState<'dob' | 'tooYoung' | 'sorting' | null>(null);
-  const current = stage ?? (dob.data === undefined ? null : dob.data ? 'sorting' : 'dob');
+  // If the check fails (offline), ask for the date again rather than spin forever.
+  const current = stage ?? (dob.isError ? 'dob' : dob.data === undefined ? null : dob.data ? 'sorting' : 'dob');
 
   if (!current)
     return (

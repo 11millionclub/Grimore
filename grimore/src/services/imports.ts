@@ -141,8 +141,11 @@ export async function importRows(userId: string, rows: ImportRow[], onProgress?:
             user_id: userId,
             book_id: bookId,
             status: r.status,
-            rating: r.rating ?? null,
+            // The database stores half stars only (StoryGraph exports quarters).
+            rating: r.rating ? Math.min(5, Math.max(0.5, Math.round(r.rating * 2) / 2)) : null,
             finished_on: r.status === 'read' ? r.finishedOn ?? null : null,
+            // An old start date could fall after the imported finish date.
+            ...(overwrite && r.status === 'read' ? { started_on: null } : {}),
             ...(r.percent != null && r.status === 'reading' ? { progress_percent: Math.max(0, Math.min(100, Math.round(r.percent))) } : {}),
           },
           { onConflict: 'user_id,book_id', ignoreDuplicates: !overwrite },

@@ -19,7 +19,7 @@ export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
 export const PAGE_SIZE = 30;
 
 const entrySelect = `id, status, rating, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
-  book:books!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, book_authors(position, role, authors(name)))` as const;
+  book:books!user_books_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, book_authors(position, role, authors(name)))` as const;
 
 type RawEntry = {
   id: string;
@@ -106,6 +106,33 @@ export async function saveEntry(userId: string, bookId: string, patch: EntryPatc
   );
 }
 
+const utcToday = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * A patch that moves a book to `status` and keeps its dates valid. The
+ * database requires finished_on >= started_on, so starting a book you have
+ * already finished begins a fresh read instead of keeping the old dates.
+ */
+export function statusPatch(status: ReadingStatus, current?: Pick<LibraryEntry, 'status' | 'started_on' | 'finished_on'> | null): EntryPatch {
+  const today = utcToday();
+  if (status === 'reading') {
+    const rereading = !!current && (current.status === 'read' || !!current.finished_on);
+    if (rereading) return { status, started_on: today, finished_on: null, current_page: 0, progress_percent: 0 };
+    return current?.started_on ? { status } : { status, started_on: today };
+  }
+  if (status === 'read') {
+    const started = current?.started_on && current.started_on > today ? today : undefined;
+    return { status, finished_on: today, progress_percent: 100, ...(started ? { started_on: started } : {}) };
+  }
+  return { status };
+}
+
+/** Move a book to a reading status, reading the current entry first so dates stay coherent. */
+export async function setStatus(userId: string, bookId: string, status: ReadingStatus, extra: EntryPatch = {}) {
+  const current = await getEntry(userId, bookId);
+  return saveEntry(userId, bookId, { ...statusPatch(status, current), ...extra });
+}
+
 export async function removeEntry(userId: string, bookId: string) {
   unwrap(await supabase.from('user_books').delete().eq('user_id', userId).eq('book_id', bookId));
 }
@@ -147,7 +174,7 @@ export async function getNextReads(userId: string, favouriteGenreIds: number[], 
   const rows = unwrap(
     await supabase
       .from('user_books')
-      .select('added_at, status, book:books!inner(id, title, cover_url, page_count_estimate, primary_genre_id, book_authors(position, role, authors(name)))')
+      .select('added_at, status, book:books!user_books_book_id_fkey!inner(id, title, cover_url, page_count_estimate, primary_genre_id, book_authors(position, role, authors(name)))')
       .eq('user_id', userId)
       .in('status', ['want_to_read', 'on_hold'])
       .order('added_at', { ascending: true })

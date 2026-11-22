@@ -60,7 +60,7 @@ export default function ListingScreen() {
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 28 }}>{d.book?.title}</Text>
+            <Text style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 33 }}>{d.book?.title}</Text>
             <Text variant="body" tone="muted">
               {d.book?.authors}
             </Text>

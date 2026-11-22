@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform, Pressable, Share, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 
 import { DownloadSimpleIcon, MoonStarsIcon, ShareFatIcon, XIcon } from '@/components/icons';
-import { Avatar, Cover, Press, Text } from '@/components/ui';
+import { Avatar, Cover, Press, Text, shareText } from '@/components/ui';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { getWrapped, type WrappedData } from '@/services/stats';
 import { fonts, radius, spacing } from '@/theme';
@@ -36,7 +36,7 @@ function Count({ to, color, size }: { to: number; color: string; size: number })
   return <Text style={{ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, fontVariant: ['tabular-nums'] }} color={color}>{fmt(v)}</Text>;
 }
 
-const big = (size: number, color: string) => ({ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, color });
+const big = (size: number, color: string) => ({ fontFamily: fonts.display, fontSize: size * 1.1, lineHeight: size * 1.12, letterSpacing: -0.5, color });
 
 function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Slide[] {
   const s: Slide[] = [];
@@ -52,7 +52,7 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
           </Text>
         </R>
         <R i={1}>
-          <Text style={big(month ? 84 : 120, month ? '#1f130a' : '#c39a45')}>{d.label}</Text>
+          <Text style={big(month ? Math.min(84, Math.floor(600 / Math.max(1, d.label.length))) : 120, month ? '#1f130a' : '#c39a45')}>{d.label}</Text>
         </R>
         <R i={2}>
           <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.lg, opacity: 0.8, maxWidth: 300 }} color={month ? '#1f130a' : '#f1e6d0'}>
@@ -277,7 +277,7 @@ export default function Wrapped() {
     try {
       const uri = await shot.current?.capture?.();
       if (uri && Platform.OS !== 'web' && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(uri, { mimeType: 'image/png' });
-      else await Share.share({ message: `My Grimore Wrapped ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.` });
+      else await shareText(`My Grimore Wrapped ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.`);
     } catch {
       /* cancelled */
     }
