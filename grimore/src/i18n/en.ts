@@ -267,6 +267,11 @@ const en = {
       stickers: ['Sigil', 'Motto ribbon', 'Candle', 'Bookmark'],
     },
   },
+  profile: {
+    house: 'House {{house}}',
+    member: '{{member}} of House {{house}}',
+    houseHidden: 'Only you can see your House',
+  },
   errors: {
     too_young: 'Grimore is for readers aged 13 and over.',
     not_available_under_16: 'Messages, the Market and paid communities open at 16.',

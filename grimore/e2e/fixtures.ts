@@ -43,7 +43,7 @@ export const profile = {
   created_at: '2026-11-10T10:00:00Z',
   updated_at: '2026-11-10T10:00:00Z',
 };
-const friend = { id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', avatar_url: null, archetype: 'saga' };
+const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto', archetype: 'saga' };
 
 const statuses = ['reading', 'read', 'read', 'want_to_read', 'reading', 'read'];
 type Entry = { id: string; status: string; rating: number | null; progress_percent: number | null; current_page: number | null; started_on: string | null; finished_on: string | null; book: (typeof BOOKS)[number] } & Record<string, unknown>;
@@ -188,9 +188,13 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return [{ id: 'cm1', match: 94 }];
     case 'rpc/search_catalogue':
       return BOOKS.map((b) => ({ id: b.id, title: b.title, cover_url: null, first_published_year: b.first_published_year, authors: b.book_authors[0].authors.name, score: 1 }));
-    case 'profiles':
-      if (opts.newReader) return single ? { ...profile, onboarding_completed_at: null } : [{ ...profile, onboarding_completed_at: null }, friend];
-      return single ? profile : [profile, friend];
+    case 'profiles': {
+      const me = opts.newReader ? { ...profile, onboarding_completed_at: null } : profile;
+      const username = (q.get('username') ?? '').replace('eq.', '');
+      const id = (q.get('id') ?? '').replace('eq.', '');
+      const list = [me, friend].filter((p) => (!username || p.username === username) && (!id || p.id === id));
+      return single ? (list[0] ?? null) : list;
+    }
     case 'user_preferences':
       return { user_id: ME, show_spoilers: false, daily_pages_goal: 30, appearance: 'dark', notification_settings: {} };
     case 'user_books': {

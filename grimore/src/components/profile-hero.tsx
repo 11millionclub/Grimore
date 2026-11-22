@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Banner, FramedAvatar, StyledName, type CornerLook } from '@/components/corner';
+import { HousePlate } from '@/components/house-plate';
 import { ARCH_ICONS } from '@/components/onboarding-flow';
 import { Press, Text } from '@/components/ui';
 import type { Profile } from '@/services/profile';
@@ -39,6 +40,7 @@ export function ProfileHero({ profile, look, counts, actions, children }: { prof
             </Text>
           </Press>
         ) : null}
+        <HousePlate userId={profile.id} />
         {profile.bio ? (
           <Text variant="callout" style={{ marginTop: spacing.md }}>
             {profile.bio}
