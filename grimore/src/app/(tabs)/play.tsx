@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Board } from '@/components/board';
+import { HouseCupCard } from '@/components/house-cup-card';
 import { CheckCircleIcon, DetectiveIcon, ImageSquareIcon, ListNumbersIcon, SkullIcon, TextAaIcon, type IconProps } from '@/components/icons';
 import { Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text } from '@/components/ui';
 import { useMyId, useTodayGames } from '@/hooks/queries';
@@ -45,6 +46,10 @@ export default function Play() {
               {done} of {list.length || 4} done · new games in <Text variant="small" style={{ fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] }}>{left}</Text>
             </Text>
           </View>
+        </View>
+
+        <View style={{ marginTop: spacing.md }}>
+          <HouseCupCard />
         </View>
 
         <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>

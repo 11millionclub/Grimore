@@ -168,3 +168,26 @@ Without `E2E_BASE_URL`, live mode uses the local build. Live tests only read and
 - **Hidden Cover** sends the cover URL to the client; serving pre-blurred images from an Edge Function would close that gap.
 - **Reading compatibility** and community match are simple overlap scores, to be refined with more data.
 - No moderator console yet: reports land in `content_reports`.
+
+## Houses
+
+Readers are sorted into one of four Houses (Lantern, Quill, Thorn, Hourglass) by an
+eight-question Sorting at the end of onboarding; readers who joined earlier are sorted
+the next time they open the app.
+
+- **Copy**: `src/i18n/en.ts` (English source; House names are never translated).
+- **Tokens and sigils**: `src/theme/houses.ts`, `src/components/sigil.tsx`.
+- **Scoring** (pure, tested): `src/utils/sorting.ts`. The server re-scores in `submit_sorting`.
+- **House Cup**: points come only from daily games, written by the `game_attempts` trigger
+  into `house_points` (max 175 a day, new accounts from day 3). Standings are per active
+  member, refreshed every 15 minutes; placements and season close run daily, duels weekly (pg_cron).
+- **Items**: starter kit (House-locked), earned marks (`user_items`, server-written) and the
+  House collection (paid, "Coming soon" until payments open). Cosmetics never touch points.
+- **Privacy and age**: birth dates live in `profile_private` (owner-only). Other readers' Houses
+  are only exposed through `reader_houses()`, which honours "hide my House". 13-15 year olds
+  cannot use DMs, the Market or paid communities (enforced by triggers).
+- **App icons**: `assets/images/house-icons/` holds the four House icons. Switching icons needs
+  a native module and a new store build (not available in Expo Go), so the item is shown but
+  not yet active.
+- **Pending**: `supabase/migrations/20261123000022_drop_archetype.sql` removes the old
+  `archetype` column; apply it once the app version without archetypes is live.

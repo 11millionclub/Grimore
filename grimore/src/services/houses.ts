@@ -60,3 +60,73 @@ export async function latestSorting(userId: string) {
     created_at: string;
   } | null;
 }
+
+/* ---------- House Cup ---------- */
+
+export type Season = { id: number; name: string; starts_at: string; ends_at: string; winner_house_id: HouseId | null };
+
+export async function listSeasons(): Promise<Season[]> {
+  return unwrap(await supabase.from('house_seasons').select('id, name, starts_at, ends_at, winner_house_id').order('starts_at')) as Season[];
+}
+
+export type Standing = { house: HouseId; points: number; activeMembers: number; members: number; perMember: number };
+
+export async function getStandings(seasonId?: number | null): Promise<Standing[]> {
+  const rows = unwrap(await supabase.rpc('get_house_standings', { p_season: seasonId ?? null })) ?? [];
+  return rows
+    .filter((r) => isHouseId(r.house_id))
+    .map((r) => ({ house: r.house_id as HouseId, points: Number(r.points), activeMembers: r.active_members, members: r.members, perMember: Number(r.points_per_member) }));
+}
+
+export async function myPoints(seasonId?: number | null): Promise<Record<string, number>> {
+  const rows = unwrap(await supabase.rpc('my_house_points', { p_season: seasonId ?? null })) ?? [];
+  return Object.fromEntries(rows.map((r) => [r.action, Number(r.points)]));
+}
+
+export async function getDuels(): Promise<Record<HouseId, { perMember: number; players: number }>> {
+  const rows = unwrap(await supabase.rpc('house_duels')) ?? [];
+  const out = { lantern: { perMember: 0, players: 0 }, quill: { perMember: 0, players: 0 }, thorn: { perMember: 0, players: 0 }, hourglass: { perMember: 0, players: 0 } };
+  rows.forEach((r) => {
+    if (isHouseId(r.house_id)) out[r.house_id] = { perMember: Number(r.wins_per_member), players: r.players };
+  });
+  return out;
+}
+
+export async function myWeekGames() {
+  return (unwrap(await supabase.rpc('my_week_games')) ?? []).map((r) => ({ game: r.game, played: r.played, solved: r.solved, days: r.days }));
+}
+
+export async function topContributors(house: HouseId) {
+  return unwrap(await supabase.rpc('house_top_contributors', { p_house: house, p_limit: 10 })) ?? [];
+}
+
+export async function setLeaderboardOptIn(userId: string, on: boolean) {
+  unwrap(await supabase.from('user_preferences').update({ house_leaderboard_opt_in: on }).eq('user_id', userId));
+}
+
+/* ---------- Rituals ---------- */
+
+export async function myRitual(): Promise<{ period: string; status: 'joined' | 'completed' } | null> {
+  const [row] = unwrap(await supabase.rpc('my_ritual')) ?? [];
+  return row ? { period: row.period, status: row.status === 'completed' ? 'completed' : 'joined' } : null;
+}
+export async function joinRitual() {
+  return unwrap(await supabase.rpc('join_ritual'));
+}
+export async function completeRitual() {
+  unwrap(await supabase.rpc('complete_ritual'));
+}
+
+/* ---------- Items and marks ---------- */
+
+export async function myItems(userId: string) {
+  return unwrap(await supabase.from('user_items').select('item_key, source, season_id, expires_at').eq('user_id', userId));
+}
+
+export async function readerMarks(userId: string): Promise<string[]> {
+  return (unwrap(await supabase.rpc('reader_marks', { p_user: userId })) ?? []).map((r) => r.item_key);
+}
+
+export async function houseRoom(house: HouseId) {
+  return unwrap(await supabase.from('communities').select('id, name, member_count').eq('house_id', house).maybeSingle());
+}

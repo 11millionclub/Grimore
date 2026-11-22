@@ -257,7 +257,7 @@ function ShareCard({ house, rows, handle, width, height }: { house: HouseId; row
   const tk = houseTokens[house];
   return (
     <View style={{ width, height, backgroundColor: tk.primary, padding: 32, justifyContent: 'space-between' }}>
-      <Text style={{ fontFamily: fonts.display, fontSize: 16, letterSpacing: 2 }} color={tk.onPrimary}>
+      <Text style={{ fontFamily: fonts.display, fontSize: 19, letterSpacing: 2 }} color={tk.onPrimary}>
         GRIMORE
       </Text>
       <View style={{ alignItems: 'center', gap: 12 }}>

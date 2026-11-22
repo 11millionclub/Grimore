@@ -6,7 +6,9 @@ import Animated, { ZoomIn } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, HeartIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
+import { HouseBadge } from '@/components/house-badge';
 import { Avatar, Cover, Press, Progress, Stars, Text, toast, shareText } from '@/components/ui';
+import { useHouseOf } from '@/hooks/use-house-of';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { setLiked, setSaved, type FeedItem } from '@/services/social';
@@ -84,6 +86,7 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
   const open = () => !full && router.push({ pathname: '/post/[id]', params: { id: post.id, type: post.item_type } });
   const openUser = () => post.author && router.push({ pathname: '/user/[username]', params: { username: post.author.username } });
   const b = post.book;
+  const house = useHouseOf(post.author?.id);
   const pct = b?.pages && post.page ? post.page / b.pages : null;
 
   return (
@@ -91,6 +94,11 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Press onPress={openUser} accessibilityLabel={`Open ${name(post.author)}`}>
           <Avatar uri={post.author?.avatar_url} name={name(post.author)} size={36} />
+          {house ? (
+            <View style={{ position: 'absolute', right: -4, bottom: -4, borderRadius: 12, borderWidth: 2, borderColor: full ? colors.bg : colors.surface }}>
+              <HouseBadge house={house} size={13} />
+            </View>
+          ) : null}
         </Press>
         <Text variant="callout" style={{ flex: 1 }} numberOfLines={2}>
           <Text variant="callout" style={{ fontFamily: fonts.semibold }} onPress={openUser}>

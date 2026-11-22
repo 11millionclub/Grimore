@@ -37,13 +37,12 @@ export const profile = {
   avatar_url: null,
   country_code: 'PT',
   city: 'Lisboa',
-  archetype: 'night',
   is_private: false,
   onboarding_completed_at: '2026-11-10T10:00:00Z',
   created_at: '2026-11-10T10:00:00Z',
   updated_at: '2026-11-10T10:00:00Z',
 };
-const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto', archetype: 'saga' };
+const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto' };
 
 const statuses = ['reading', 'read', 'read', 'want_to_read', 'reading', 'read'];
 type Entry = { id: string; status: string; rating: number | null; progress_percent: number | null; current_page: number | null; started_on: string | null; finished_on: string | null; book: (typeof BOOKS)[number] } & Record<string, unknown>;
@@ -173,11 +172,44 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       if (opts.newReader) return [{ house_id: null, house_hidden: false, house_assigned_at: null }];
       return [{ house_id: 'lantern', house_hidden: false, house_assigned_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/reader_houses':
-      return [{ user_id: FRIEND, house_id: 'thorn' }];
+      return [
+        { user_id: FRIEND, house_id: 'thorn' },
+        { user_id: ME, house_id: 'lantern' },
+      ];
     case 'rpc/submit_sorting':
       return { house: 'thorn', scores: { lantern: 0, quill: 2, thorn: 14, hourglass: 0 }, tie_break: false, top_two: false };
     case 'profile_private':
       return single ? null : [];
+    case 'house_seasons':
+      return [{ id: 1, name: 'Season 1', starts_at: new Date(now - 10 * 86400e3).toISOString(), ends_at: new Date(now + 74 * 86400e3).toISOString(), winner_house_id: null }];
+    case 'rpc/get_house_standings':
+      return [
+        { season_id: 1, house_id: 'thorn', points: 4200, active_members: 30, members: 41, points_per_member: 140 },
+        { season_id: 1, house_id: 'lantern', points: 3900, active_members: 30, members: 38, points_per_member: 130 },
+        { season_id: 1, house_id: 'hourglass', points: 3300, active_members: 30, members: 35, points_per_member: 110 },
+        { season_id: 1, house_id: 'quill', points: 2400, active_members: 24, members: 30, points_per_member: 100 },
+      ];
+    case 'rpc/house_duels':
+      return [
+        { house_id: 'lantern', rival_id: 'hourglass', wins_per_member: 5.8, players: 20 },
+        { house_id: 'hourglass', rival_id: 'lantern', wins_per_member: 4.2, players: 18 },
+        { house_id: 'quill', rival_id: 'thorn', wins_per_member: 3.1, players: 12 },
+        { house_id: 'thorn', rival_id: 'quill', wins_per_member: 3.9, players: 22 },
+      ];
+    case 'rpc/my_house_points':
+      return [{ action: 'play', points: 120 }, { action: 'solve', points: 90 }, { action: 'streak', points: 36 }];
+    case 'rpc/my_ritual':
+      return [];
+    case 'rpc/my_week_games':
+      return [{ game: 'hangman', played: 2, solved: 2, days: 2 }];
+    case 'rpc/house_top_contributors':
+      return [{ user_id: FRIEND, username: friend.username, display_name: friend.display_name, avatar_url: null, points: 310 }];
+    case 'rpc/reader_marks':
+      return [{ item_key: 'badge:founding', season_id: 1 }];
+    case 'user_items':
+      return [{ item_key: 'badge:founding', source: 'earned', season_id: 1, expires_at: null }];
+    case 'sorting_results':
+      return [{ scores: { lantern: 10, quill: 2, thorn: 4, hourglass: 0 }, house_id: 'lantern', created_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/house_balance':
       return [];
     case 'rpc/my_age_band':
@@ -224,6 +256,14 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
         { key: 'theme:forest', kind: 'theme', name: 'Forest', price_cents: null, sort_order: 1 },
         { key: 'theme:holo', kind: 'theme', name: 'Holographic', price_cents: 199, sort_order: 2 },
         { key: 'frame:gold', kind: 'frame', name: 'Gold', price_cents: 99, sort_order: 1 },
+        { key: 'theme:house-lantern', kind: 'theme', name: 'Lantern banner', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
+        { key: 'frame:house-lantern', kind: 'frame', name: 'Lantern frame', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
+        { key: 'name:house-lantern', kind: 'name', name: 'Lantern name colour', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
+        { key: 'badge:house-lantern', kind: 'badge', name: 'Lantern badge', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
+        { key: 'badge:founding', kind: 'badge', name: 'Founding member', price_cents: null, sort_order: 220, house_id: null, source: 'earned' },
+        { key: 'ribbon:season-gold', kind: 'ribbon', name: 'Gold season ribbon', price_cents: null, sort_order: 202, house_id: null, source: 'earned' },
+        { key: 'frame:house-lantern-animated', kind: 'frame', name: 'Animated Lantern frame', price_cents: 299, sort_order: 110, house_id: 'lantern', source: 'paid' },
+        { key: 'theme:house-thorn-premium-a', kind: 'theme', name: 'Thorn: Pressed Roses', price_cents: 199, sort_order: 110, house_id: 'thorn', source: 'paid' },
       ];
     case 'corner_purchases':
       return [{ item_key: 'frame:gold' }];

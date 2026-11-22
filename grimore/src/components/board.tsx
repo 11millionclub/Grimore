@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 
+import { HouseBadge } from '@/components/house-badge';
+import { useHouseOf } from '@/hooks/use-house-of';
 import { Avatar, Press, Text } from '@/components/ui';
 import { mmss, type BoardRow } from '@/services/games';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -9,6 +11,7 @@ import { fonts, radius, spacing, useTheme } from '@/theme';
 export function BoardRowView({ r, first, week }: { r: BoardRow; first?: boolean; week?: boolean }) {
   const { colors } = useTheme();
   const name = r.is_me ? 'You' : r.display_name ?? r.username;
+  const house = useHouseOf(r.user_id);
   return (
     <Animated.View layout={LinearTransition}>
       <Press
@@ -21,9 +24,12 @@ export function BoardRowView({ r, first, week }: { r: BoardRow; first?: boolean;
         </Text>
         <Avatar uri={r.avatar_url} name={r.display_name ?? r.username} size={34} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="callout" style={{ fontFamily: fonts.semibold }} numberOfLines={1}>
-            {name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text variant="callout" style={{ fontFamily: fonts.semibold, flexShrink: 1 }} numberOfLines={1}>
+              {name}
+            </Text>
+            <HouseBadge house={house} size={14} />
+          </View>
           <Text variant="caption" tone="muted">
             {week ? `${r.won ?? 0} won this week` : `${r.tries ?? 1} ${r.tries === 1 ? 'try' : 'tries'}`}
           </Text>

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
@@ -8,19 +8,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Banner, DEFAULT_LOOK, FRAMES, FramedAvatar, NAME_STYLES, PACKS, Plank, SHELVES, StyledName, THEMES, ThemeFill, type CornerLook } from '@/components/corner';
 import { CaretRightIcon, CheckIcon, CrownSimpleIcon, MusicNotesIcon, PencilSimpleIcon, XIcon } from '@/components/icons';
 import { Btn, Press, Text, toast } from '@/components/ui';
-import { useCorner, useMyId, useMyProfile, useShop } from '@/hooks/queries';
+import { HouseBadge, ReaderMarks } from '@/components/house-badge';
+import { Sigil } from '@/components/sigil';
+import { useCorner, useMyHouse, useMyId, useMyProfile, useShop } from '@/hooks/queries';
+import { useTranslation } from '@/i18n';
+import { myItems as getMyItems } from '@/services/houses';
+import { HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { ALL_WIDGETS, saveCorner, WIDGETS, type CornerItem, type Widget } from '@/services/corner';
 import { money } from '@/services/market';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
-type Tab = 'themes' | 'blocks' | 'frames' | 'shelf' | 'extras';
+type Tab = 'house' | 'themes' | 'blocks' | 'frames' | 'shelf' | 'extras';
 type Draft = CornerLook & { widgets: string[]; status_text: string; song: string };
 const KIND_FIELD: Record<string, keyof CornerLook> = { theme: 'theme', frame: 'frame', shelf: 'shelf', name: 'name_style', pack: 'pack' };
 
 export default function EditCorner() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const me = useMyId()!;
   const qc = useQueryClient();
@@ -30,6 +36,9 @@ export default function EditCorner() {
   const [tab, setTab] = useState<Tab>('themes');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [openedAt] = useState(() => Date.now());
+  const myHouse = useMyHouse();
+  const myItems = useQuery({ queryKey: ['myItems', me], queryFn: () => getMyItems(me) });
   const base: Draft = saved.data
     ? { theme: saved.data.theme, frame: saved.data.frame, shelf: saved.data.shelf, name_style: saved.data.name_style, pack: saved.data.pack, widgets: saved.data.widgets, status_text: saved.data.status_text ?? '', song: saved.data.song ?? '' }
     : { ...DEFAULT_LOOK, widgets: ['status', 'top4', 'reading', 'goal', 'quote', 'shelf', 'badges', 'genres', 'tbr', 'guestbook'], status_text: '', song: '' };
@@ -37,7 +46,12 @@ export default function EditCorner() {
   const set = (p: Partial<Draft>) => setDraft({ ...d, ...p });
   const items = shop.data?.items ?? [];
   const owned = new Set(shop.data?.owned ?? []);
-  const isOwned = (it: CornerItem) => !it.price_cents || owned.has(it.key);
+  const mine = new Set((myItems.data ?? []).filter((x) => !x.expires_at || new Date(x.expires_at).getTime() > openedAt).map((x) => x.item_key));
+  const isOwned = (it: CornerItem) => {
+    if (it.source === 'starter') return it.house_id === myHouse.data?.house;
+    if (it.source === 'earned') return mine.has(it.key);
+    return !it.price_cents || owned.has(it.key) || mine.has(it.key);
+  };
   const cart = (Object.entries(KIND_FIELD) as [string, keyof CornerLook][])
     .map(([kind, field]) => items.find((i) => i.key === `${kind}:${d[field]}`))
     .filter((i): i is CornerItem => !!i && !isOwned(i));
@@ -66,9 +80,33 @@ export default function EditCorner() {
     return next;
   };
 
-  const kindItems = (kind: string) => items.filter((i) => i.kind === kind);
-  const pick = (it: CornerItem) => set({ [KIND_FIELD[it.kind]]: it.key.split(':')[1] } as Partial<Draft>);
-  const active = (it: CornerItem) => d[KIND_FIELD[it.kind]] === it.key.split(':')[1];
+  const kindItems = (kind: string) => items.filter((i) => i.kind === kind && (i.source ?? 'shop') === 'shop');
+  const pick = (it: CornerItem) => {
+    if (!KIND_FIELD[it.kind]) return it.kind === 'icon' ? toast(t('shop.iconNote')) : undefined;
+    if (it.source === 'starter' && it.house_id !== myHouse.data?.house) return toast(t('errors.item_house_locked'));
+    if (it.source === 'earned' && !mine.has(it.key)) return toast(t('shop.locked'));
+    set({ [KIND_FIELD[it.kind]]: it.key.split(':')[1] } as Partial<Draft>);
+  };
+  const active = (it: CornerItem) => !!KIND_FIELD[it.kind] && d[KIND_FIELD[it.kind]] === it.key.split(':')[1];
+  const preview = (it: CornerItem) => {
+    const v = it.key.split(':')[1];
+    if (it.kind === 'theme') return <View style={{ height: 92, borderRadius: radius.tile, overflow: 'hidden' }}><ThemeFill theme={v} /></View>;
+    if (it.kind === 'frame') return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>{FRAMES[v] ? <FramedAvatar frame={v} uri={profile.data?.avatar_url} name={name} size={44} /> : null}</View>;
+    if (it.kind === 'name') return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>{NAME_STYLES[v] ? <StyledName name={name.split(' ')[0]} style={v} size={17} /> : null}</View>;
+    if (it.kind === 'pack') {
+      const pk = PACKS[v] ?? PACKS.none;
+      return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 4 }}>{pk.icons.slice(0, 8).map((I, i) => <I key={i} size={18} weight="fill" color={pk.color} />)}</View>;
+    }
+    const h = it.house_id as HouseId | null;
+    if (it.kind === 'badge' && h) return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}><HouseBadge house={h} size={26} named /></View>;
+    if (it.kind === 'icon' && h) return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}><View style={{ width: 60, height: 60, borderRadius: 14, backgroundColor: houseTokens[h].primary, alignItems: 'center', justifyContent: 'center' }}><Sigil house={h} size={34} color={houseTokens[h].onPrimary} label={false} /></View></View>;
+    if (it.kind === 'card' && h) return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: houseTokens[h].primary, alignItems: 'center', justifyContent: 'center' }}><Sigil house={h} size={30} color={houseTokens[h].onPrimary} label={false} /><Text variant="micro" color={houseTokens[h].onPrimary}>WRAPPED</Text></View>;
+    return <View style={{ height: 92, borderRadius: radius.tile, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', opacity: mine.has(it.key) ? 1 : 0.45 }}><ReaderMarks keys={[it.key]} size={34} /></View>;
+  };
+  const myH = myHouse.data?.house ?? null;
+  const starter = items.filter((i) => i.source === 'starter' && i.house_id === myH);
+  const earned = items.filter((i) => i.source === 'earned');
+  const collection = items.filter((i) => i.source === 'paid').sort((a, b) => Number(b.house_id === myH) - Number(a.house_id === myH));
   const name = profile.data?.display_name ?? profile.data?.username ?? 'You';
 
   return (
@@ -119,6 +157,7 @@ export default function EditCorner() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: spacing.base, paddingVertical: spacing.md, gap: spacing.sm }}>
         {(
           [
+            ...(myHouse.data?.house ? ([['house', t('shop.houseTab')]] as [Tab, string][]) : []),
             ['themes', 'Theme'],
             ['blocks', 'Blocks'],
             ['frames', 'Frame'],
@@ -135,6 +174,50 @@ export default function EditCorner() {
       </ScrollView>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: spacing.base, paddingBottom: insets.bottom + 120 }}>
+        {tab === 'house' && myH ? (
+          <View style={{ gap: spacing.xl }}>
+            <View>
+              <Text variant="h2" style={{ fontSize: 14 }}>{t('shop.starter')}</Text>
+              <Text variant="caption" tone="muted" style={{ marginBottom: spacing.sm }}>{t('shop.starterHint', { member: t(`houses.${myH}.member`) })}</Text>
+              <Grid>
+                {starter.map((it) => (
+                  <ShopTile key={it.key} item={it} owned active={active(it)} onPress={() => pick(it)}>
+                    {preview(it)}
+                  </ShopTile>
+                ))}
+              </Grid>
+            </View>
+            <View>
+              <Text variant="h2" style={{ fontSize: 14 }}>{t('shop.earned')}</Text>
+              <Text variant="caption" tone="muted" style={{ marginBottom: spacing.sm }}>{t('shop.earnedHint')}</Text>
+              <Grid>
+                {earned.map((it) => (
+                  <ShopTile key={it.key} item={it} owned={mine.has(it.key)} active={false} onPress={() => pick(it)} status={mine.has(it.key) ? t('shop.owned') : t('shop.locked')}>
+                    {preview(it)}
+                  </ShopTile>
+                ))}
+              </Grid>
+            </View>
+            <View>
+              <Text variant="h2" style={{ fontSize: 14 }}>{t('shop.collection')}</Text>
+              <Text variant="caption" tone="muted" style={{ marginBottom: spacing.sm }}>{t('shop.collectionHint')}</Text>
+              <Grid>
+                {collection.map((it) => (
+                  <ShopTile
+                    key={it.key}
+                    item={it}
+                    owned={isOwned(it)}
+                    active={active(it)}
+                    onPress={() => pick(it)}
+                    tag={it.house_id && it.house_id !== myH ? t('shop.otherHouse', { house: HOUSE_NAMES[it.house_id as HouseId] }) : undefined}
+                  >
+                    {preview(it)}
+                  </ShopTile>
+                ))}
+              </Grid>
+            </View>
+          </View>
+        ) : null}
         {tab === 'themes' ? (
           <Grid>
             {kindItems('theme').map((it) => (
@@ -347,7 +430,7 @@ function Grid({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{children}</View>;
 }
 
-function ShopTile({ item, owned, active, onPress, tag, children }: { item: CornerItem; owned: boolean; active: boolean; onPress: () => void; tag?: string; children: ReactNode }) {
+function ShopTile({ item, owned, active, onPress, tag, status, children }: { item: CornerItem; owned: boolean; active: boolean; onPress: () => void; tag?: string; status?: string; children: ReactNode }) {
   const { colors } = useTheme();
   return (
     <Press onPress={onPress} accessibilityState={{ selected: active }} accessibilityLabel={`${item.name}${item.price_cents && !owned ? `, ${money(item.price_cents)}` : ''}`} style={{ width: '31.5%' }}>
@@ -368,7 +451,7 @@ function ShopTile({ item, owned, active, onPress, tag, children }: { item: Corne
         {item.name}
       </Text>
       <Text variant="micro" tone={item.price_cents && !owned ? 'accent' : 'muted'} style={{ paddingHorizontal: 4 }}>
-        {!item.price_cents ? 'Free' : owned ? 'Owned' : money(item.price_cents)}
+        {status ?? (!item.price_cents ? 'Free' : owned ? 'Owned' : money(item.price_cents))}
       </Text>
     </Press>
   );

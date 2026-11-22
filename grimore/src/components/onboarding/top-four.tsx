@@ -99,7 +99,7 @@ export function TopFour({ picks, setPicks, genreIds, genreSlugs, onNext }: { pic
                 <Cover uri={picks[k].cover} title={picks[k].title} author={picks[k].authors} width={74} shadow={false} style={{ width: '100%', height: '100%' }} />
               </Press>
             ) : (
-              <Text style={{ fontFamily: fonts.display, fontSize: 18 }} tone="faint">
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 15 }} tone="faint">
                 {k + 1}
               </Text>
             )}

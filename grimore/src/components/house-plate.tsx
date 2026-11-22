@@ -1,8 +1,9 @@
+import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { EyeSlashIcon } from '@/components/icons';
 import { Sigil } from '@/components/sigil';
-import { Text } from '@/components/ui';
+import { Press, Text } from '@/components/ui';
 import { useMyHouse, useMyId, useReaderHouses } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -10,7 +11,7 @@ import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 
 /**
  * A reader's House on their profile: sigil, "Scribe of House Quill" and the
- * motto. Other readers only see it when it is not hidden (reader_houses
+ * motto; opens the House's Common Room. Other readers only see it when it is not hidden (reader_houses
  * already filters); the owner always sees it, with a note when hidden.
  */
 export function HousePlate({ userId }: { userId: string }) {
@@ -25,8 +26,10 @@ export function HousePlate({ userId }: { userId: string }) {
   const tk = houseTokens[house];
   const name = HOUSE_NAMES[house];
   return (
-    <View
+    <Press
+      accessibilityRole="link"
       accessibilityLabel={t('profile.member', { member: t(`houses.${house}.member`), house: name })}
+      onPress={() => router.push({ pathname: '/common-room/[house]', params: { house } })}
       style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.tile, borderWidth: 1, borderColor: tk.primary + '55', backgroundColor: tk.primary + '14', paddingVertical: spacing.sm, paddingHorizontal: spacing.md }}
     >
       <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: tk.primary, alignItems: 'center', justifyContent: 'center' }}>
@@ -48,6 +51,6 @@ export function HousePlate({ userId }: { userId: string }) {
           </View>
         ) : null}
       </View>
-    </View>
+    </Press>
   );
 }

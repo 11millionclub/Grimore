@@ -2,7 +2,10 @@
  * Maps backend error codes to calm, human messages. Raw database errors are
  * never shown to readers.
  */
+import en from '@/i18n/en';
+
 const known: Record<string, string> = {
+  ...en.errors,
   rate_limited: 'You are doing that a little too often. Please wait a moment.',
   attempt_finished: 'You have already finished today’s challenge.',
   no_guesses_left: 'No guesses left for today.',

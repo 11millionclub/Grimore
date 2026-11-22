@@ -6,10 +6,13 @@ import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { ArrowsLeftRightIcon, BellIcon, CaretRightIcon, CompassRoseIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
-import { ARCH_ICONS } from '@/components/onboarding-flow';
+import { ArrowsLeftRightIcon, BellIcon, CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
-import { useMyId, useMyProfile } from '@/hooks/queries';
+import { HouseBadge } from '@/components/house-badge';
+import { Sigil } from '@/components/sigil';
+import { useMyHouse, useMyId, useMyProfile, useReaderHouses } from '@/hooks/queries';
+import { useTranslation } from '@/i18n';
+import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { listCommunities, suggestedCommunities, type Community } from '@/services/communities';
 import { becauseYouRead, booksByGenreSlug, classics, genreTiles, trendingBooks } from '@/services/discover';
@@ -18,7 +21,6 @@ import { demandForMyBooks, listListings, money, type MarketFilter } from '@/serv
 import { suggestReaders } from '@/services/profile';
 import { follow, unfollow } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { ARCHETYPES, type Arch } from '@/utils/archetypes';
 
 type Seg = 'foryou' | 'communities' | 'market';
 
@@ -54,12 +56,13 @@ export default function Explore() {
 function ForYou() {
   const { colors } = useTheme();
   const me = useMyId()!;
-  const profile = useMyProfile();
-  const arch = (profile.data?.archetype ?? null) as Arch | null;
-  const ArchIcon = arch ? ARCH_ICONS[arch] : CompassRoseIcon;
+  const { t } = useTranslation();
+  const myHouse = useMyHouse();
+  const h = myHouse.data?.house ?? null;
   const qc = useQueryClient();
   const comms = useQuery({ queryKey: ['communities', 'suggested'], queryFn: () => suggestedCommunities(10) });
-  const readers = useQuery({ queryKey: ['readers', 'suggested', arch], queryFn: () => suggestReaders(me, arch, 10) });
+  const readers = useQuery({ queryKey: ['readers', 'suggested'], queryFn: () => suggestReaders(me, 10) });
+  const readerHouses = useReaderHouses((readers.data ?? []).map((u) => u.id));
   const trending = useQuery({ queryKey: ['discover', 'trending'], queryFn: () => trendingBooks(8) });
   const because = useQuery({ queryKey: ['discover', 'because', me], queryFn: () => becauseYouRead(me) });
   const sagas = useQuery({ queryKey: ['discover', 'fantasy'], queryFn: () => booksByGenreSlug('fantasy', 10) });
@@ -75,23 +78,22 @@ function ForYou() {
   return (
     <View>
       <View style={{ paddingHorizontal: spacing.lg }}>
-        <Press onPress={() => router.push('/dna')} style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.lg }}>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -50, width: 170, height: 170, borderRadius: 85, borderWidth: 1, borderColor: colors.gold, opacity: 0.35 }} />
-          <View pointerEvents="none" style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: colors.gold, opacity: 0.25 }} />
-          <ArchIcon size={24} weight="fill" color={colors.accent} />
-          <Text variant="small" tone="muted" style={{ marginTop: spacing.md }}>
-            Your reader profile
-          </Text>
-          <Text style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 31, marginTop: 2 }}>{arch ? ARCHETYPES[arch].name : 'Take the reader test'}</Text>
-          <Text variant="small" tone="muted" style={{ marginTop: 4, maxWidth: 300 }}>
-            {arch ? ARCHETYPES[arch].traits : 'Four questions, two minutes. We use it to suggest books and people.'}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.md }}>
-            <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
-              See your Reader DNA
+        <Press onPress={() => router.push('/house')} style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: h ? houseTokens[h].primary : colors.surface, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}>
+          {h ? <Sigil house={h} size={48} color={houseTokens[h].onPrimary} /> : null}
+          <View style={{ flex: 1 }}>
+            <Text variant="small" color={h ? houseTokens[h].onPrimary : colors.muted}>
+              {t('house.title')}
             </Text>
-            <CaretRightIcon size={14} weight="bold" color={colors.accent} />
+            <Text style={{ fontFamily: fonts.display, fontSize: 22, lineHeight: 28 }} color={h ? houseTokens[h].onPrimary : colors.ink}>
+              {h ? `${HOUSE_NAMES[h]} · ${t(`houses.${h}.members`)}` : '—'}
+            </Text>
+            {h ? (
+              <Text variant="small" color={houseTokens[h].onPrimary} style={{ fontStyle: 'italic' }}>
+                {t(`houses.${h}.motto`)}
+              </Text>
+            ) : null}
           </View>
+          <CaretRightIcon size={18} weight="bold" color={h ? houseTokens[h].onPrimary : colors.muted} />
         </Press>
       </View>
 
@@ -120,9 +122,12 @@ function ForYou() {
                   <Text variant="callout" style={{ fontFamily: fonts.semibold, marginTop: 10 }} numberOfLines={1}>
                     {(u.display_name ?? u.username).split(' ')[0]}
                   </Text>
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {u.archetype ? ARCHETYPES[u.archetype as Arch]?.name : `@${u.username}`}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <HouseBadge house={readerHouses.data?.[u.id]} size={14} />
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      @{u.username}
+                    </Text>
+                  </View>
                   <Btn
                     size="sm"
                     full

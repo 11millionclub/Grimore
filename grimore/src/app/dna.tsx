@@ -4,13 +4,14 @@ import { View } from 'react-native';
 
 import { CommunityCover, openCommunity } from '@/components/books';
 import { ArrowRightIcon } from '@/components/icons';
-import { ARCH_ICONS } from '@/components/onboarding-flow';
+import { Sigil } from '@/components/sigil';
 import { Avatar, Btn, Press, Progress, Screen, SectionHead, Text } from '@/components/ui';
-import { useMyId, useProfile, useReadingStats } from '@/hooks/queries';
+import { useMyId, useReaderHouses, useReadingStats } from '@/hooks/queries';
 import { suggestedCommunities } from '@/services/communities';
 import { suggestReaders } from '@/services/profile';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { ARCHETYPES, type Arch } from '@/utils/archetypes';
+import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
+import { useTranslation } from '@/i18n';
 
 const TRAITS: { name: string; moods: string[] }[] = [
   { name: 'Dark or mysterious', moods: ['dark', 'mysterious', 'atmospheric', 'tense'] },
@@ -25,16 +26,16 @@ export default function ReaderDNA() {
   const me = useMyId()!;
   const uid = params.userId ?? me;
   const isMe = uid === me;
-  const profile = useProfile(uid);
   const stats = useReadingStats(uid);
   const comms = useQuery({ queryKey: ['communities', 'suggested'], queryFn: () => suggestedCommunities(6), enabled: isMe });
-  const arch = (profile.data?.archetype ?? null) as Arch | null;
-  const twins = useQuery({ queryKey: ['readers', 'twins', arch], queryFn: () => suggestReaders(me, arch, 6), enabled: isMe && !!arch });
+  const { t } = useTranslation();
+  const houses = useReaderHouses([uid]);
+  const house = houses.data?.[uid] ?? null;
+  const twins = useQuery({ queryKey: ['readers', 'twins'], queryFn: () => suggestReaders(me, 6), enabled: isMe });
   const s = stats.data;
   const moodCounts = new Map((s?.moods ?? []).map((m) => [m.name, m.n]));
   const totalMoods = Math.max(1, [...moodCounts.values()].reduce((a, b) => a + b, 0));
   const traits = TRAITS.map((t) => ({ name: t.name, v: Math.min(1, (t.moods.reduce((a, m) => a + (moodCounts.get(m) ?? 0), 0) / totalMoods) * 1.8) }));
-  const Icon = arch ? ARCH_ICONS[arch] : ARCH_ICONS.night;
   const parts = s
     ? [
         s.lateShare > 0.4 ? 'you read mostly at night' : s.peakHour !== null ? `you read most around ${s.peakHour}:00` : null,
@@ -52,15 +53,16 @@ export default function ReaderDNA() {
         <View style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.xl }}>
           <View pointerEvents="none" style={{ position: 'absolute', right: -70, top: -70, width: 230, height: 230, borderRadius: 115, borderWidth: 1, borderColor: colors.gold, opacity: 0.35 }} />
           <View pointerEvents="none" style={{ position: 'absolute', right: -30, top: -30, width: 150, height: 150, borderRadius: 75, borderWidth: 1, borderColor: colors.gold, opacity: 0.25 }} />
-          <Icon size={34} weight="fill" color={colors.accent} />
+          {house ? <Sigil house={house} size={40} color={houseTokens[house].ink} /> : null}
           <Text variant="small" tone="muted" style={{ marginTop: spacing.base }}>
-            {isMe ? 'You are a' : `${(profile.data?.display_name ?? profile.data?.username ?? '').split(' ')[0]} is a`}
+            {house ? `${t(`houses.${house}.member`)} · House ${HOUSE_NAMES[house]}` : ' '}
           </Text>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 39, lineHeight: 42 }}>
-            {arch ? ARCHETYPES[arch].name : 'Reader in the making'}
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 34, lineHeight: 40 }}>
+            {house ? t('house.readsFor', { what: t(`houses.${house}.readsFor`) }) : 'Reader DNA'}
           </Text>
           <Text variant="body" style={{ marginTop: spacing.sm, opacity: 0.85 }}>
-            {arch ? ARCHETYPES[arch].line : 'Take the reader test to find out.'} {summary}
+            {house ? `${t(`houses.${house}.strength`)} ` : ''}
+            {summary}
           </Text>
         </View>
         <View style={{ marginTop: spacing.md, flexDirection: 'row', gap: spacing.md }}>
@@ -123,7 +125,7 @@ export default function ReaderDNA() {
 
       {isMe && (twins.data ?? []).length ? (
         <View style={{ marginTop: spacing.xxl }}>
-          <SectionHead title="Readers with the same profile" />
+          <SectionHead title="Readers to meet" />
           <View style={{ flexDirection: 'row', paddingHorizontal: spacing.lg }}>
             {(twins.data ?? []).map((u, i) => (
               <Press key={u.id} onPress={() => router.push({ pathname: '/user/[username]', params: { username: u.username } })} style={{ marginLeft: i ? -10 : 0, borderRadius: 20, borderWidth: 2, borderColor: colors.bg }}>
@@ -136,8 +138,8 @@ export default function ReaderDNA() {
 
       {isMe ? (
         <View style={{ marginTop: spacing.xxl, paddingHorizontal: spacing.lg }}>
-          <Btn variant="ghost" full icon={<ArrowRightIcon size={16} color={colors.ink} />} onPress={() => router.push('/quiz')}>
-            Retake the test (2 min)
+          <Btn variant="ghost" full icon={<ArrowRightIcon size={16} color={colors.ink} />} onPress={() => router.push('/house')}>
+            {t('house.title')}
           </Btn>
         </View>
       ) : null}

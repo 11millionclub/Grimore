@@ -5,6 +5,20 @@ import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop, Text as SvgText 
 
 import {
   BookOpenIcon,
+  CompassIcon,
+  DropIcon,
+  FeatherIcon,
+  FlagBannerIcon,
+  FlowerIcon,
+  FlowerTulipIcon,
+  HeartBreakIcon,
+  HourglassMediumIcon,
+  LampIcon,
+  MapTrifoldIcon,
+  PenNibIcon,
+  QuotesIcon,
+  ScrollIcon,
+  TimerIcon,
   BookmarkSimpleIcon,
   ButterflyIcon,
   CatIcon,
@@ -25,20 +39,23 @@ import {
   StarIcon,
   type IconProps,
 } from '@/components/icons';
+import { Sigil } from '@/components/sigil';
 import { Avatar } from '@/components/ui';
+import { HOUSE_IDS, houseTokens, type HouseId } from '@/theme/houses';
 import { fonts, useTheme } from '@/theme';
 
 import { LibraryScene, type SceneId } from './scene';
 
 type Stops = { offset: number; color: string }[];
-type ThemeVisual = { kind: 'linear'; angle: number; stops: Stops; plank: string; animated?: boolean } | { kind: 'radial'; cx: number; cy: number; stops: Stops; plank: string } | { kind: 'scene'; scene: SceneId; plank: string };
+type ThemeVisual = { kind: 'linear'; angle: number; stops: Stops; plank: string; animated?: boolean; pattern?: HouseId } | { kind: 'radial'; cx: number; cy: number; stops: Stops; plank: string } | { kind: 'scene'; scene: SceneId; plank: string };
 
-const lin = (angle: number, colors: string[], plank: string, animated?: boolean): ThemeVisual => ({
+const lin = (angle: number, colors: string[], plank: string, animated?: boolean, pattern?: HouseId): Extract<ThemeVisual, { kind: 'linear' }> => ({
   kind: 'linear',
   angle,
   stops: colors.map((color, i) => ({ offset: i / (colors.length - 1), color })),
   plank,
   animated,
+  pattern,
 });
 
 /** Visuals for the shop catalogue keys (corner_items). Prices live in the database. */
@@ -59,7 +76,7 @@ export const THEMES: Record<string, ThemeVisual> = {
 
 type Ring = { stops: Stops } | 'accent' | 'ink' | 'none';
 const ring = (colors: string[]): Ring => ({ stops: colors.map((color, i) => ({ offset: i / (colors.length - 1), color })) });
-export const FRAMES: Record<string, { ring: Ring; badge?: ComponentType<IconProps> }> = {
+export const FRAMES: Record<string, { ring: Ring; badge?: ComponentType<IconProps>; sigil?: HouseId; orbit?: boolean }> = {
   none: { ring: 'none' },
   ember: { ring: 'accent' },
   ink: { ring: 'ink' },
@@ -91,6 +108,37 @@ export const PACKS: Record<string, { icons: ComponentType<IconProps>[]; color: s
   cosmos: { icons: [PlanetIcon, RocketIcon, StarIcon, SparkleIcon], color: '#b8f0ff' },
   royal: { icons: [CrownIcon, DiamondIcon, HeartIcon, SparkleIcon], color: '#ffc6a8' },
 };
+
+/* ---------- House items (starter kit and House collection) ---------- */
+
+const sigilIcon = (h: HouseId): ComponentType<IconProps> =>
+  function HouseSigilIcon({ size = 24, color = '#000' }: IconProps) {
+    return <Sigil house={h} size={Number(size)} color={String(color)} label={false} />;
+  };
+const HOUSE_OBJECTS: Record<HouseId, ComponentType<IconProps>[]> = {
+  lantern: [ButterflyIcon, LampIcon, CompassIcon, MapTrifoldIcon, StarIcon, MoonIcon],
+  quill: [PenNibIcon, ScrollIcon, QuotesIcon, FeatherIcon, BookOpenIcon, CoffeeIcon],
+  thorn: [FlowerTulipIcon, HeartBreakIcon, DropIcon, FlowerIcon, HeartIcon, MoonIcon],
+  hourglass: [TimerIcon, BookmarkSimpleIcon, HourglassMediumIcon, CoffeeIcon, StarIcon, BookOpenIcon],
+};
+const PREMIUM_THEMES: Record<HouseId, [string[], string[]]> = {
+  lantern: [['#1f2a44', '#0d1320'], ['#e9a23b', '#6b3a0c']],
+  quill: [['#2b2f63', '#14162e'], ['#f4ecd8', '#c9ced8']],
+  thorn: [['#6e1830', '#2a0812'], ['#2a0f1f', '#120609']],
+  hourglass: [['#c77d4a', '#3d2412'], ['#e8d3a6', '#2a9d8f']],
+};
+for (const h of HOUSE_IDS) {
+  const tk = houseTokens[h];
+  THEMES[`house-${h}`] = lin(160, [tk.primary, tk.secondary], tk.secondary, false, h);
+  THEMES[`house-${h}-premium-a`] = lin(170, PREMIUM_THEMES[h][0], PREMIUM_THEMES[h][0][1], false, h);
+  THEMES[`house-${h}-premium-b`] = lin(140, PREMIUM_THEMES[h][1], PREMIUM_THEMES[h][1][1], true, h);
+  FRAMES[`house-${h}`] = { ring: ring([tk.primary, tk.secondary, tk.primary]), sigil: h };
+  FRAMES[`house-${h}-animated`] = { ring: ring([tk.primary, tk.secondary, tk.primary]), sigil: h, orbit: true };
+  NAME_STYLES[`house-${h}`] = { stops: [tk.ink, tk.primary] };
+  PACKS[`house-${h}`] = { icons: [sigilIcon(h), FlagBannerIcon, ...HOUSE_OBJECTS[h].slice(0, 2)], color: tk.primary };
+  PACKS[`house-${h}-premium`] = { icons: [sigilIcon(h), ...HOUSE_OBJECTS[h], FlagBannerIcon, SparkleIcon, CrownIcon, DiamondIcon, LeafIcon], color: tk.secondary };
+  PACKS[`house-${h}-bundle`] = PACKS[`house-${h}-premium`];
+}
 
 export type CornerLook = { theme: string; frame: string; shelf: string; name_style: string; pack: string };
 export const DEFAULT_LOOK: CornerLook = { theme: 'forest', frame: 'ember', shelf: 'theme', name_style: 'plain', pack: 'reader' };
@@ -131,10 +179,33 @@ export function ThemeFill({ theme, style }: { theme: string; style?: StyleProp<V
       <Rect width="100%" height="100%" fill={`url(#${id})`} />
     </Svg>
   );
-  if (!animated) return <View pointerEvents="none" style={[{ position: 'absolute', inset: 0 }, style]}>{svg}</View>;
+  const pattern = t.kind === 'linear' && t.pattern ? <SigilPattern house={t.pattern} /> : null;
+  if (!animated)
+    return (
+      <View pointerEvents="none" style={[{ position: 'absolute', inset: 0 }, style]}>
+        {svg}
+        {pattern}
+      </View>
+    );
   return (
     <View pointerEvents="none" style={[{ position: 'absolute', inset: 0, overflow: 'hidden' }, style]}>
       <Animated.View style={[{ width: '300%', height: '100%' }, slide]}>{svg}</Animated.View>
+      {pattern}
+    </View>
+  );
+}
+
+/** A quiet grid of the House sigil over a banner. */
+function SigilPattern({ house }: { house: HouseId }) {
+  const tk = houseTokens[house];
+  const cells = Array.from({ length: 24 }, (_, i) => i);
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', inset: 0, flexDirection: 'row', flexWrap: 'wrap', opacity: 0.14, overflow: 'hidden' }}>
+      {cells.map((i) => (
+        <View key={i} style={{ width: '16.66%', height: 64, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: i % 2 ? 18 : 0 }] }}>
+          <Sigil house={house} size={26} color={tk.onPrimary} label={false} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -194,6 +265,12 @@ export function FramedAvatar({ frame, uri, name, size = 92 }: { frame: string; u
           <Avatar uri={uri} name={name} size={size} />
         </View>
       </View>
+      {f.sigil && !f.orbit ? (
+        <View style={{ position: 'absolute', alignSelf: 'center', bottom: -6, width: 30, height: 30, borderRadius: 15, borderWidth: 3, borderColor: colors.bg, backgroundColor: houseTokens[f.sigil].primary, alignItems: 'center', justifyContent: 'center' }}>
+          <Sigil house={f.sigil} size={16} color={houseTokens[f.sigil].onPrimary} label={false} />
+        </View>
+      ) : null}
+      {f.sigil && f.orbit ? <OrbitingSigil house={f.sigil} radius={outer / 2} /> : null}
       {Badge ? (
         <View style={{ position: 'absolute', right: 0, bottom: 4, width: 28, height: 28, borderRadius: 14, borderWidth: 4, borderColor: colors.bg, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
           <RingFill r={f.ring} size={28} />
@@ -201,6 +278,24 @@ export function FramedAvatar({ frame, uri, name, size = 92 }: { frame: string; u
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** The animated House frame: the sigil circles the avatar slowly (still with reduced motion). */
+function OrbitingSigil({ house, radius }: { house: HouseId; radius: number }) {
+  const { colors } = useTheme();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    turn.value = withRepeat(withTiming(1, { duration: 12000, easing: Easing.linear, reduceMotion: ReduceMotion.System }), -1);
+  }, [turn]);
+  const style = useAnimatedStyle(() => {
+    const a = turn.value * Math.PI * 2 + Math.PI / 2;
+    return { transform: [{ translateX: Math.cos(a) * (radius - 4) }, { translateY: Math.sin(a) * (radius - 4) }] };
+  });
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: radius - 14, top: radius - 14, width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: colors.bg, backgroundColor: houseTokens[house].primary, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <Sigil house={house} size={14} color={houseTokens[house].onPrimary} label={false} />
+    </Animated.View>
   );
 }
 

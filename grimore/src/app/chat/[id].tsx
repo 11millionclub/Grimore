@@ -5,11 +5,11 @@ import { View } from 'react-native';
 
 import { Composer } from '@/components/feed';
 import { Avatar, Cover, Press, Screen, Text } from '@/components/ui';
-import { useMyId, useProfile } from '@/hooks/queries';
+import { HouseBadge } from '@/components/house-badge';
+import { useMyId, useProfile, useReaderHouses } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
 import { getConversation, listMessages, markRead, sendMessage, subscribeToConversation, type Message } from '@/services/messages';
 import { fonts, spacing, useTheme } from '@/theme';
-import { ARCHETYPES, type Arch } from '@/utils/archetypes';
 
 function BookBubble({ id }: { id: string }) {
   const { colors } = useTheme();
@@ -52,6 +52,7 @@ export default function Chat() {
     mutationFn: (body: string) => sendMessage({ conversationId: id, senderId: me, body }),
     onSuccess: (m) => qc.setQueryData<Message[]>(['messages', id], (old) => (old?.some((x) => x.id === m.id) ? old : [...(old ?? []), m])),
   });
+  const houses = useReaderHouses(other.data ? [other.data.id] : []);
   const name = other.data?.display_name ?? other.data?.username ?? ' ';
   return (
     <Screen title={name} large={false} back keyboard footer={<Composer placeholder="Message" busy={send.isPending} onSend={(t) => send.mutateAsync(t)} />}>
@@ -60,10 +61,12 @@ export default function Chat() {
         <Text variant="title" style={{ marginTop: spacing.sm }}>
           {name}
         </Text>
-        <Text variant="small" tone="muted">
-          @{other.data?.username}
-          {other.data?.archetype ? ` · ${ARCHETYPES[other.data.archetype as Arch]?.name}` : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <HouseBadge house={other.data ? houses.data?.[other.data.id] : null} size={16} named />
+          <Text variant="small" tone="muted">
+            @{other.data?.username}
+          </Text>
+        </View>
       </Press>
       <View style={{ paddingHorizontal: spacing.base, gap: 6, paddingBottom: spacing.base }}>
         {(msgs.data ?? []).map((m) => {

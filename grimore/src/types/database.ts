@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      user_items: {
+        Row: { acquired_at: string; expires_at: string | null; item_key: string; season_id: number | null; source: string; user_id: string }
+        Insert: { acquired_at?: string; expires_at?: string | null; item_key: string; season_id?: number | null; source: string; user_id: string }
+        Update: { acquired_at?: string; expires_at?: string | null; item_key?: string; season_id?: number | null; source?: string; user_id?: string }
+        Relationships: []
+      }
       analytics_events: {
         Row: { created_at: string; id: number; name: string; props: Json; user_id: string }
         Insert: { created_at?: string; id?: never; name: string; props?: Json; user_id?: string }
@@ -377,10 +383,11 @@ export type Database = {
       }
       communities: {
         Row: {
+          house_id: string | null
           cover_scene: string
           created_at: string
           description: string | null
-          host_id: string
+          host_id: string | null
           id: string
           max_members: number | null
           member_count: number
@@ -394,6 +401,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          house_id?: string | null
           cover_scene?: string
           created_at?: string
           description?: string | null
@@ -411,6 +419,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          house_id?: string | null
           cover_scene?: string
           created_at?: string
           description?: string | null
@@ -844,6 +853,8 @@ export type Database = {
       }
       corner_items: {
         Row: {
+          house_id: string | null
+          source: string
           key: string
           kind: string
           name: string
@@ -851,6 +862,8 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          house_id?: string | null
+          source?: string
           key: string
           kind: string
           name: string
@@ -858,6 +871,8 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          house_id?: string | null
+          source?: string
           key?: string
           kind?: string
           name?: string
@@ -1665,7 +1680,6 @@ export type Database = {
       profiles: {
         Row: {
           house_hidden: boolean
-          archetype: string | null
           avatar_url: string | null
           bio: string | null
           city: string | null
@@ -1680,7 +1694,6 @@ export type Database = {
         }
         Insert: {
           house_hidden?: boolean
-          archetype?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -1695,7 +1708,6 @@ export type Database = {
         }
         Update: {
           house_hidden?: boolean
-          archetype?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -2550,6 +2562,7 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          house_leaderboard_opt_in: boolean
           content_warnings: string[]
           intents: string[]
           reading_formats: string[]
@@ -2576,6 +2589,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          house_leaderboard_opt_in?: boolean
           content_warnings?: string[]
           intents?: string[]
           reading_formats?: string[]
@@ -2602,6 +2616,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          house_leaderboard_opt_in?: boolean
           content_warnings?: string[]
           intents?: string[]
           reading_formats?: string[]
@@ -2845,6 +2860,13 @@ export type Database = {
       }
     }
     Functions: {
+      join_ritual: { Args: Record<PropertyKey, never>; Returns: string }
+      complete_ritual: { Args: Record<PropertyKey, never>; Returns: undefined }
+      my_ritual: { Args: Record<PropertyKey, never>; Returns: { period: string; status: string }[] }
+      house_top_contributors: { Args: { p_house: string; p_limit?: number }; Returns: { user_id: string; username: string; display_name: string | null; avatar_url: string | null; points: number }[] }
+      house_duels: { Args: Record<PropertyKey, never>; Returns: { house_id: string; rival_id: string; wins_per_member: number; players: number }[] }
+      my_week_games: { Args: Record<PropertyKey, never>; Returns: { game: string; played: number; solved: number; days: number }[] }
+      reader_marks: { Args: { p_user: string }; Returns: { item_key: string; season_id: number | null }[] }
       submit_sorting: { Args: { p_answers: Json; p_tie_break?: string | null; p_choice?: string | null }; Returns: Json }
       change_house: { Args: { p_house: string }; Returns: string }
       my_house: { Args: Record<PropertyKey, never>; Returns: { house_id: string | null; house_hidden: boolean; house_assigned_at: string | null }[] }
