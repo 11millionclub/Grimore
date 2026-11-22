@@ -4,18 +4,16 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Banner, FramedAvatar, StyledName, type CornerLook } from '@/components/corner';
-import { HouseBadge, ReaderMarks } from '@/components/house-badge';
+import { ReaderMarks } from '@/components/house-badge';
+import { HousePlate } from '@/components/house-plate';
 import { Press, Text } from '@/components/ui';
 import type { Profile } from '@/services/profile';
-import { useReaderHouses } from '@/hooks/queries';
 import { readerMarks } from '@/services/houses';
 import { fonts, spacing } from '@/theme';
 import { fmt } from '@/utils/dates';
 
 /** Banner, framed portrait, styled name and counts: the top of every Corner. */
 export function ProfileHero({ profile, look, counts, actions, children }: { profile: Profile; look: CornerLook; counts?: { books: number; followers: number; following: number }; actions?: ReactNode; children?: ReactNode }) {
-  const houses = useReaderHouses([profile.id]);
-  const house = houses.data?.[profile.id];
   const marks = useQuery({ queryKey: ['marks', profile.id], queryFn: () => readerMarks(profile.id), staleTime: 10 * 60_000 });
   const name = profile.display_name ?? profile.username;
   return (
@@ -33,10 +31,10 @@ export function ProfileHero({ profile, look, counts, actions, children }: { prof
           @{profile.username}
           {profile.city ? ` · ${profile.city}` : ''}
         </Text>
-        {house || marks.data?.length ? (
-          <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <HouseBadge house={house} size={22} named link />
-            <ReaderMarks keys={marks.data ?? []} />
+        <HousePlate userId={profile.id} />
+        {marks.data?.length ? (
+          <View style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <ReaderMarks keys={marks.data} />
           </View>
         ) : null}
         {profile.bio ? (

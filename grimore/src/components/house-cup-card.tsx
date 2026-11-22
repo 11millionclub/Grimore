@@ -47,7 +47,7 @@ export function HouseCupCard() {
           return (
             <View key={r.house} style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderRadius: radius.tile, backgroundColor: me ? tk.primary : colors.surface2 }}>
               <Sigil house={r.house} size={20} color={me ? tk.onPrimary : tk.ink} label={false} />
-              <Text style={{ fontFamily: fonts.display, fontSize: 13 }} color={me ? tk.onPrimary : colors.ink}>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 13, fontVariant: ['tabular-nums'] }} color={me ? tk.onPrimary : colors.ink}>
                 {r.perMember}
               </Text>
               <Text variant="micro" color={me ? tk.onPrimary : colors.muted}>

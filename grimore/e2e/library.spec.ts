@@ -33,4 +33,17 @@ test.describe('@mock library', () => {
     await expect(page.getByText('+25 pages today')).toBeVisible();
     expect(writes.at(-1)).toMatchObject({ path: 'rpc/log_progress', body: { p_book: 'b1', p_page: 159 } });
   });
+
+  test('a book page still opens when a related table fails', async ({ page }) => {
+    await page.route(/rest\/v1\/(book_authors|book_genres)/, (r) => r.fulfill({ status: 500, contentType: 'application/json', body: '{"code":"XX000","message":"boom"}' }));
+    await page.goto('/book/b2');
+    await expect(page.getByText('Mrs Dalloway').first()).toBeVisible();
+    await expect(page.getByText('Something went wrong')).toHaveCount(0);
+  });
+
+  test('an unknown book says so and shows the error code', async ({ page }) => {
+    await page.goto('/book/00000000-0000-4000-8000-000000000000');
+    await expect(page.getByText('That book is not in the catalogue yet.')).toBeVisible();
+    await expect(page.getByText('Error code: book_not_found')).toBeVisible();
+  });
 });

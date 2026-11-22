@@ -5,16 +5,16 @@ import type { ComponentType } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CastleTurretIcon, CompassRoseIcon, DiceFiveIcon, FeatherIcon, ShieldChevronIcon, type IconProps } from '@/components/icons';
+import { BooksIcon, CompassIcon, FeatherIcon, PuzzlePieceIcon, UserCircleIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
 import { fonts, layout, spacing, useTheme } from '@/theme';
 
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
-  index: { label: 'Home', Icon: CastleTurretIcon },
-  explore: { label: 'Explore', Icon: CompassRoseIcon },
+  index: { label: 'Home', Icon: BooksIcon },
+  explore: { label: 'Explore', Icon: CompassIcon },
   log: { label: 'Inscribe', Icon: FeatherIcon },
-  play: { label: 'Play', Icon: DiceFiveIcon },
-  me: { label: 'Me', Icon: ShieldChevronIcon },
+  play: { label: 'Play', Icon: PuzzlePieceIcon },
+  me: { label: 'Me', Icon: UserCircleIcon },
 };
 
 const SEAL = 52;
@@ -71,13 +71,13 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     shadowColor: colors.accent,
-                    shadowOpacity: 0.35,
+                    shadowOpacity: 0.25,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: 4 },
                     elevation: 6,
                   }}
                 >
-                  <View style={{ position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderRadius: SEAL / 2, borderWidth: 1, borderColor: colors.onAccent, opacity: 0.35 }} />
+                  <View style={{ position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderRadius: SEAL / 2, borderWidth: 1, borderColor: colors.gold, opacity: 0.7 }} />
                   <FeatherIcon size={23} weight="fill" color={colors.onAccent} />
                 </View>
               </Press>
@@ -92,11 +92,11 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
               accessibilityLabel={meta.label}
               style={{ width: 60, height: layout.tabBarHeight - 8, alignItems: 'center', justifyContent: 'center', gap: 2 }}
             >
-              <Icon size={23} weight={focused ? 'fill' : 'regular'} color={focused ? colors.ink : colors.faint} />
+              <Icon size={24} weight={focused ? 'fill' : 'regular'} color={focused ? colors.ink : colors.faint} />
               <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10.5, lineHeight: 13 }} color={focused ? colors.ink : colors.faint}>
                 {meta.label}
               </Text>
-              <View style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: focused ? colors.accent : 'transparent' }} />
+              <View style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: focused ? colors.gold : 'transparent' }} />
             </Pressable>
           );
         })}

@@ -1,4 +1,4 @@
-import { unwrap } from '@/lib/errors';
+import { AppError, unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 
 export type BookSummary = {
@@ -38,21 +38,39 @@ export async function searchCatalogue(query: string, limit = 20): Promise<BookSu
   return rows.map((r) => ({ id: r.id, title: r.title, cover_url: r.cover_url, first_published_year: r.first_published_year, authors: r.authors ?? '' }));
 }
 
+/**
+ * A book page. The core row comes from one plain query, so the page opens
+ * even if a related table (authors, genres, moods) fails to load; those are
+ * fetched separately and fall back to empty.
+ */
 export async function getBook(id: string) {
-  const data = unwrap(
-    await supabase
-      .from('books')
-      .select(
-        `id, title, subtitle, description, first_published_year, page_count_estimate, cover_url, cover_source, original_language, moods,
-         primary_genre:genres!books_primary_genre_id_fkey(id, name, slug),
-         book_genres(genres(id, name, slug)),
-         book_authors(position, role, authors(id, name, nationality_code)),
-         book_editions!book_editions_book_id_fkey(id, publisher, published_date, page_count, language, cover_url, book_identifiers!book_identifiers_edition_id_fkey(type, value))`,
-      )
-      .eq('id', id)
-      .single(),
+  const core = unwrap(
+    await supabase.from('books').select('id, title, subtitle, description, first_published_year, page_count_estimate, cover_url, primary_genre_id').eq('id', id).maybeSingle(),
   );
-  return { ...data, authorsLine: authorLine(data.book_authors as RawSummary['book_authors']) };
+  if (!core) throw new AppError('That book is not in the catalogue yet.', 'book_not_found');
+  const soft = async <T,>(q: PromiseLike<{ data: T | null; error: unknown }>, fallback: T): Promise<T> => {
+    try {
+      const r = await q;
+      return r.error || r.data == null ? fallback : r.data;
+    } catch {
+      return fallback;
+    }
+  };
+  const [moods, authors, genres, primary] = await Promise.all([
+    soft(supabase.from('books').select('moods').eq('id', id).maybeSingle(), null as { moods: string[] | null } | null),
+    soft(supabase.from('book_authors').select('position, role, authors!book_authors_author_id_fkey(id, name, nationality_code)').eq('book_id', id), [] as unknown[]),
+    soft(supabase.from('book_genres').select('genres!book_genres_genre_id_fkey(id, name, slug)').eq('book_id', id), [] as unknown[]),
+    core.primary_genre_id != null ? soft(supabase.from('genres').select('id, name, slug').eq('id', core.primary_genre_id).maybeSingle(), null) : Promise.resolve(null),
+  ]);
+  const bookAuthors = authors as RawSummary['book_authors'];
+  return {
+    ...core,
+    moods: moods?.moods ?? [],
+    primary_genre: primary as { id: number; name: string; slug: string } | null,
+    book_genres: genres as { genres: { id: number; name: string; slug: string } | null }[],
+    book_authors: bookAuthors,
+    authorsLine: authorLine(bookAuthors),
+  };
 }
 
 export type BookDetail = Awaited<ReturnType<typeof getBook>>;

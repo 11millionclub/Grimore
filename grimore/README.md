@@ -4,7 +4,7 @@
 
 Grimore is a mobile reading app: log what you read and how far you are, discover your reader profile, play four small book games every day, and find people who read like you in communities, messages and a book market.
 
-The interface sits between the Grimore prototype and a storybook: warm ivory paper, one ember accent, a thin line of gilt for ornaments, Geist for the interface and Cormorant Garamond for titles and quotes, Phosphor icons and a floating tab bar.
+The interface sits between the Grimore prototype and a storybook: clean warm-white paper, one midnight-blue accent, gilt for stars and ornaments, Geist for the interface and Cormorant Garamond for titles and quotes, Phosphor icons and a floating tab bar.
 
 ---
 
@@ -106,7 +106,7 @@ src/utils/          pure logic with tests (archetype scoring, game helpers, stre
 supabase/           migrations, Edge Function, SQL security tests
 ```
 
-Design rules: cards 20 px radius, tiles and inputs 14 px, buttons and chips are pills, covers 4 px; one accent (ember) and gilt only for small ornaments; serif for page and book titles, sans for everything else; press feedback on every tappable; motion respects the system’s reduced-motion setting.
+Design rules: cards 20 px radius, tiles and inputs 14 px, buttons and chips are pills, covers 4 px; one accent (midnight blue, neutral to the four House colours) and gilt for stars and small ornaments; serif for page and book titles, sans for everything else; press feedback on every tappable; motion respects the system’s reduced-motion setting.
 
 ---
 

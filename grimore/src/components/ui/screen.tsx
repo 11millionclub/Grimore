@@ -8,7 +8,6 @@ import { CaretLeftIcon, XIcon } from '@/components/icons';
 import { layout, spacing, useTheme } from '@/theme';
 
 import { IconBtn } from './button';
-import { Flourish } from './layout';
 import { Text } from './text';
 
 export function goBack() {
@@ -76,11 +75,10 @@ export function Screen({
     <>
       {hero ?? <View style={{ height: barHeight }} />}
       {large && title && !hero ? (
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, paddingTop: spacing.xs, gap: spacing.sm }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, paddingTop: spacing.xs }}>
           <Text variant="display" accessibilityRole="header">
             {title}
           </Text>
-          <Flourish />
         </View>
       ) : null}
       {children}
@@ -109,7 +107,7 @@ export function Screen({
         <View style={{ borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: insets.bottom + tabSpace + spacing.sm }}>{footer}</View>
       ) : null}
       <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: barHeight }}>
-        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.line }} />
+        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.bg, }} />
         <View style={{ marginTop: insets.top, height: layout.navBarHeight, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, gap: 4 }}>
           {showBack ? (
             <IconBtn label="Back" onPress={goBack}>

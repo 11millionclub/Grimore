@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { CrownSimpleIcon, MedalIcon, SealCheckIcon, StarFourIcon } from '@/components/icons';
+import { CrownSimpleIcon, FlagBannerIcon, MedalIcon, SealCheckIcon } from '@/components/icons';
 import { Sigil } from '@/components/sigil';
 import { Press, Text } from '@/components/ui';
 import { t, useTranslation } from '@/i18n';
@@ -53,7 +53,7 @@ const MARKS: Record<string, { color: string; Icon: 'ribbon' | 'laurel' | 'star' 
   'ribbon:season-silver': { color: '#7d8591', Icon: 'ribbon' },
   'ribbon:season-gold': { color: '#a3803c', Icon: 'ribbon' },
   'laurel:cup-winner': { color: '#4e5e45', Icon: 'laurel' },
-  'badge:founding': { color: '#6e2333', Icon: 'star' },
+  'badge:founding': { color: '#9a7330', Icon: 'star' },
   'badge:ritual-uncharted': { color: houseTokens.lantern.ink, Icon: 'ritual' },
   'badge:ritual-debate': { color: houseTokens.quill.ink, Icon: 'ritual' },
   'badge:ritual-heartbreak': { color: houseTokens.thorn.ink, Icon: 'ritual' },
@@ -68,7 +68,7 @@ export function ReaderMarks({ keys, size = 22 }: { keys: string[]; size?: number
     <View style={{ flexDirection: 'row', gap: 4 }}>
       {known.map((k) => {
         const m = MARKS[k];
-        const Icon = m.Icon === 'ribbon' ? MedalIcon : m.Icon === 'laurel' ? CrownSimpleIcon : m.Icon === 'star' ? StarFourIcon : SealCheckIcon;
+        const Icon = m.Icon === 'ribbon' ? MedalIcon : m.Icon === 'laurel' ? CrownSimpleIcon : m.Icon === 'star' ? FlagBannerIcon : SealCheckIcon;
         return (
           <View key={k} accessibilityRole="image" accessibilityLabel={markLabel(k)} style={{ width: size + 4, height: size + 4, borderRadius: (size + 4) / 2, borderWidth: 1.5, borderColor: m.color, alignItems: 'center', justifyContent: 'center' }}>
             <Icon size={size * 0.62} weight="fill" color={m.color} />

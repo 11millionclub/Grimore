@@ -149,7 +149,7 @@ export default function HouseScreen() {
       <View style={{ marginTop: spacing.xxl }}>
         <SectionHead title={h === 'quill' ? t('house.ritualWeek') : t('house.ritualTitle')} />
         <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: tk.ink, padding: spacing.base, gap: spacing.sm }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 18 }} color={tk.ink}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.ink}>
             {t(`houses.${h}.ritual`)}
           </Text>
           <Text variant="callout">{t(`houses.${h}.ritualDesc`)}</Text>

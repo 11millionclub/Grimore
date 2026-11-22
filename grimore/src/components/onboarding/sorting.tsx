@@ -241,7 +241,7 @@ function HouseButton({ house, onPress }: { house: HouseId; onPress: () => void }
     >
       <Sigil house={house} size={30} color={tk.onPrimary} label={false} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: fonts.display, fontSize: 18 }} color={tk.onPrimary}>
+        <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.onPrimary}>
           {HOUSE_NAMES[house]}
         </Text>
         <Text variant="small" color={tk.onPrimary}>
@@ -274,7 +274,7 @@ function ChooseHouse({ onPick }: { onPick: (h: HouseId) => void }) {
                 <Sigil house={h} size={30} color={tk.onPrimary} label={false} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: fonts.display, fontSize: 18 }} color={tk.ink}>
+                <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.ink}>
                   {HOUSE_NAMES[h]} · {t(`houses.${h}.members`)}
                 </Text>
                 <Text variant="small" style={{ fontStyle: 'italic' }}>

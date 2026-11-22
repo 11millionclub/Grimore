@@ -61,7 +61,7 @@ export default function HouseCup() {
         <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, borderRadius: radius.card, backgroundColor: houseTokens[justEnded.winner_house_id].primary, padding: spacing.base, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
           <Sigil house={justEnded.winner_house_id} size={44} color={houseTokens[justEnded.winner_house_id].onPrimary} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.display, fontSize: 18 }} color={houseTokens[justEnded.winner_house_id].onPrimary}>
+            <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={houseTokens[justEnded.winner_house_id].onPrimary}>
               {t('cup.winner', { house: HOUSE_NAMES[justEnded.winner_house_id], season: justEnded.name })}
             </Text>
             <Text variant="small" color={houseTokens[justEnded.winner_house_id].onPrimary}>
@@ -86,14 +86,14 @@ export default function HouseCup() {
                   onPress={() => router.push({ pathname: '/common-room/[house]', params: { house: r.house } })}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: me ? 2 : 1, borderColor: me ? tk.ink : colors.line, padding: spacing.md }}
                 >
-                  <Text style={{ fontFamily: fonts.display, fontSize: 18, width: 20 }} tone={i === 0 ? 'accent' : 'muted'}>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 15, width: 20, fontVariant: ['tabular-nums'] }} tone={i === 0 ? 'accent' : 'muted'}>
                     {i + 1}
                   </Text>
                   <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tk.primary, alignItems: 'center', justifyContent: 'center' }}>
                     <Sigil house={r.house} size={24} color={tk.onPrimary} label={false} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontFamily: fonts.display, fontSize: 16 }} color={tk.ink}>
+                    <Text style={{ fontFamily: fonts.display, fontSize: 19 }} color={tk.ink}>
                       {HOUSE_NAMES[r.house]}
                     </Text>
                     <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surface2, marginTop: 4, overflow: 'hidden' }}>

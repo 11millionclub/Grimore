@@ -42,7 +42,7 @@ export const profile = {
   created_at: '2026-11-10T10:00:00Z',
   updated_at: '2026-11-10T10:00:00Z',
 };
-const friend = { id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', avatar_url: null };
+const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto' };
 
 const statuses = ['reading', 'read', 'read', 'want_to_read', 'reading', 'read'];
 type Entry = { id: string; status: string; rating: number | null; progress_percent: number | null; current_page: number | null; started_on: string | null; finished_on: string | null; book: (typeof BOOKS)[number] } & Record<string, unknown>;
@@ -220,9 +220,13 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return [{ id: 'cm1', match: 94 }];
     case 'rpc/search_catalogue':
       return BOOKS.map((b) => ({ id: b.id, title: b.title, cover_url: null, first_published_year: b.first_published_year, authors: b.book_authors[0].authors.name, score: 1 }));
-    case 'profiles':
-      if (opts.newReader) return single ? { ...profile, onboarding_completed_at: null } : [{ ...profile, onboarding_completed_at: null }, friend];
-      return single ? profile : [profile, friend];
+    case 'profiles': {
+      const me = opts.newReader ? { ...profile, onboarding_completed_at: null } : profile;
+      const username = (q.get('username')?.startsWith('eq.') ? q.get('username')!.slice(3) : '');
+      const id = (q.get('id')?.startsWith('eq.') ? q.get('id')!.slice(3) : '');
+      const list = [me, friend].filter((p) => (!username || p.username === username) && (!id || p.id === id));
+      return single ? (list[0] ?? null) : list;
+    }
     case 'user_preferences':
       return { user_id: ME, show_spoilers: false, daily_pages_goal: 30, appearance: 'dark', notification_settings: {} };
     case 'user_books': {
@@ -233,10 +237,18 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     }
     case 'reading_goals':
       return single ? { id: 'g', target_books: 40, year: new Date().getFullYear() } : [];
-    case 'books':
-      return single
-        ? { ...BOOKS[2], description: 'A city goes blind.', subtitle: null, cover_source: null, original_language: 'pt', primary_genre: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' }, book_genres: [], book_editions: [] }
-        : BOOKS;
+    case 'books': {
+      const id = (q.get('id')?.startsWith('eq.') ? q.get('id')!.slice(3) : '');
+      const list = id ? BOOKS.filter((b) => b.id === id) : BOOKS;
+      const detail = (b: (typeof BOOKS)[number]) => ({ ...b, description: b.id === 'b3' ? 'A city goes blind.' : null, subtitle: null, primary_genre_id: 1 });
+      return single ? (list[0] ? detail(list[0]) : null) : list.map(detail);
+    }
+    case 'book_authors': {
+      const id = (q.get('book_id') ?? '').replace('eq.', '');
+      return BOOKS.filter((b) => !id || b.id === id).flatMap((b) => b.book_authors);
+    }
+    case 'book_genres':
+      return [{ genres: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' } }];
     case 'corners':
       return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], updated_at: today };
     case 'corner_items':
@@ -262,6 +274,7 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'feed_items':
       return feed;
     case 'genres':
+      if ((q.get('id') ?? '').startsWith('eq.')) return single ? { id: 1, slug: 'literary-fiction', name: 'Literary Fiction' } : [{ id: 1, slug: 'literary-fiction', name: 'Literary Fiction' }];
       return [
         { id: 1, slug: 'literary-fiction', name: 'Literary Fiction' },
         { id: 2, slug: 'romance', name: 'Romance' },

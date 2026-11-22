@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { fonts, motion, radius, useTheme } from '@/theme';
 
@@ -20,10 +20,13 @@ export function Segmented<T extends string>({
   const [width, setWidth] = useState(0);
   const index = Math.max(0, options.findIndex((o) => o.value === value));
   const segment = width > 0 ? (width - 8) / options.length : 0;
-  const thumb = useAnimatedStyle(() => ({
-    width: segment,
-    transform: [{ translateX: withSpring(index * segment, motion.spring) }],
-  }));
+  const x = useSharedValue(index * segment);
+  const w = useSharedValue(segment);
+  useEffect(() => {
+    w.value = segment;
+    x.value = withSpring(index * segment, motion.spring);
+  }, [index, segment, x, w]);
+  const thumb = useAnimatedStyle(() => ({ width: w.value, transform: [{ translateX: x.value }] }));
   return (
     <View
       accessibilityRole="tablist"

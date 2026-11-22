@@ -33,7 +33,7 @@ export function HouseWelcomeCard() {
       <View style={{ backgroundColor: tk.primary, borderRadius: radius.card, padding: spacing.base, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
         <Sigil house={h} size={40} color={tk.onPrimary} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 17, lineHeight: 22 }} color={tk.onPrimary}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 24 }} color={tk.onPrimary}>
             {t('sorting.welcomeCard.title', { house: HOUSE_NAMES[h] })}
           </Text>
           <Text variant="small" color={tk.onPrimary}>

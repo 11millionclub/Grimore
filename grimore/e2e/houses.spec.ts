@@ -13,7 +13,7 @@ test.describe('@mock Houses', () => {
 
   test('profile shows the House badge and founding mark', async ({ page }) => {
     await page.goto('/me');
-    await expect(page.getByRole('link', { name: `${en.house.title}: Lantern` })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Wayfinder of House Lantern' })).toBeVisible();
     await expect(page.getByRole('img', { name: en.marks['badge-founding'] })).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-me.png` });
   });

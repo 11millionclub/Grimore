@@ -92,7 +92,7 @@ export function Stars({ value, size = 12 }: { value: number; size?: number }) {
   return (
     <View accessible accessibilityLabel={`${value} out of 5 stars`} style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <StarIcon key={i} size={size} weight="fill" color={i <= Math.round(value) ? colors.accent : colors.surface3} />
+        <StarIcon key={i} size={size} weight="fill" color={i <= Math.round(value) ? colors.gold : colors.surface3} />
       ))}
     </View>
   );

@@ -134,6 +134,7 @@ export { StickerIcon } from 'phosphor-react-native/src/icons/Sticker';
 export { ChatsCircleIcon } from 'phosphor-react-native/src/icons/ChatsCircle';
 export { DeviceTabletIcon } from 'phosphor-react-native/src/icons/DeviceTablet';
 export { HeadphonesIcon } from 'phosphor-react-native/src/icons/Headphones';
+export { PuzzlePieceIcon } from 'phosphor-react-native/src/icons/PuzzlePiece';
 export { StarFourIcon } from 'phosphor-react-native/src/icons/StarFour';
 export { LampIcon } from 'phosphor-react-native/src/icons/Lamp';
 export { PenNibIcon } from 'phosphor-react-native/src/icons/PenNib';

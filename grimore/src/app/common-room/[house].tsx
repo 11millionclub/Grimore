@@ -76,7 +76,7 @@ export default function CommonRoom() {
         <Text variant="micro" tone="muted">
           {(house === 'quill' ? t('house.ritualWeek') : t('house.ritualTitle')).toUpperCase()}
         </Text>
-        <Text style={{ fontFamily: fonts.display, fontSize: 18, marginTop: 2 }} color={tk.ink}>
+        <Text style={{ fontFamily: fonts.display, fontSize: 21, marginTop: 2 }} color={tk.ink}>
           {t(`houses.${house}.ritual`)}
         </Text>
         <Text variant="callout">{t(`houses.${house}.ritualDesc`)}</Text>
