@@ -37,16 +37,16 @@ export const profile = {
   avatar_url: null,
   country_code: 'PT',
   city: 'Lisboa',
-  archetype: 'night',
   is_private: false,
   onboarding_completed_at: '2026-11-10T10:00:00Z',
   created_at: '2026-11-10T10:00:00Z',
   updated_at: '2026-11-10T10:00:00Z',
 };
-const friend = { id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', avatar_url: null, archetype: 'saga' };
+const friend = { id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', avatar_url: null };
 
 const statuses = ['reading', 'read', 'read', 'want_to_read', 'reading', 'read'];
-const entries = BOOKS.map((b, i) => ({
+type Entry = { id: string; status: string; rating: number | null; progress_percent: number | null; current_page: number | null; started_on: string | null; finished_on: string | null; book: (typeof BOOKS)[number] } & Record<string, unknown>;
+const entries: Entry[] = BOOKS.map((b, i) => ({
   id: `e${i}`,
   status: statuses[i],
   rating: statuses[i] === 'read' ? 4 : null,
@@ -226,7 +226,9 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'user_preferences':
       return { user_id: ME, show_spoilers: false, daily_pages_goal: 30, appearance: 'dark', notification_settings: {} };
     case 'user_books': {
-      const list = status ? entries.filter((e) => e.status === status) : entries;
+      const bookId = (q.get('book_id') ?? '').replace('eq.', '');
+      let list = status ? entries.filter((e) => e.status === status) : entries;
+      if (bookId) list = list.filter((e) => e.book.id === bookId);
       return single ? (list[0] ?? null) : list;
     }
     case 'reading_goals':
@@ -272,8 +274,77 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
   }
 }
 
+const initial = JSON.stringify(entries);
+function resetLibrary() {
+  entries.splice(0, entries.length, ...(JSON.parse(initial) as Entry[]));
+  writes.length = 0;
+}
+
+/** Writes the app made, for assertions. */
+export const writes: { method: string; path: string; body: unknown }[] = [];
+
+const utcToday = () => new Date().toISOString().slice(0, 10);
+const violation = (e: Partial<Entry>) => !!(e.finished_on && e.started_on && e.finished_on < e.started_on);
+
+/**
+ * Library writes keep state and apply the same rules as the database:
+ * the status-date trigger and the finished_on >= started_on check.
+ */
+function writeUserBooks(method: string, path: string, q: URLSearchParams, raw: string | null): { status: number; body: unknown } | null {
+  if (method === 'GET') return null;
+  const body = raw ? JSON.parse(raw) : null;
+  writes.push({ method, path, body });
+  const fail = { status: 400, body: { code: '23514', message: 'new row for relation "user_books" violates check constraint "user_books_check"' } };
+  const applyDates = (e: Entry) => {
+    if (e.status === 'reading' && !e.started_on) e.started_on = utcToday();
+    if (e.status === 'read') {
+      if (!e.finished_on) e.finished_on = utcToday();
+      e.progress_percent = 100;
+    }
+  };
+  if (path === 'user_books' && method === 'POST') {
+    const rows = (Array.isArray(body) ? body : [body]) as Partial<Entry & { book_id: string }>[];
+    for (const r of rows) {
+      const cur = entries.find((e) => e.book.id === r.book_id);
+      const next = { ...(cur ?? { id: `e${entries.length}`, status: 'want_to_read', rating: null, progress_percent: null, current_page: null, started_on: null, finished_on: null, book: BOOKS.find((b) => b.id === r.book_id) ?? BOOKS[0] }), ...r } as Entry;
+      delete (next as Record<string, unknown>).book_id;
+      delete (next as Record<string, unknown>).user_id;
+      applyDates(next);
+      if (violation(next)) return fail;
+      if (cur) Object.assign(cur, next);
+      else entries.push(next);
+    }
+    return { status: 201, body: { id: 'e-new' } };
+  }
+  if (path === 'user_books' && method === 'DELETE') {
+    const bookId = (q.get('book_id') ?? '').replace('eq.', '');
+    const i = entries.findIndex((e) => e.book.id === bookId);
+    if (i >= 0) entries.splice(i, 1);
+    return { status: 204, body: null };
+  }
+  if (path === 'rpc/log_progress') {
+    const b = body as { p_book: string; p_page: number };
+    let cur = entries.find((e) => e.book.id === b.p_book);
+    if (!cur) {
+      cur = { id: `e${entries.length}`, status: 'reading', rating: null, progress_percent: null, current_page: null, started_on: utcToday(), finished_on: null, book: BOOKS.find((x) => x.id === b.p_book) ?? BOOKS[0] } as Entry;
+      entries.push(cur);
+    }
+    const total = cur.book.page_count_estimate;
+    const prev = cur.current_page ?? 0;
+    const page = Math.min(b.p_page, total);
+    cur.current_page = page;
+    cur.progress_percent = Math.min(100, Math.round((page * 100) / total));
+    if (['want_to_read', 'on_hold', 'dnf'].includes(cur.status)) cur.status = 'reading';
+    applyDates(cur);
+    return { status: 200, body: { user_book_id: cur.id, page, total, pages_logged: Math.max(page - prev, 0), post_id: null } };
+  }
+  if (path === 'reading_list_books' || path === 'reading_lists' || path === 'market_alerts' || path.startsWith('rpc/')) return null;
+  return null;
+}
+
 /** Sign the browser in as the fixture reader and answer every Supabase call. */
 export async function useMockBackend(page: Page, opts: MockOptions = {}) {
+  resetLibrary();
   await page.addInitScript((me) => {
     const token = `${btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${btoa(JSON.stringify({ sub: me, role: 'authenticated', exp: 4102444800 }))}.sig`;
     const session = { access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { id: me, aud: 'authenticated', role: 'authenticated', email: 'test@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-11-10T10:00:00Z' } };
@@ -292,6 +363,8 @@ export async function useMockBackend(page: Page, opts: MockOptions = {}) {
     const path = url.pathname.replace('/rest/v1/', '');
     const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
     if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '0-0/3' } });
+    const write = writeUserBooks(req.method(), path, url.searchParams, req.postData());
+    if (write) return route.fulfill({ status: write.status, contentType: 'application/json', body: JSON.stringify(write.body) });
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/3' }, body: JSON.stringify(rows(path, url.searchParams, single, opts)) });
   });
   // External book APIs and covers are not needed for UI checks.

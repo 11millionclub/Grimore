@@ -49,7 +49,7 @@ export function Btn({
         {
           height: heights[size],
           paddingHorizontal: pads[size],
-          borderRadius: radius.sm,
+          borderRadius: radius.full,
           backgroundColor: bg,
           flexDirection: 'row',
           alignItems: 'center',
@@ -58,13 +58,13 @@ export function Btn({
           alignSelf: full ? 'stretch' : 'flex-start',
         },
         variant === 'ghost' && { borderWidth: 1, borderColor: colors.lineStrong },
-        variant === 'primary' && { borderWidth: 1, borderColor: colors.gold },
+        variant === 'primary' && { shadowColor: colors.accent, shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
         style,
       ]}
     >
       {loading ? <ActivityIndicator color={fg} /> : icon}
       {typeof children === 'string' ? (
-        <Text numberOfLines={1} color={fg} style={{ fontFamily: fonts.displayMedium, fontSize: fontSizes[size] - 1, lineHeight: fontSizes[size] + 4, letterSpacing: 0.5 }}>
+        <Text numberOfLines={1} color={fg} style={{ fontFamily: fonts.semibold, fontSize: fontSizes[size], lineHeight: fontSizes[size] + 5, letterSpacing: -0.1 }}>
           {children}
         </Text>
       ) : (
@@ -99,7 +99,7 @@ export function IconBtn({
       accessibilityLabel={label}
       style={[
         { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' },
-        glass && { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassEdge },
+        glass && { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassEdge, shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
         filled && { backgroundColor: colors.surface2 },
         style,
       ]}
@@ -117,17 +117,19 @@ export function Chip({ children, active, onPress, icon }: { children: ReactNode;
       accessibilityRole="button"
       accessibilityState={{ selected: !!active }}
       style={{
-        height: 32,
+        height: 34,
         paddingHorizontal: 14,
         borderRadius: radius.full,
-        backgroundColor: active ? colors.ink : colors.surface2,
+        backgroundColor: active ? colors.ink : colors.surface,
+        borderWidth: 1,
+        borderColor: active ? colors.ink : colors.line,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
       }}
     >
       {icon}
-      <Text variant="small" color={active ? colors.bg : colors.ink}>
+      <Text variant="small" color={active ? colors.bg : colors.ink} style={{ fontFamily: fonts.medium }}>
         {children}
       </Text>
     </Press>

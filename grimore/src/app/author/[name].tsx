@@ -27,11 +27,11 @@ export default function Author() {
     <Screen title={name} large={false} back>
       <View style={{ alignItems: 'center', paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, paddingTop: spacing.sm }}>
         <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 32 }} tone="accent">
+          <Text style={{ fontFamily: fonts.display, fontSize: 37 }} tone="accent">
             {initials}
           </Text>
         </View>
-        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.bold, fontSize: 28, lineHeight: 30, marginTop: spacing.base }}>
+        <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 35, marginTop: spacing.base }}>
           {name}
         </Text>
         <Text variant="callout" tone="muted" style={{ marginTop: 4 }}>

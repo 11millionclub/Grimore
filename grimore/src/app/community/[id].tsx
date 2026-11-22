@@ -52,7 +52,7 @@ export default function CommunityScreen() {
       <CommunityCover c={d} height={300} />
       <LinearGradient colors={['rgba(0,0,0,0.3)', colors.bg + '4d', colors.bg]} locations={[0, 0.5, 1]} style={{ position: 'absolute', inset: 0 }} />
       <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.md }}>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 32, lineHeight: 33 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 37, lineHeight: 39 }}>
           {d.name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>

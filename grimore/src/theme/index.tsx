@@ -11,15 +11,15 @@ export type Theme = {
   colors: Palette;
 };
 
-const PARCHMENT: Theme = { scheme: 'light', colors: palettes.light };
-const ThemeContext = createContext<Theme>(PARCHMENT);
+const IVORY: Theme = { scheme: 'light', colors: palettes.light };
+const ThemeContext = createContext<Theme>(IVORY);
 
-/** Parchment everywhere; the manuscript has one look. */
+/** One light look across the app. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  return <ThemeContext.Provider value={PARCHMENT}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={IVORY}>{children}</ThemeContext.Provider>;
 }
 
-/** Candle-lit leather palette for a subtree that needs a dark surround (camera). */
+/** Lamplight palette for a subtree that needs a dark surround (camera). */
 export function DarkTheme({ children }: { children: ReactNode }) {
   return <ThemeContext.Provider value={DARK}>{children}</ThemeContext.Provider>;
 }

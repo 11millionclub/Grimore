@@ -4,7 +4,7 @@
 
 Grimore is a mobile reading app: log what you read and how far you are, discover your reader profile, play four small book games every day, and find people who read like you in communities, messages and a book market.
 
-The interface follows the Grimore UX prototype: near-black by default (with a light theme), one warm ember accent, Geist type, Phosphor icons, glass navigation bars and a floating tab bar.
+The interface sits between the Grimore prototype and a storybook: warm ivory paper, one ember accent, a thin line of gilt for ornaments, Geist for the interface and Cormorant Garamond for titles and quotes, Phosphor icons and a floating tab bar.
 
 ---
 
@@ -35,7 +35,7 @@ Paid Corner items, paid community tiers and market checkout are fully designed a
 - **Supabase**: Postgres 17, Auth, Storage, Realtime (messages), Edge Functions, RLS, `pg_cron`, `pg_net`
 - **TanStack Query**, **Zustand** (session, appearance), **React Hook Form** + **Zod**
 - **Reanimated 4**, **expo-image**, **expo-camera** (barcodes and photos), **expo-blur**, **react-native-svg**, **react-native-view-shot** + **expo-sharing** (Wrapped image)
-- **Geist** and **Geist Mono** fonts, **Phosphor** icons (imported one file each to keep the bundle small)
+- **Geist**, **Geist Mono** and **Cormorant Garamond** fonts, **Phosphor** icons (imported one file each to keep the bundle small)
 
 Everything runs in **Expo Go**.
 
@@ -106,7 +106,7 @@ src/utils/          pure logic with tests (archetype scoring, game helpers, stre
 supabase/           migrations, Edge Function, SQL security tests
 ```
 
-Design rules (from the prototype): cards 20 px radius, tiles and inputs 14 px, buttons and chips are pills, covers 4 px; one accent; press feedback on every tappable; motion respects the system’s reduced-motion setting.
+Design rules: cards 20 px radius, tiles and inputs 14 px, buttons and chips are pills, covers 4 px; one accent (ember) and gilt only for small ornaments; serif for page and book titles, sans for everything else; press feedback on every tappable; motion respects the system’s reduced-motion setting.
 
 ---
 

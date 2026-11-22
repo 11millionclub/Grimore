@@ -35,8 +35,8 @@ export default function Play() {
     <Screen title="Play" tabs actions={<AppActions />} refreshing={games.isRefetching} onRefresh={() => Promise.all([games.refetch(), rows.refetch(), streak.refetch()])}>
       <View style={{ paddingHorizontal: spacing.lg, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.base }}>
-          <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-            <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 24 }} tone="accent">
+          <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] }} tone="accent">
               {n}
             </Text>
           </View>

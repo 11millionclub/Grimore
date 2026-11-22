@@ -30,7 +30,7 @@ export async function becauseYouRead(userId: string): Promise<{ title: string; b
   const top = unwrap(
     await supabase
       .from('user_books')
-      .select('rating, book:books!inner(id, title, primary_genre_id)')
+      .select('rating, book:books!user_books_book_id_fkey!inner(id, title, primary_genre_id)')
       .eq('user_id', userId)
       .eq('status', 'read')
       .order('rating', { ascending: false, nullsFirst: false })
@@ -82,7 +82,7 @@ export async function booksByAuthor(name: string) {
   const rows = unwrap(
     await supabase
       .from('book_authors')
-      .select('book:books!inner(id, title, cover_url, first_published_year, page_count_estimate, book_authors(position, role, authors(name)))')
+      .select('book:books!book_authors_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, book_authors(position, role, authors(name)))')
       .eq('author_id', author.id)
       .limit(100),
   ) as unknown as { book: Raw & { page_count_estimate: number | null } }[];
