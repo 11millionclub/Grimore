@@ -17,7 +17,13 @@ import {
   UsersThreeIcon,
 } from '@/components/icons';
 import { Avatar, Group, Press, Row, Screen, Text, toast } from '@/components/ui';
-import { useMyId, useMyProfile, usePreferences, useReadingGoal } from '@/hooks/queries';
+import { Sigil } from '@/components/sigil';
+import { useMyHouse, useMyId, useMyProfile, usePreferences, useReadingGoal } from '@/hooks/queries';
+import { clearHouseCache } from '@/hooks/use-house-of';
+import { useTranslation } from '@/i18n';
+import { track } from '@/lib/analytics';
+import { setHouseHidden } from '@/services/houses';
+import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { signOut } from '@/services/auth';
@@ -40,6 +46,8 @@ export default function Settings() {
   const profile = useMyProfile();
   const prefs = usePreferences();
   const goal = useReadingGoal(me);
+  const myHouse = useMyHouse();
+  const { t } = useTranslation();
   const settings = (prefs.data?.notification_settings ?? {}) as Record<string, boolean>;
   const setNotif = useMutation({
     mutationFn: (patch: Record<string, boolean>) => updatePreferences(me, { notification_settings: { ...settings, ...patch } }),
@@ -89,6 +97,38 @@ export default function Settings() {
           Grimore is free with every feature for everyone. Paid communities and a small market fee will keep it running once payments open.
         </Text>
       </View>
+
+      {myHouse.data?.house ? (
+        <Group title={t('settings.house')}>
+          <Row
+            icon={<Sigil house={myHouse.data.house} size={20} color={houseTokens[myHouse.data.house].ink} label={false} />}
+            label={`${HOUSE_NAMES[myHouse.data.house]} · ${t(`houses.${myHouse.data.house}.members`)}`}
+            onPress={() => router.push('/house')}
+            right={chevron}
+          />
+          <Row
+            label={t('house.hide')}
+            right={
+              <Toggle
+                value={myHouse.data.hidden}
+                onChange={(v) =>
+                  void setHouseHidden(me, v).then(
+                    () => {
+                      track('house_hidden_toggled', { hidden: v });
+                      void qc.invalidateQueries({ queryKey: ['myHouse'] });
+                      void qc.invalidateQueries({ queryKey: ['readerHouses'] });
+      clearHouseCache();
+                    },
+                    (e) => toast(toAppError(e).message),
+                  )
+                }
+                label={t('house.hide')}
+              />
+            }
+          />
+          <Row label={t('cup.title')} onPress={() => router.push('/house-cup')} right={chevron} last />
+        </Group>
+      ) : null}
 
       <Group title="Reading">
         <Row icon={icon(TrophyIcon)} label="Yearly goal" value={goal.data?.target ? `${goal.data.target} books` : 'Not set'} onPress={() => router.push('/goals')} right={chevron} />

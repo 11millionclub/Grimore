@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { Avatar, Btn, EmptyState, Press, Screen, Segmented, Text, toast } from '@/components/ui';
-import { useMyId, useProfile } from '@/hooks/queries';
+import { HouseBadge } from '@/components/house-badge';
+import { useMyId, useProfile, useReaderHouses } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { getMyFollowingIds, listFollows } from '@/services/profile';
 import { follow, unfollow } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { ARCHETYPES, type Arch } from '@/utils/archetypes';
 
 export default function Follows() {
   const params = useLocalSearchParams<{ userId: string; tab?: 'followers' | 'following' }>();
@@ -26,6 +26,7 @@ export default function Follows() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['myFollowing', me] }),
     onError: (e) => toast(toAppError(e).message),
   });
+  const houses = useReaderHouses((list.data ?? []).map((u) => u.id));
   const rows = (list.data ?? []).filter((u) => `${u.display_name ?? ''} ${u.username}`.toLowerCase().includes(q.toLowerCase()));
   const following = new Set(mine.data ?? []);
   return (
@@ -47,9 +48,12 @@ export default function Follows() {
                 <Text variant="bodyStrong" numberOfLines={1}>
                   {u.display_name ?? u.username}
                 </Text>
-                <Text variant="small" tone="muted" numberOfLines={1}>
-                  {u.archetype ? ARCHETYPES[u.archetype as Arch]?.name : `@${u.username}`}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <HouseBadge house={houses.data?.[u.id]} size={16} />
+                  <Text variant="small" tone="muted" numberOfLines={1}>
+                    @{u.username}
+                  </Text>
+                </View>
               </View>
             </Press>
             {u.id !== me ? (

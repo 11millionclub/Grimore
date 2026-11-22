@@ -29,7 +29,8 @@ const map = (r: Raw): Community => ({
 });
 
 export async function listCommunities(filter: 'all' | 'free' | 'paid' = 'all'): Promise<Community[]> {
-  let q = supabase.from('communities').select(select).order('member_count', { ascending: false }).limit(100);
+  // House Common Rooms live on their own screen, not in the community directory.
+  let q = supabase.from('communities').select(select).is('house_id', null).order('member_count', { ascending: false }).limit(100);
   if (filter === 'free') q = q.is('price_cents', null);
   if (filter === 'paid') q = q.not('price_cents', 'is', null);
   return (unwrap(await q) as unknown as Raw[]).map(map);
@@ -39,7 +40,7 @@ export async function listCommunities(filter: 'all' | 'free' | 'paid' = 'all'): 
 export async function suggestedCommunities(limit = 12): Promise<Community[]> {
   const scores = unwrap(await supabase.rpc('suggest_communities', { p_limit: limit }));
   if (!scores.length) return [];
-  const rows = (unwrap(await supabase.from('communities').select(select).in('id', scores.map((s) => s.id))) as unknown as Raw[]).map(map);
+  const rows = (unwrap(await supabase.from('communities').select(select).is('house_id', null).in('id', scores.map((s) => s.id))) as unknown as Raw[]).map(map);
   const byId = new Map(rows.map((r) => [r.id, r]));
   return scores.flatMap((s) => {
     const c = byId.get(s.id);

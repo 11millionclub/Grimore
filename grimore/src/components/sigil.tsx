@@ -47,9 +47,9 @@ function Rose({ color }: { color: string }) {
     <>
       <Path d="M12 2.4C14.8 2.4 17.2 4.2 17.2 7 17.2 9.8 14.8 11.6 12 11.6 9.2 11.6 6.8 9.8 6.8 7 6.8 5.6 7.4 4.6 8.4 4 8.8 5.4 9.8 6.2 11 6.2 10.4 5 10.8 3.4 12 2.4Z" fill={color} />
       <Path d="M12 11.2V22" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-      <Path d="M12 14.6L9.4 13.4 12 15.6Z" fill={color} stroke={color} strokeWidth={0.8} strokeLinejoin="round" />
-      <Path d="M12 18.4L14.6 17.2 12 19.4Z" fill={color} stroke={color} strokeWidth={0.8} strokeLinejoin="round" />
-      <Path d="M12 16.4C13.2 14.6 15.4 13.8 17.4 14.2 16.6 16 14.4 17 12 16.4Z" fill={color} />
+      <Path d="M12 14.2L8.4 12.6 12 15.9Z" fill={color} stroke={color} strokeWidth={0.8} strokeLinejoin="round" />
+      <Path d="M12 18.2L15.6 16.6 12 19.9Z" fill={color} stroke={color} strokeWidth={0.8} strokeLinejoin="round" />
+      <Path d="M12 21C10.8 19.6 8.8 19.2 6.8 19.8 7.8 21.4 10 21.8 12 21Z" fill={color} />
     </>
   );
 }

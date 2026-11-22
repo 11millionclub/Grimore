@@ -9,10 +9,13 @@ import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 
 import { DownloadSimpleIcon, MoonStarsIcon, ShareFatIcon, XIcon } from '@/components/icons';
 import { Avatar, Cover, Press, Text } from '@/components/ui';
-import { useMyId, useMyProfile } from '@/hooks/queries';
+import { useMyHouse, useMyId, useMyProfile } from '@/hooks/queries';
+import { myPoints } from '@/services/houses';
 import { getWrapped, type WrappedData } from '@/services/stats';
 import { fonts, radius, spacing } from '@/theme';
-import { ARCHETYPES, type Arch } from '@/utils/archetypes';
+import { Sigil } from '@/components/sigil';
+import { t } from '@/i18n';
+import { HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
 import { fmt } from '@/utils/dates';
 
 const DURATION = 5200;
@@ -38,7 +41,7 @@ function Count({ to, color, size }: { to: number; color: string; size: number })
 
 const big = (size: number, color: string) => ({ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, color });
 
-function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Slide[] {
+function slides(d: WrappedData, house: { id: HouseId; points: number } | null, summary: ReactNode): Slide[] {
   const s: Slide[] = [];
   const month = d.period === 'month';
   s.push({
@@ -234,28 +237,33 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
         </View>
       ),
     });
-  if (!month && archetype)
+  if (house) {
+    const tk = houseTokens[house.id];
     s.push({
-      bg: '#151a30',
-      fg: '#efe6d4',
+      bg: tk.primary,
+      fg: tk.onPrimary,
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Text style={{ fontSize: 19, opacity: 0.7 }} color="#efe6d4">
-              This year you were
-            </Text>
+            <Sigil house={house.id} size={72} color={tk.onPrimary} />
           </R>
           <R i={1}>
-            <Text style={big(52, '#efe6d4')}>{ARCHETYPES[archetype].name}</Text>
+            <Text style={{ fontSize: 19, opacity: 0.8, marginTop: spacing.lg }} color={tk.onPrimary}>
+              {`House ${HOUSE_NAMES[house.id]}`}
+            </Text>
           </R>
           <R i={2}>
-            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#efe6d4">
-              {ARCHETYPES[archetype].line}
+            <Text style={big(52, tk.onPrimary)}>{`${fmt(house.points)} points`}</Text>
+          </R>
+          <R i={3}>
+            <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.85 }} color={tk.onPrimary}>
+              {`${t(`houses.${house.id}.motto`)} Your daily games earned this for the House Cup this season.`}
             </Text>
           </R>
         </View>
       ),
     });
+  }
   s.push({ bg: '#1d140d', fg: '#f1e6d0', body: summary });
   return s;
 }
@@ -270,6 +278,8 @@ export default function Wrapped() {
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const shot = useRef<ViewShotRef>(null);
+  const myHouse = useMyHouse();
+  const seasonPoints = useQuery({ queryKey: ['myHousePoints'], queryFn: () => myPoints(), enabled: !!myHouse.data?.house });
   const d = q.data;
   const p = profile.data;
 
@@ -345,7 +355,8 @@ export default function Wrapped() {
     </View>
   ) : null;
 
-  const list = d ? slides(d, (p?.archetype ?? null) as Arch | null, summary) : [];
+  const houseSlide = myHouse.data?.house ? { id: myHouse.data.house, points: Object.values(seasonPoints.data ?? {}).reduce((a, b) => a + b, 0) } : null;
+  const list = d ? slides(d, houseSlide, summary) : [];
   const n = list.length;
 
   useEffect(() => {
