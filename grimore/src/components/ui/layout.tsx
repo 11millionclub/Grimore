@@ -21,7 +21,12 @@ import { Text } from './text';
 export function Progress({ value, height = 4, style, color }: { value: number; height?: number; style?: StyleProp<ViewStyle>; color?: string }) {
   const { colors } = useTheme();
   const v = Math.max(0, Math.min(1, value || 0));
-  const fill = useAnimatedStyle(() => ({ width: `${withSpring(v * 100, { damping: 30, stiffness: 120 })}%` }));
+  // Drive the width from a shared value so it follows data that arrives after the first render.
+  const w = useSharedValue(v * 100);
+  useEffect(() => {
+    w.value = withSpring(v * 100, { damping: 30, stiffness: 120 });
+  }, [v, w]);
+  const fill = useAnimatedStyle(() => ({ width: `${w.value}%` }));
   return (
     <View
       accessibilityRole="progressbar"
@@ -141,8 +146,18 @@ export function EmptyState({ icon, title, body, action, onAction }: { icon?: Rea
   );
 }
 
-export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
-  return <EmptyState title="Something went wrong" body={message ?? 'Please check your connection and try again.'} action={onRetry ? 'Try again' : undefined} onAction={onRetry} />;
+/** Error screen. `code` (the backend error code) is shown small, so a reader can report it. */
+export function ErrorState({ message, code, onRetry }: { message?: string; code?: string; onRetry?: () => void }) {
+  return (
+    <View>
+      <EmptyState title="Something went wrong" body={message ?? 'Please check your connection and try again.'} action={onRetry ? 'Try again' : undefined} onAction={onRetry} />
+      {code ? (
+        <Text variant="caption" tone="faint" align="center" selectable style={{ marginTop: -spacing.xl }}>
+          Error code: {code}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 /** Rounded inset row group, like the prototype's settings groups. */

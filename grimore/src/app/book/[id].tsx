@@ -56,7 +56,14 @@ export default function BookScreen() {
     },
   });
 
-  if (book.isError) return <Screen title="Book" back><ErrorState onRetry={() => book.refetch()} /></Screen>;
+  if (book.isError) {
+    const err = toAppError(book.error);
+    return (
+      <Screen title="Book" back>
+        <ErrorState message={err.code === 'book_not_found' ? err.message : undefined} code={err.code} onRetry={() => book.refetch()} />
+      </Screen>
+    );
+  }
   const b = book.data;
   const e = entry.data;
   const total = e?.book.page_count_estimate ?? b?.page_count_estimate ?? null;
@@ -212,7 +219,7 @@ export default function BookScreen() {
           <View style={{ flexDirection: 'row' }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => save.mutate({ patch: { rating: i, ...(e ? {} : statusPatch('read')) } })} style={{ padding: 4 }}>
-                <StarIcon size={24} weight="fill" color={i <= myStars ? colors.accent : colors.surface3} />
+                <StarIcon size={24} weight="fill" color={i <= myStars ? colors.gold : colors.surface3} />
               </Press>
             ))}
           </View>

@@ -190,8 +190,8 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return BOOKS.map((b) => ({ id: b.id, title: b.title, cover_url: null, first_published_year: b.first_published_year, authors: b.book_authors[0].authors.name, score: 1 }));
     case 'profiles': {
       const me = opts.newReader ? { ...profile, onboarding_completed_at: null } : profile;
-      const username = (q.get('username') ?? '').replace('eq.', '');
-      const id = (q.get('id') ?? '').replace('eq.', '');
+      const username = (q.get('username')?.startsWith('eq.') ? q.get('username')!.slice(3) : '');
+      const id = (q.get('id')?.startsWith('eq.') ? q.get('id')!.slice(3) : '');
       const list = [me, friend].filter((p) => (!username || p.username === username) && (!id || p.id === id));
       return single ? (list[0] ?? null) : list;
     }
@@ -205,10 +205,18 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     }
     case 'reading_goals':
       return single ? { id: 'g', target_books: 40, year: new Date().getFullYear() } : [];
-    case 'books':
-      return single
-        ? { ...BOOKS[2], description: 'A city goes blind.', subtitle: null, cover_source: null, original_language: 'pt', primary_genre: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' }, book_genres: [], book_editions: [] }
-        : BOOKS;
+    case 'books': {
+      const id = (q.get('id')?.startsWith('eq.') ? q.get('id')!.slice(3) : '');
+      const list = id ? BOOKS.filter((b) => b.id === id) : BOOKS;
+      const detail = (b: (typeof BOOKS)[number]) => ({ ...b, description: b.id === 'b3' ? 'A city goes blind.' : null, subtitle: null, primary_genre_id: 1 });
+      return single ? (list[0] ? detail(list[0]) : null) : list.map(detail);
+    }
+    case 'book_authors': {
+      const id = (q.get('book_id') ?? '').replace('eq.', '');
+      return BOOKS.filter((b) => !id || b.id === id).flatMap((b) => b.book_authors);
+    }
+    case 'book_genres':
+      return [{ genres: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' } }];
     case 'corners':
       return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], updated_at: today };
     case 'corner_items':
@@ -226,6 +234,7 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'feed_items':
       return feed;
     case 'genres':
+      if ((q.get('id') ?? '').startsWith('eq.')) return single ? { id: 1, slug: 'literary-fiction', name: 'Literary Fiction' } : [{ id: 1, slug: 'literary-fiction', name: 'Literary Fiction' }];
       return [
         { id: 1, slug: 'literary-fiction', name: 'Literary Fiction' },
         { id: 2, slug: 'romance', name: 'Romance' },

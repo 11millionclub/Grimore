@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { FireIcon, LightbulbIcon } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
@@ -11,7 +12,11 @@ const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
 function Candle({ lit }: { lit: boolean }) {
   const { colors } = useTheme();
-  const style = useAnimatedStyle(() => ({ opacity: withSpring(lit ? 1 : 0.15), transform: [{ scale: withSpring(lit ? 1 : 0.8) }, { translateY: withSpring(lit ? 0 : 3) }] }));
+  const on = useSharedValue(lit ? 1 : 0);
+  useEffect(() => {
+    on.value = withSpring(lit ? 1 : 0);
+  }, [lit, on]);
+  const style = useAnimatedStyle(() => ({ opacity: 0.15 + on.value * 0.85, transform: [{ scale: 0.8 + on.value * 0.2 }, { translateY: (1 - on.value) * 3 }] }));
   return (
     <Animated.View style={style}>
       <FireIcon size={22} weight="fill" color={colors.accent} />

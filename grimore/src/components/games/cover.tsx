@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
+import { useEffect } from 'react';
 import { View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { LightbulbIcon } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
@@ -16,7 +17,11 @@ export function CoverGame({ state, onPick, onHint, busy }: { state: GameState; o
   const lost = state.attempt?.status === 'lost';
   const answer = state.solution?.book?.id;
   const { blur, zoom } = coverLevel(state.view.level ?? 0);
-  const zoomStyle = useAnimatedStyle(() => ({ transform: [{ scale: withSpring(zoom, { damping: 30, stiffness: 90 }) }] }));
+  const scale = useSharedValue(zoom);
+  useEffect(() => {
+    scale.value = withSpring(zoom, { damping: 30, stiffness: 90 });
+  }, [zoom, scale]);
+  const zoomStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
       <View style={{ alignSelf: 'center', width: '54%', aspectRatio: 2 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface2, marginTop: spacing.base, borderWidth: won ? 4 : 0, borderColor: colors.good }}>

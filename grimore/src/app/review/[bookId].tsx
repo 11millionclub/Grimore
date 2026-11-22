@@ -76,7 +76,7 @@ export default function WriteReview() {
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: spacing.xl }}>
           {[1, 2, 3, 4, 5].map((i) => (
             <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => setStars(i)} style={{ padding: 4 }}>
-              <StarIcon size={34} weight="fill" color={i <= stars ? colors.accent : colors.surface3} />
+              <StarIcon size={34} weight="fill" color={i <= stars ? colors.gold : colors.surface3} />
             </Press>
           ))}
         </View>
