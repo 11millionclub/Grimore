@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getMyHouse, readerHouses } from '@/services/houses';
 
 import { qk } from '@/lib/query-client';
 import { getGenres } from '@/services/catalogue';
@@ -111,4 +112,15 @@ export function useUnread() {
 
 export function useConversations() {
   return useQuery({ queryKey: ['conversations'], queryFn: listConversations, refetchInterval: 30_000 });
+}
+
+export function useMyHouse() {
+  const id = useMyId();
+  return useQuery({ queryKey: ['myHouse', id], queryFn: getMyHouse, enabled: !!id, staleTime: 5 * 60_000 });
+}
+
+/** Houses for a list of readers (respects "hide my House"). */
+export function useReaderHouses(ids: string[]) {
+  const key = [...new Set(ids)].sort();
+  return useQuery({ queryKey: ['readerHouses', key], queryFn: () => readerHouses(key), enabled: key.length > 0, staleTime: 10 * 60_000 });
 }

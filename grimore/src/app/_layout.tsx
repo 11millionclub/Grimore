@@ -15,7 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { MessageAlerts } from '@/components/app-actions';
 import { Text, ToastHost } from '@/components/ui';
-import { useMyProfile } from '@/hooks/queries';
+import { useMyHouse, useMyProfile } from '@/hooks/queries';
 import { envError } from '@/lib/env';
 import { queryClient } from '@/lib/query-client';
 import { consumeAuthLink } from '@/services/auth';
@@ -57,11 +57,15 @@ function Navigation() {
   const ready = useSessionStore((s) => s.ready);
   const recovering = useSessionStore((s) => s.recovering);
   const profile = useMyProfile();
+  const myHouse = useMyHouse();
 
   const signedIn = !!session;
   const profileReady = !signedIn || profile.isSuccess || profile.isError;
   const onboarded = !!profile.data?.onboarding_completed_at;
-  const loaded = ready && profileReady;
+  // Readers who joined before Houses existed are sorted the next time they open the app.
+  const houseReady = !signedIn || !onboarded || myHouse.isSuccess || myHouse.isError;
+  const needsHouse = signedIn && onboarded && myHouse.isSuccess && !myHouse.data.house;
+  const loaded = ready && profileReady && houseReady;
 
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
@@ -102,7 +106,11 @@ function Navigation() {
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         </Stack.Protected>
 
-        <Stack.Protected guard={signedIn && onboarded && !recovering}>
+        <Stack.Protected guard={needsHouse && !recovering}>
+          <Stack.Screen name="sorting" options={{ gestureEnabled: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={signedIn && onboarded && !needsHouse && !recovering}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="add" options={sheet} />
           <Stack.Screen name="search" options={sheet} />
@@ -143,7 +151,7 @@ function Navigation() {
           <Stack.Screen name="settings" />
         </Stack.Protected>
       </Stack>
-      {signedIn && onboarded ? <MessageAlerts /> : null}
+      {signedIn && onboarded && !needsHouse ? <MessageAlerts /> : null}
       <ToastHost />
     </>
   );
