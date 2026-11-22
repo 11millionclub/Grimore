@@ -1,7 +1,7 @@
 import { AppActions } from '@/components/app-actions';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Share, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { DEFAULT_LOOK } from '@/components/corner';
@@ -10,7 +10,7 @@ import { PaintBrushIcon, ShareNetworkIcon } from '@/components/icons';
 import { ProfileHero } from '@/components/profile-hero';
 import { ShelvesView } from '@/components/shelves-view';
 import { StatsView } from '@/components/stats-view';
-import { Btn, IconBtn, Screen, Segmented, Skeleton } from '@/components/ui';
+import { Btn, IconBtn, Screen, Segmented, Skeleton, shareText } from '@/components/ui';
 import { useCorner, useCounts, useMyId, useMyProfile } from '@/hooks/queries';
 import { spacing, useTheme } from '@/theme';
 
@@ -35,7 +35,7 @@ export default function Me() {
           <Btn variant="secondary" size="sm" icon={<PaintBrushIcon size={15} color={colors.ink} />} onPress={() => router.push('/corner/edit')}>
             Customise
           </Btn>
-          <IconBtn label="Share profile" size={32} filled onPress={() => void Share.share({ message: `Find me on Grimore: @${p.username}` })}>
+          <IconBtn label="Share profile" size={32} filled onPress={() => void shareText(`Find me on Grimore: @${p.username}`)}>
             <ShareNetworkIcon size={15} color={colors.ink} />
           </IconBtn>
         </>

@@ -35,26 +35,28 @@ export default function ReaderDNA() {
   const totalMoods = Math.max(1, [...moodCounts.values()].reduce((a, b) => a + b, 0));
   const traits = TRAITS.map((t) => ({ name: t.name, v: Math.min(1, (t.moods.reduce((a, m) => a + (moodCounts.get(m) ?? 0), 0) / totalMoods) * 1.8) }));
   const Icon = arch ? ARCH_ICONS[arch] : ARCH_ICONS.night;
-  const summary = s
+  const parts = s
     ? [
-        s.lateShare > 0.4 ? 'You read mostly at night' : s.peakHour !== null ? `You read most around ${s.peakHour}:00` : null,
+        s.lateShare > 0.4 ? 'you read mostly at night' : s.peakHour !== null ? `you read most around ${s.peakHour}:00` : null,
         s.idealPages ? `your sweet spot is about ${s.idealPages} pages` : null,
-        s.genres[0] ? `and you keep coming back to ${s.genres[0].name.toLowerCase()}` : null,
-      ]
-        .filter(Boolean)
-        .join(', ') + (s.totalRead ? `. You rarely give up: ${s.dnf} abandoned out of ${s.totalRead + s.dnf}.` : '.')
-    : '';
+        s.genres[0] ? `you keep coming back to ${s.genres[0].name.toLowerCase()}` : null,
+      ].filter((p): p is string => !!p)
+    : [];
+  const joined = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : (parts[0] ?? '');
+  const tried = s ? s.totalRead + s.dnf : 0;
+  const giveUp = !s || !tried ? '' : s.dnf / tried < 0.15 ? `You rarely give up: ${s.dnf} set aside out of ${tried}.` : `You have set aside ${s.dnf} of ${tried}.`;
+  const summary = [joined ? `${joined[0].toUpperCase()}${joined.slice(1)}.` : '', giveUp].filter(Boolean).join(' ');
   return (
     <Screen title="Reader DNA" back large={false}>
       <View style={{ paddingHorizontal: spacing.lg }}>
         <View style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.xl }}>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -64, top: -64, width: 224, height: 224, borderRadius: 112, backgroundColor: colors.accent, opacity: 0.25 }} />
-          <View pointerEvents="none" style={{ position: 'absolute', left: -40, bottom: -80, width: 192, height: 192, borderRadius: 96, backgroundColor: '#2f56d9', opacity: 0.2 }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -70, top: -70, width: 230, height: 230, borderRadius: 115, borderWidth: 1, borderColor: colors.gold, opacity: 0.35 }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -30, top: -30, width: 150, height: 150, borderRadius: 75, borderWidth: 1, borderColor: colors.gold, opacity: 0.25 }} />
           <Icon size={34} weight="fill" color={colors.accent} />
           <Text variant="small" tone="muted" style={{ marginTop: spacing.base }}>
             {isMe ? 'You are a' : `${(profile.data?.display_name ?? profile.data?.username ?? '').split(' ')[0]} is a`}
           </Text>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36 }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 39, lineHeight: 42 }}>
             {arch ? ARCHETYPES[arch].name : 'Reader in the making'}
           </Text>
           <Text variant="body" style={{ marginTop: spacing.sm, opacity: 0.85 }}>

@@ -47,7 +47,7 @@ export async function getBook(id: string) {
          primary_genre:genres!books_primary_genre_id_fkey(id, name, slug),
          book_genres(genres(id, name, slug)),
          book_authors(position, role, authors(id, name, nationality_code)),
-         book_editions(id, publisher, published_date, page_count, language, cover_url, book_identifiers(type, value))`,
+         book_editions!book_editions_book_id_fkey(id, publisher, published_date, page_count, language, cover_url, book_identifiers!book_identifiers_edition_id_fkey(type, value))`,
       )
       .eq('id', id)
       .single(),

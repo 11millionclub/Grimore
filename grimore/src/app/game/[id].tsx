@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, Share, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,7 +12,7 @@ import { Hangman } from '@/components/games/hangman';
 import { TimelineGame } from '@/components/games/timeline';
 import { GameGlyph } from '@/components/game-glyph';
 import { ArrowRightIcon, ClockIcon, ShareFatIcon, SkullIcon, TimerIcon, TrophyIcon, XIcon } from '@/components/icons';
-import { Avatar, Btn, Cover, ErrorState, IconBtn, Text, toast } from '@/components/ui';
+import { Avatar, Btn, Cover, ErrorState, IconBtn, Text, toast, shareText as shareSheet } from '@/components/ui';
 import { useCountdown } from '@/hooks/use-countdown';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
@@ -151,10 +151,10 @@ export default function Game() {
           </>
         ) : effective === 'intro' ? (
           <Animated.View entering={FadeIn} style={{ flex: 1, paddingHorizontal: spacing.xl }}>
-            <View style={{ marginTop: spacing.xxl, width: 80, height: 80, borderRadius: 24, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ marginTop: spacing.xxl, minWidth: 88, height: 88, paddingHorizontal: spacing.base, alignSelf: 'flex-start', borderRadius: radius.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
               <GameGlyph id={s.game} cover={s.payload.cover_url} />
             </View>
-            <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 34, lineHeight: 36, marginTop: spacing.xl }}>
+            <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 39, lineHeight: 42, marginTop: spacing.xl }}>
               {meta.name}
             </Text>
             <Text variant="body" tone="muted" style={{ marginTop: 4 }}>
@@ -315,7 +315,7 @@ function Result({ state }: { state: GameState }) {
           </View>
         )}
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Btn variant="secondary" size="lg" style={{ flex: 1 }} icon={<ShareFatIcon size={18} color={colors.ink} />} onPress={() => void Share.share({ message: shareText(meta.name, state.number, won, state.attempt?.time_seconds ?? null, misses) })}>
+          <Btn variant="secondary" size="lg" style={{ flex: 1 }} icon={<ShareFatIcon size={18} color={colors.ink} />} onPress={() => void shareSheet(shareText(meta.name, state.number, won, state.attempt?.time_seconds ?? null, misses))}>
             Share
           </Btn>
           <Btn

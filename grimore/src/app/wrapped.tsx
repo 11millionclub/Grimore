@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform, Pressable, Share, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 
 import { DownloadSimpleIcon, MoonStarsIcon, ShareFatIcon, XIcon } from '@/components/icons';
-import { Avatar, Cover, Press, Text } from '@/components/ui';
+import { Avatar, Cover, Press, Text, shareText } from '@/components/ui';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { getWrapped, type WrappedData } from '@/services/stats';
 import { fonts, radius, spacing } from '@/theme';
@@ -277,7 +277,7 @@ export default function Wrapped() {
     try {
       const uri = await shot.current?.capture?.();
       if (uri && Platform.OS !== 'web' && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(uri, { mimeType: 'image/png' });
-      else await Share.share({ message: `My Grimore Wrapped ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.` });
+      else await shareText(`My Grimore Wrapped ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.`);
     } catch {
       /* cancelled */
     }

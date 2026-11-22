@@ -1,11 +1,10 @@
 /**
  * Grimore colour tokens.
  *
- * The app is an illuminated manuscript: aged parchment, iron-gall ink, wine
- * red for actions and gilt for ornaments. Parchment is the only app theme.
- * "dark" is a candle-lit leather palette kept for the camera, which needs a
- * dark surround. No hex values live outside this file, except the decorative
- * Corner themes and Wrapped story fields.
+ * Warm ivory paper, soft ink, one ember accent for actions and a thin line of
+ * gilt for the few ornaments. "dark" is the same idea by lamplight, used for
+ * the camera, which needs a dark surround. No hex values live outside this
+ * file, except the decorative Corner themes and Wrapped story fields.
  */
 
 export type Palette = {
@@ -34,48 +33,48 @@ export type Palette = {
 
 export const palettes: Record<'light' | 'dark', Palette> = {
   light: {
-    bg: '#efe6d4',
-    surface: '#f8f2e5',
-    surface2: '#e6dac3',
-    surface3: '#d8c9ac',
-    line: 'rgba(84,58,30,0.16)',
-    lineStrong: 'rgba(84,58,30,0.3)',
-    ink: '#241a12',
-    muted: '#6b5b49',
-    faint: '#9c8b74',
-    accent: '#6e2333',
-    accentSoft: 'rgba(110,35,51,0.1)',
-    onAccent: '#fbf3e4',
-    gold: '#a3803c',
-    goldSoft: 'rgba(163,128,60,0.16)',
-    good: '#4e5e45',
-    goodSoft: 'rgba(78,94,69,0.14)',
-    danger: '#963530',
-    glass: 'rgba(244,236,220,0.96)',
-    glassEdge: 'rgba(163,128,60,0.5)',
-    scrim: 'rgba(36,26,18,0.42)',
-    shadow: 'rgba(60,40,18,0.22)',
+    bg: '#f4f0e8',
+    surface: '#fffdf8',
+    surface2: '#ede7dc',
+    surface3: '#ddd4c5',
+    line: 'rgba(45,32,20,0.09)',
+    lineStrong: 'rgba(45,32,20,0.18)',
+    ink: '#1d1915',
+    muted: '#6a6056',
+    faint: '#a1968a',
+    accent: '#b4472c',
+    accentSoft: 'rgba(180,71,44,0.1)',
+    onAccent: '#fffaf2',
+    gold: '#b08a42',
+    goldSoft: 'rgba(176,138,66,0.14)',
+    good: '#4d6a4b',
+    goodSoft: 'rgba(77,106,75,0.12)',
+    danger: '#b23a2e',
+    glass: 'rgba(255,253,248,0.94)',
+    glassEdge: 'rgba(45,32,20,0.08)',
+    scrim: 'rgba(29,25,21,0.4)',
+    shadow: 'rgba(56,38,20,0.12)',
   },
   dark: {
-    bg: '#17110c',
-    surface: '#221911',
-    surface2: '#2e2318',
-    surface3: '#3c2e20',
-    line: 'rgba(232,210,170,0.1)',
-    lineStrong: 'rgba(232,210,170,0.2)',
-    ink: '#f1e6d0',
-    muted: '#b8a68a',
-    faint: '#86765f',
-    accent: '#c9a45a',
-    accentSoft: 'rgba(201,164,90,0.16)',
-    onAccent: '#1a120a',
-    gold: '#c9a45a',
-    goldSoft: 'rgba(201,164,90,0.16)',
-    good: '#8fa67f',
-    goodSoft: 'rgba(143,166,127,0.16)',
-    danger: '#d66a5f',
-    glass: 'rgba(34,25,17,0.92)',
-    glassEdge: 'rgba(201,164,90,0.35)',
+    bg: '#131110',
+    surface: '#1c1917',
+    surface2: '#27231f',
+    surface3: '#36302a',
+    line: 'rgba(240,226,204,0.08)',
+    lineStrong: 'rgba(240,226,204,0.16)',
+    ink: '#f2ebe0',
+    muted: '#b3a796',
+    faint: '#7f7466',
+    accent: '#e0703f',
+    accentSoft: 'rgba(224,112,63,0.16)',
+    onAccent: '#1a0f08',
+    gold: '#d2aa5e',
+    goldSoft: 'rgba(210,170,94,0.16)',
+    good: '#8fb08a',
+    goodSoft: 'rgba(143,176,138,0.16)',
+    danger: '#e2685c',
+    glass: 'rgba(28,25,23,0.92)',
+    glassEdge: 'rgba(240,226,204,0.1)',
     scrim: 'rgba(0,0,0,0.55)',
     shadow: 'rgba(0,0,0,0.5)',
   },

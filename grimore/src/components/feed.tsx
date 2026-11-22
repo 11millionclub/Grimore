@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Share, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, HeartIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
-import { Avatar, Cover, Press, Progress, Stars, Text, toast } from '@/components/ui';
+import { Avatar, Cover, Press, Progress, Stars, Text, toast, shareText } from '@/components/ui';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { setLiked, setSaved, type FeedItem } from '@/services/social';
@@ -224,7 +224,7 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
         </Press>
         <Press
           accessibilityLabel="Share"
-          onPress={() => void Share.share({ message: `${name(post.author)} on Grimore${b ? ` about ${b.title}` : ''}: ${post.quote ?? post.body ?? ''}`.slice(0, 400) })}
+          onPress={() => void shareText(`${name(post.author)} on Grimore${b ? ` about ${b.title}` : ''}: ${post.quote ?? post.body ?? ''}`.slice(0, 400))}
           style={{ height: 36, justifyContent: 'center', paddingRight: spacing.base }}
         >
           <ShareFatIcon size={21} color={colors.muted} />

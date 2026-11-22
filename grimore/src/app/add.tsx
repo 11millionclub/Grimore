@@ -33,7 +33,7 @@ export default function AddSheet() {
           accessibilityRole="button"
           accessibilityLabel="Photograph your shelf"
           onPress={() => go({ pathname: '/scan', params: { mode: 'shelf' } })}
-          style={{ marginTop: spacing.base, height: 128, borderRadius: radius.card, overflow: 'hidden', borderWidth: 1, borderColor: colors.gold }}
+          style={{ marginTop: spacing.base, height: 128, borderRadius: radius.card, overflow: 'hidden' }}
         >
           <LibraryScene id="great-hall" style={{ position: 'absolute', inset: 0 }} />
           <LinearGradient colors={['transparent', 'rgba(20,12,6,0.45)', 'rgba(20,12,6,0.9)']} style={{ position: 'absolute', inset: 0 }} />
@@ -60,7 +60,7 @@ export default function AddSheet() {
               onPress={() => go(href)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 60, paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}
             >
-              <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={19} color={colors.accent} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>

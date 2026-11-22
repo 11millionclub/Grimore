@@ -6,7 +6,8 @@ import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { ArrowsLeftRightIcon, BellIcon, CaretRightIcon, MagnifyingGlassIcon, PlusIcon, SparkleIcon } from '@/components/icons';
+import { ArrowsLeftRightIcon, BellIcon, CaretRightIcon, CompassRoseIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
+import { ARCH_ICONS } from '@/components/onboarding-flow';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
@@ -55,6 +56,7 @@ function ForYou() {
   const me = useMyId()!;
   const profile = useMyProfile();
   const arch = (profile.data?.archetype ?? null) as Arch | null;
+  const ArchIcon = arch ? ARCH_ICONS[arch] : CompassRoseIcon;
   const qc = useQueryClient();
   const comms = useQuery({ queryKey: ['communities', 'suggested'], queryFn: () => suggestedCommunities(10) });
   const readers = useQuery({ queryKey: ['readers', 'suggested', arch], queryFn: () => suggestReaders(me, arch, 10) });
@@ -74,12 +76,13 @@ function ForYou() {
     <View>
       <View style={{ paddingHorizontal: spacing.lg }}>
         <Press onPress={() => router.push('/dna')} style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.lg }}>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -32, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: colors.accent, opacity: 0.22 }} />
-          <SparkleIcon size={22} weight="fill" color={colors.accent} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -50, width: 170, height: 170, borderRadius: 85, borderWidth: 1, borderColor: colors.gold, opacity: 0.35 }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: colors.gold, opacity: 0.25 }} />
+          <ArchIcon size={24} weight="fill" color={colors.accent} />
           <Text variant="small" tone="muted" style={{ marginTop: spacing.md }}>
             Your reader profile
           </Text>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 26, marginTop: 2 }}>{arch ? ARCHETYPES[arch].name : 'Take the reader test'}</Text>
+          <Text style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 31, marginTop: 2 }}>{arch ? ARCHETYPES[arch].name : 'Take the reader test'}</Text>
           <Text variant="small" tone="muted" style={{ marginTop: 4, maxWidth: 300 }}>
             {arch ? ARCHETYPES[arch].traits : 'Four questions, two minutes. We use it to suggest books and people.'}
           </Text>

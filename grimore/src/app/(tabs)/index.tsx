@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
@@ -139,14 +140,15 @@ export default function Home() {
 
       <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
         <Press onPress={() => router.push({ pathname: '/wrapped', params: { period: 'month' } })} style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.accent, padding: spacing.lg }}>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -40, top: -64, width: 192, height: 192, borderRadius: 96, backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          <View pointerEvents="none" style={{ position: 'absolute', right: 64, bottom: -80, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(0,0,0,0.15)' }} />
+          <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0.12)', 'rgba(0,0,0,0.18)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', inset: 0 }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -60, top: -70, width: 200, height: 200, borderRadius: 100, borderWidth: 1, borderColor: colors.onAccent, opacity: 0.22 }} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -24, top: -34, width: 128, height: 128, borderRadius: 64, borderWidth: 1, borderColor: colors.onAccent, opacity: 0.16 }} />
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.base }}>
             <View style={{ flex: 1 }}>
               <Text variant="small" tone="onAccent" style={{ fontFamily: fonts.semibold, opacity: 0.8 }}>
                 {monthName(month)} Wrapped
               </Text>
-              <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 27, marginTop: 4 }}>
+              <Text tone="onAccent" style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 31, marginTop: 4 }}>
                 {monthPages ? `${fmt(monthPages)} pages.\nYour month, told.` : 'Your month,\ntold in pages.'}
               </Text>
             </View>

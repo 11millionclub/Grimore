@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, PauseCircleIcon, PlusIcon, StackIcon, XIcon, type IconProps } from '@/components/icons';
-import { Flourish, Press, Text } from '@/components/ui';
+import { Press, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { listShelves, STATUS_META, type ReadingStatus } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -55,8 +55,6 @@ export function ShelfPicker({
           backgroundColor: colors.surface,
           borderTopLeftRadius: radius.sheet,
           borderTopRightRadius: radius.sheet,
-          borderTopWidth: 1.5,
-          borderColor: colors.gold,
           maxHeight: '80%',
           width: '100%',
           maxWidth: 560,
@@ -79,7 +77,6 @@ export function ShelfPicker({
             <XIcon size={18} color={colors.ink} />
           </Press>
         </View>
-        <Flourish style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }} />
         <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
           {ORDER.map((s) => {
             const Icon = STATUS_ICONS[s];
@@ -100,8 +97,8 @@ export function ShelfPicker({
               </Press>
             );
           })}
-          <Text variant="micro" tone="muted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
-            YOUR SHELVES
+          <Text variant="micro" tone="muted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs, textTransform: 'uppercase' }}>
+            Your shelves
           </Text>
           {(shelves.data ?? []).map((sh) => (
             <Press key={sh.id} accessibilityRole="button" onPress={() => choose({ kind: 'shelf', shelfId: sh.id, title: sh.title })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, borderBottomWidth: 1, borderBottomColor: colors.line }}>

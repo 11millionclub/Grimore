@@ -118,7 +118,7 @@ export function MessageAlerts() {
             backgroundColor: colors.surface,
             borderRadius: radius.card,
             borderWidth: 1,
-            borderColor: colors.gold,
+            borderColor: colors.line,
             padding: spacing.md,
             shadowColor: colors.shadow,
             shadowOpacity: 1,

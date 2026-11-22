@@ -17,11 +17,11 @@ export default function Welcome() {
       <View style={{ flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.xl, paddingBottom: insets.bottom + spacing.md, maxWidth: layout.maxContentWidth, width: '100%', alignSelf: 'center' }}>
         <Animated.View entering={FadeInDown.duration(600).reduceMotion(ReduceMotion.System)}>
           <View style={{ width: 48, height: 48, borderRadius: radius.tile, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 26, lineHeight: 30 }} tone="onAccent">
-              g
+            <Text style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 36 }} tone="onAccent">
+              G
             </Text>
           </View>
-          <Text accessibilityRole="header" style={{ fontFamily: fonts.bold, fontSize: 40, lineHeight: 41, marginTop: spacing.lg }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 46, lineHeight: 47, letterSpacing: -0.5, marginTop: spacing.lg }}>
             Everything you read,{'\n'}in one place.
           </Text>
           <Text variant="body" tone="muted" style={{ marginTop: spacing.md, fontSize: 16, lineHeight: 24, maxWidth: 340 }}>

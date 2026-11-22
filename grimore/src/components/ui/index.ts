@@ -9,3 +9,4 @@ export * from './text';
 export * from './text-field';
 export * from './toast';
 export * from './slider';
+export * from './share';

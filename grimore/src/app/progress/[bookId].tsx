@@ -9,7 +9,7 @@ import { Btn, Cover, IconBtn, Press, Sheet, Slider, Text, TextField, toast } fro
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { getBook } from '@/services/catalogue';
-import { getEntry, logProgress, saveEntry } from '@/services/library';
+import { getEntry, logProgress, saveEntry, statusPatch } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 export default function ProgressSheet() {
@@ -31,7 +31,7 @@ export default function ProgressSheet() {
   const save = useMutation({
     mutationFn: async () => {
       const r = await logProgress({ bookId, page: current, note, share });
-      if (r.total && current >= r.total) await saveEntry(me, bookId, { status: 'read', finished_on: new Date().toISOString().slice(0, 10), progress_percent: 100 });
+      if (r.total && current >= r.total) await saveEntry(me, bookId, statusPatch('read', entry.data));
       return r;
     },
     onSuccess: (r) => {
