@@ -1,0 +1,22 @@
+# Publishes the web version (EAS Hosting, production URL) every time main
+# changes. Needs the GitHub repo linked to the Expo project (base directory:
+# grimore) and EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY set as
+# EAS environment variables for "production".
+name: Deploy web
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch: {}
+
+jobs:
+  deploy_web:
+    name: Export and deploy the website
+    environment: production
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Export web bundle
+        run: npx expo export --platform web
+      - name: Deploy to production
+        run: npx eas-cli@latest deploy --prod --non-interactive

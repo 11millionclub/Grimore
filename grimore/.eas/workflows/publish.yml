@@ -1,13 +1,15 @@
-# Publishes an over-the-air update to the app every time main changes,
-# so fixes reach phones (Expo Go / installed builds) without a computer.
+# Publishes an over-the-air update to phones (Expo Go / installed builds).
+# Paused for now: it only runs when started by hand from expo.dev -> Workflows.
+# To make it automatic again, replace `workflow_dispatch: {}` with
+#   push:
+#     branches: ['main']
 # Needs: the GitHub repo linked to the Expo project (base directory: grimore)
 # and EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY set as
 # EAS environment variables for "production".
 name: Publish update
 
 on:
-  push:
-    branches: ['main']
+  workflow_dispatch: {}
 
 jobs:
   publish_update:
