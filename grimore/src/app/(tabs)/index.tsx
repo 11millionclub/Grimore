@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 
 import { AppActions } from '@/components/app-actions';
 import { PostCard, Ring } from '@/components/feed';
+import { HouseWelcomeCard } from '@/components/house-welcome';
 import { ArrowRightIcon, BookOpenIcon, FireIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, EmptyState, Press, Progress, Screen, SectionHead, Skeleton, Stagger, Text } from '@/components/ui';
 import { useMyId, useReadingGoal, useReadingStats, useShelf, useStreak, useTodayGames, useUnread } from '@/hooks/queries';
@@ -44,6 +45,7 @@ export default function Home() {
       onRefresh={refresh}
       actions={<AppActions />}
     >
+      <HouseWelcomeCard />
       {reading.isLoading ? (
         <View style={{ paddingHorizontal: spacing.lg }}>
           <Skeleton height={168} rounded={radius.card} />

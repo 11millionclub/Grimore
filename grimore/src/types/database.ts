@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: { created_at: string; id: number; name: string; props: Json; user_id: string }
+        Insert: { created_at?: string; id?: never; name: string; props?: Json; user_id?: string }
+        Update: { created_at?: string; id?: never; name?: string; props?: Json; user_id?: string }
+        Relationships: []
+      }
+      profile_private: {
+        Row: { birth_date: string; created_at: string; updated_at: string; user_id: string }
+        Insert: { birth_date: string; created_at?: string; updated_at?: string; user_id: string }
+        Update: { birth_date?: string; created_at?: string; updated_at?: string; user_id?: string }
+        Relationships: []
+      }
+      houses: {
+        Row: { color_token: string; i18n_prefix: string; id: string; member_name: string; name: string; rival_id: string | null; sigil: string; sort_order: number }
+        Insert: { color_token: string; i18n_prefix: string; id: string; member_name: string; name: string; rival_id?: string | null; sigil: string; sort_order: number }
+        Update: { color_token?: string; i18n_prefix?: string; id?: string; member_name?: string; name?: string; rival_id?: string | null; sigil?: string; sort_order?: number }
+        Relationships: []
+      }
+      house_seasons: {
+        Row: { ends_at: string; id: number; name: string; starts_at: string; winner_house_id: string | null }
+        Insert: { ends_at: string; id?: never; name: string; starts_at: string; winner_house_id?: string | null }
+        Update: { ends_at?: string; id?: never; name?: string; starts_at?: string; winner_house_id?: string | null }
+        Relationships: []
+      }
+      sorting_results: {
+        Row: { answers: Json; chosen_from_top_two: boolean; created_at: string; house_id: string; id: string; scores: Json; skipped: boolean; tie_break_used: boolean; user_id: string }
+        Insert: { answers: Json; chosen_from_top_two?: boolean; created_at?: string; house_id: string; id?: string; scores: Json; skipped?: boolean; tie_break_used?: boolean; user_id: string }
+        Update: { answers?: Json; chosen_from_top_two?: boolean; created_at?: string; house_id?: string; id?: string; scores?: Json; skipped?: boolean; tie_break_used?: boolean; user_id?: string }
+        Relationships: []
+      }
       achievements: {
         Row: {
           category: string
@@ -1634,6 +1664,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          house_hidden: boolean
           archetype: string | null
           avatar_url: string | null
           bio: string | null
@@ -1648,6 +1679,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          house_hidden?: boolean
           archetype?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -1662,6 +1694,7 @@ export type Database = {
           username: string
         }
         Update: {
+          house_hidden?: boolean
           archetype?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -2517,6 +2550,10 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          content_warnings: string[]
+          intents: string[]
+          reading_formats: string[]
+          reading_languages: string[]
           app_language: string
           appearance: string
           corner_book_arrangement: string
@@ -2539,6 +2576,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content_warnings?: string[]
+          intents?: string[]
+          reading_formats?: string[]
+          reading_languages?: string[]
           app_language?: string
           appearance?: string
           corner_book_arrangement?: string
@@ -2561,6 +2602,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content_warnings?: string[]
+          intents?: string[]
+          reading_formats?: string[]
+          reading_languages?: string[]
           app_language?: string
           appearance?: string
           corner_book_arrangement?: string
@@ -2800,6 +2845,14 @@ export type Database = {
       }
     }
     Functions: {
+      submit_sorting: { Args: { p_answers: Json; p_tie_break?: string | null; p_choice?: string | null }; Returns: Json }
+      change_house: { Args: { p_house: string }; Returns: string }
+      my_house: { Args: Record<PropertyKey, never>; Returns: { house_id: string | null; house_hidden: boolean; house_assigned_at: string | null }[] }
+      reader_houses: { Args: { p_ids: string[] }; Returns: { user_id: string; house_id: string }[] }
+      house_balance: { Args: Record<PropertyKey, never>; Returns: { house_id: string; share: number }[] }
+      get_house_standings: { Args: { p_season?: number | null }; Returns: { season_id: number; house_id: string; points: number; active_members: number; members: number; points_per_member: number }[] }
+      my_house_points: { Args: { p_season?: number | null }; Returns: { action: string; points: number }[] }
+      my_age_band: { Args: Record<PropertyKey, never>; Returns: string }
       bookle_guess: {
         Args: { p_book: string; p_challenge: string }
         Returns: Json

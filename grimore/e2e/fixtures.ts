@@ -148,7 +148,9 @@ const feed = [
   },
 ];
 
-function rows(path: string, q: URLSearchParams, single: boolean): unknown {
+type MockOptions = { newReader?: boolean };
+
+function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptions = {}): unknown {
   const status = (q.get('status') ?? '').replace('eq.', '');
   switch (path) {
     case 'rpc/get_today_games':
@@ -166,11 +168,27 @@ function rows(path: string, q: URLSearchParams, single: boolean): unknown {
       return [{ id: 'first_day', name: 'First Day', description: 'Complete your first daily game.', icon: 'star', category: 'games', xp_reward: 10, earned_at: today, progress: 1, target: 1 }];
     case 'rpc/list_conversations':
       return [];
+    case 'rpc/my_house':
+      if (opts.newReader) return [{ house_id: null, house_hidden: false, house_assigned_at: null }];
+      return [{ house_id: 'lantern', house_hidden: false, house_assigned_at: new Date(now - 30 * 86400e3).toISOString() }];
+    case 'rpc/reader_houses':
+      return [{ user_id: FRIEND, house_id: 'thorn' }];
+    case 'rpc/submit_sorting':
+      return { house: 'thorn', scores: { lantern: 0, quill: 2, thorn: 14, hourglass: 0 }, tie_break: false, top_two: false };
+    case 'profile_private':
+      return single ? null : [];
+    case 'rpc/house_balance':
+      return [];
+    case 'rpc/my_age_band':
+      return 'adult';
+    case 'analytics_events':
+      return null;
     case 'rpc/suggest_communities':
       return [{ id: 'cm1', match: 94 }];
     case 'rpc/search_catalogue':
       return BOOKS.map((b) => ({ id: b.id, title: b.title, cover_url: null, first_published_year: b.first_published_year, authors: b.book_authors[0].authors.name, score: 1 }));
     case 'profiles':
+      if (opts.newReader) return single ? { ...profile, onboarding_completed_at: null } : [{ ...profile, onboarding_completed_at: null }, friend];
       return single ? profile : [profile, friend];
     case 'user_preferences':
       return { user_id: ME, show_spoilers: false, daily_pages_goal: 30, appearance: 'dark', notification_settings: {} };
@@ -201,7 +219,11 @@ function rows(path: string, q: URLSearchParams, single: boolean): unknown {
     case 'feed_items':
       return feed;
     case 'genres':
-      return [{ id: 1, slug: 'literary-fiction', name: 'Literary Fiction' }];
+      return [
+        { id: 1, slug: 'literary-fiction', name: 'Literary Fiction' },
+        { id: 2, slug: 'romance', name: 'Romance' },
+        { id: 6, slug: 'fantasy', name: 'Fantasy' },
+      ];
     case 'user_favorite_books':
       return BOOKS.slice(0, 4).map((b, i) => ({ position: i, book: b }));
     default:
@@ -210,7 +232,7 @@ function rows(path: string, q: URLSearchParams, single: boolean): unknown {
 }
 
 /** Sign the browser in as the fixture reader and answer every Supabase call. */
-export async function useMockBackend(page: Page) {
+export async function useMockBackend(page: Page, opts: MockOptions = {}) {
   await page.addInitScript((me) => {
     const token = `${btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${btoa(JSON.stringify({ sub: me, role: 'authenticated', exp: 4102444800 }))}.sig`;
     const session = { access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { id: me, aud: 'authenticated', role: 'authenticated', email: 'test@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-11-10T10:00:00Z' } };
@@ -229,7 +251,7 @@ export async function useMockBackend(page: Page) {
     const path = url.pathname.replace('/rest/v1/', '');
     const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
     if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '0-0/3' } });
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/3' }, body: JSON.stringify(rows(path, url.searchParams, single)) });
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/3' }, body: JSON.stringify(rows(path, url.searchParams, single, opts)) });
   });
   // External book APIs and covers are not needed for UI checks.
   await page.route(/openlibrary\.org|googleapis\.com/, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"docs":[],"items":[]}' }));

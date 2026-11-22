@@ -10,7 +10,7 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Preferences = Database['public']['Tables']['user_preferences']['Row'];
 export type Statistics = Database['public']['Tables']['user_statistics']['Row'];
 
-const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at, archetype, city';
+const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at, archetype, city, house_hidden';
 
 export async function getProfile(id: string): Promise<Profile> {
   return unwrap(await supabase.from('profiles').select(profileSelect).eq('id', id).single());
