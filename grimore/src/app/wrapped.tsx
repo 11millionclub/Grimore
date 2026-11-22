@@ -36,7 +36,7 @@ function Count({ to, color, size }: { to: number; color: string; size: number })
   return <Text style={{ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, fontVariant: ['tabular-nums'] }} color={color}>{fmt(v)}</Text>;
 }
 
-const big = (size: number, color: string) => ({ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, color });
+const big = (size: number, color: string) => ({ fontFamily: fonts.display, fontSize: size * 1.1, lineHeight: size * 1.12, letterSpacing: -0.5, color });
 
 function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Slide[] {
   const s: Slide[] = [];
@@ -52,7 +52,7 @@ function slides(d: WrappedData, archetype: Arch | null, summary: ReactNode): Sli
           </Text>
         </R>
         <R i={1}>
-          <Text style={big(month ? 84 : 120, month ? '#1f130a' : '#c39a45')}>{d.label}</Text>
+          <Text style={big(month ? Math.min(84, Math.floor(600 / Math.max(1, d.label.length))) : 120, month ? '#1f130a' : '#c39a45')}>{d.label}</Text>
         </R>
         <R i={2}>
           <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.lg, opacity: 0.8, maxWidth: 300 }} color={month ? '#1f130a' : '#f1e6d0'}>

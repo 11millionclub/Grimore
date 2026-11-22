@@ -73,10 +73,8 @@ export default function Home() {
             return (
               <Stagger key={r.id} i={i}>
                 <View style={{ width: 300, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
-                  <View style={{ flexDirection: 'row', gap: spacing.base }}>
-                    <Press onPress={() => router.push({ pathname: '/book/[id]', params: { id: r.book.id } })}>
-                      <Cover uri={r.book.cover_url} title={r.book.title} author={r.book.authors} width={76} />
-                    </Press>
+                  <Press accessibilityRole="button" accessibilityLabel={`Open ${r.book.title}`} onPress={() => router.push({ pathname: '/book/[id]', params: { id: r.book.id } })} style={{ flexDirection: 'row', gap: spacing.base }}>
+                    <Cover uri={r.book.cover_url} title={r.book.title} author={r.book.authors} width={76} />
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text variant="caption" tone="accent" style={{ fontFamily: fonts.medium }}>
                         Reading
@@ -99,7 +97,7 @@ export default function Home() {
                         <Progress value={pct} />
                       </View>
                     </View>
-                  </View>
+                  </Press>
                   <Btn variant="secondary" size="sm" full style={{ marginTop: spacing.base }} onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: r.book.id } })}>
                     Update page
                   </Btn>
