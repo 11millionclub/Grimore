@@ -65,3 +65,13 @@ export const openLibrary: BookProvider = {
     return { ...mapDoc(doc), isbn13: cleanIsbn(isbn).length === 13 ? cleanIsbn(isbn) : mapDoc(doc).isbn13 };
   },
 };
+
+/**
+ * Popular books for a subject, page by page (30 per page), most-shelved
+ * first. Used to browse genres beyond Grimore's own catalogue.
+ */
+export async function searchSubject(subjectQuery: string, page = 1, signal?: AbortSignal): Promise<{ books: ExternalBook[]; total: number }> {
+  const q = encodeURIComponent(subjectQuery);
+  const data = await get<{ docs: Doc[]; numFound: number }>(`/search.json?q=${q}&sort=readinglog&limit=30&page=${page}&fields=${FIELDS}`, signal);
+  return { books: data.docs.filter((d) => d.title && d.cover_i).map(mapDoc), total: data.numFound };
+}

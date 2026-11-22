@@ -4,7 +4,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import type { ComponentType } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
 import { CastleTurretIcon, CompassRoseIcon, DiceFiveIcon, FeatherIcon, ShieldChevronIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
@@ -18,30 +18,17 @@ const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = 
   me: { label: 'Me', Icon: ShieldChevronIcon },
 };
 
-const SEAL = 60;
+const SEAL = 56;
 
-/** Wax seal: a scalloped disc of wine-red wax with a quill pressed into it. */
-function sealPath(r: number, cx: number, cy: number) {
-  const steps = 96;
-  let d = '';
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * Math.PI * 2;
-    // Irregular wax edge: two wobbles of different frequency.
-    const rr = r - 2.2 + Math.sin(a * 11) * 1.4 + Math.sin(a * 4 + 1) * 1.1;
-    d += `${i ? 'L' : 'M'}${(cx + Math.cos(a) * rr).toFixed(2)} ${(cy + Math.sin(a) * rr).toFixed(2)}`;
-  }
-  return d + 'Z';
-}
 const R = SEAL / 2;
-const SEAL_SHADOW = sealPath(R - 1, R, R + 2.5);
-const SEAL_BODY = sealPath(R - 1, R, R);
 
+/** A clean wax-seal disc: wine red, a gilt ring, a soft drop shadow. */
 function WaxSeal({ color, rim }: { color: string; rim: string }) {
   return (
     <Svg width={SEAL} height={SEAL + 4} style={{ position: 'absolute', top: 0, left: 0 }}>
-      <Path d={SEAL_SHADOW} fill="#3a0d16" opacity={0.35} />
-      <Path d={SEAL_BODY} fill={color} />
-      <Circle cx={R} cy={R} r={R - 10} fill="none" stroke={rim} strokeWidth={1.2} opacity={0.5} />
+      <Circle cx={R} cy={R + 2.5} r={R - 2} fill="#3a0d16" opacity={0.25} />
+      <Circle cx={R} cy={R} r={R - 2} fill={color} />
+      <Circle cx={R} cy={R} r={R - 6} fill="none" stroke={rim} strokeWidth={1.2} />
     </Svg>
   );
 }
@@ -55,7 +42,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
       <View
         accessibilityRole="tablist"
         style={{
-          backgroundColor: colors.glass,
+          backgroundColor: colors.surface,
           borderTopWidth: 1.5,
           borderTopColor: colors.gold,
           paddingBottom: insets.bottom,
@@ -88,12 +75,12 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                   style={{
                     width: SEAL,
                     height: SEAL,
-                    marginTop: -26,
+                    marginTop: -22,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <WaxSeal color={colors.accent} rim={colors.onAccent} />
+                  <WaxSeal color={colors.accent} rim={colors.gold} />
                   <View style={{ zIndex: 1 }}>
                     <FeatherIcon size={24} weight="fill" color={colors.onAccent} />
                   </View>

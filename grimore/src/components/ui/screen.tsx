@@ -4,11 +4,10 @@ import { KeyboardAvoidingView, Platform, RefreshControl, View, type StyleProp, t
 import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CaretLeftIcon } from '@/components/icons';
+import { CaretLeftIcon, XIcon } from '@/components/icons';
 import { layout, spacing, useTheme } from '@/theme';
 
 import { IconBtn } from './button';
-import { Glass } from './glass';
 import { Flourish } from './layout';
 import { Text } from './text';
 
@@ -18,13 +17,13 @@ export function goBack() {
 }
 
 /**
- * Scroll container with a translucent navigation bar. The large title scrolls
- * away and the compact title fades into the glass bar (iOS pattern).
+ * Scroll container with a solid, always-visible navigation bar. The large
+ * title scrolls away and the compact title fades into the bar.
  */
 export function Screen({
   title,
   large = true,
-  back = false,
+  back,
   actions,
   hero,
   barTransparent = false,
@@ -70,9 +69,8 @@ export function Screen({
     const range = hero ? [180, 230] : [30, 60];
     return { opacity: interpolate(y.value, range, [0, 1], Extrapolation.CLAMP) };
   });
-  const barBg = useAnimatedStyle(() => ({
-    opacity: interpolate(y.value, barTransparent ? [160, 220] : [0, 20], [0, 1], Extrapolation.CLAMP),
-  }));
+  // Every screen that is not a tab root gets a way back.
+  const showBack = back ?? !tabs;
 
   const body = (
     <>
@@ -111,12 +109,10 @@ export function Screen({
         <View style={{ borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: insets.bottom + tabSpace + spacing.sm }}>{footer}</View>
       ) : null}
       <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: barHeight }}>
-        <Animated.View pointerEvents="none" style={[{ position: 'absolute', inset: 0, borderBottomWidth: 1, borderBottomColor: colors.line }, barBg]}>
-          <Glass style={{ flex: 1 }} />
-        </Animated.View>
+        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.gold + '66' }} />
         <View style={{ marginTop: insets.top, height: layout.navBarHeight, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, gap: 4 }}>
-          {back ? (
-            <IconBtn label="Back" onPress={goBack} glass={barTransparent}>
+          {showBack ? (
+            <IconBtn label="Back" onPress={goBack}>
               <CaretLeftIcon size={22} weight="bold" color={colors.ink} />
             </IconBtn>
           ) : (
@@ -150,8 +146,11 @@ export function Sheet({ children, title, subtitle, scroll = true }: { children: 
       <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
         <View style={{ width: 40, height: 6, borderRadius: 3, backgroundColor: colors.surface3 }} />
       </View>
+      <IconBtn label="Close" filled size={36} onPress={goBack} style={{ position: 'absolute', top: 14, right: spacing.lg, zIndex: 5 }}>
+        <XIcon size={18} color={colors.ink} />
+      </IconBtn>
       {title ? (
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingRight: spacing.lg + 44, paddingTop: spacing.sm }}>
           <Text variant="h1" accessibilityRole="header">
             {title}
           </Text>

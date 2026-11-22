@@ -1254,6 +1254,11 @@ export type Database = {
           condition: string
           created_at: string
           currency: string
+          delivery: string
+          format: string | null
+          language: string | null
+          published_year: number | null
+          shipping_cents: number | null
           edition: string | null
           id: string
           is_rare: boolean
@@ -1271,6 +1276,11 @@ export type Database = {
           condition: string
           created_at?: string
           currency?: string
+          delivery?: string
+          format?: string | null
+          language?: string | null
+          published_year?: number | null
+          shipping_cents?: number | null
           edition?: string | null
           id?: string
           is_rare?: boolean
@@ -1288,6 +1298,11 @@ export type Database = {
           condition?: string
           created_at?: string
           currency?: string
+          delivery?: string
+          format?: string | null
+          language?: string | null
+          published_year?: number | null
+          shipping_cents?: number | null
           edition?: string | null
           id?: string
           is_rare?: boolean

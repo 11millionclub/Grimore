@@ -245,22 +245,50 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
 }
 
 /** Rounded input with an avatar and a send button that appears when there is text. */
-export function Composer({ placeholder, onSend, busy }: { placeholder: string; onSend: (text: string) => Promise<unknown> | void; busy?: boolean }) {
+/** Reply / message box. With `spoilers`, a toggle marks the text as a spoiler (hidden until tapped). */
+export function Composer({
+  placeholder,
+  onSend,
+  busy,
+  spoilers,
+}: {
+  placeholder: string;
+  onSend: (text: string, hasSpoilers: boolean) => Promise<unknown> | void;
+  busy?: boolean;
+  spoilers?: boolean;
+}) {
   const { colors } = useTheme();
   const profile = useMyProfile();
   const [v, setV] = useState('');
+  const [spoiler, setSpoiler] = useState(false);
   const send = async () => {
     const t = v.trim();
     if (!t) return;
     setV('');
     try {
-      await onSend(t);
+      await onSend(t, spoiler);
+      setSpoiler(false);
     } catch (e) {
       setV(t);
       toast(toAppError(e).message);
     }
   };
   return (
+    <View>
+    {spoilers ? (
+      <Press
+        onPress={() => setSpoiler((x) => !x)}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: spoiler }}
+        accessibilityLabel="Contains spoilers"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginLeft: spacing.base + 32 + spacing.sm, marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, borderWidth: 1, borderColor: spoiler ? colors.accent : colors.line, backgroundColor: spoiler ? colors.accentSoft : 'transparent' }}
+      >
+        <WarningIcon size={13} weight={spoiler ? 'fill' : 'regular'} color={spoiler ? colors.accent : colors.muted} />
+        <Text variant="caption" tone={spoiler ? 'accent' : 'muted'}>
+          {spoiler ? 'Marked as spoiler' : 'Spoiler?'}
+        </Text>
+      </Press>
+    ) : null}
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.base, paddingVertical: 10 }}>
       <Avatar uri={profile.data?.avatar_url} name={profile.data?.display_name} size={32} />
       <View style={{ flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', borderRadius: radius.full, backgroundColor: colors.surface2, paddingLeft: spacing.base, paddingRight: 6 }}>
@@ -281,6 +309,7 @@ export function Composer({ placeholder, onSend, busy }: { placeholder: string; o
           </Press>
         ) : null}
       </View>
+    </View>
     </View>
   );
 }

@@ -21,9 +21,10 @@ export default function ThreadScreen() {
   const member = useQuery({ queryKey: ['community', t.data?.community_id, 'me'], queryFn: () => myMembership(t.data!.community_id, me), enabled: !!t.data });
   const replies = useQuery({ queryKey: ['thread', id, 'replies'], queryFn: () => listReplies(id) });
   const reply = useMutation({
-    mutationFn: (body: string) => addReply(id, me, body),
+    mutationFn: ({ body, spoiler }: { body: string; spoiler: boolean }) => addReply(id, me, body, spoiler),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['thread', id] });
+      toast('Reply posted');
     },
     onError: (e) => toast(toAppError(e).message),
   });
@@ -36,7 +37,7 @@ export default function ThreadScreen() {
       keyboard
       footer={
         member.data ? (
-          <Composer placeholder="Write a reply" busy={reply.isPending} onSend={(x) => reply.mutateAsync(x)} />
+          <Composer placeholder="Write a reply" spoilers busy={reply.isPending} onSend={(body, spoiler) => reply.mutateAsync({ body, spoiler })} />
         ) : (
           <Press onPress={() => d && router.push({ pathname: '/community/join/[id]', params: { id: d.community_id } })} style={{ padding: spacing.base, alignItems: 'center' }}>
             <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>

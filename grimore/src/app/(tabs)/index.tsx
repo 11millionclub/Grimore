@@ -2,9 +2,10 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
+import { AppActions } from '@/components/app-actions';
 import { PostCard, Ring } from '@/components/feed';
-import { ArrowRightIcon, BellIcon, BookOpenIcon, FireIcon, PaperPlaneTiltIcon } from '@/components/icons';
-import { Avatar, Btn, Cover, EmptyState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stagger, Text } from '@/components/ui';
+import { ArrowRightIcon, BookOpenIcon, FireIcon } from '@/components/icons';
+import { Avatar, Btn, Cover, EmptyState, Press, Progress, Screen, SectionHead, Skeleton, Stagger, Text } from '@/components/ui';
 import { useMyId, useReadingGoal, useReadingStats, useShelf, useStreak, useTodayGames, useUnread } from '@/hooks/queries';
 import { getLeaderboard } from '@/services/games';
 import { getFeed } from '@/services/social';
@@ -41,18 +42,7 @@ export default function Home() {
       tabs
       refreshing={feed.isRefetching}
       onRefresh={refresh}
-      actions={
-        <>
-          <IconBtn label="Notifications" onPress={() => router.push('/notifications')}>
-            <BellIcon size={22} color={colors.ink} />
-            {unread.data?.notifications ? <View style={{ position: 'absolute', right: 8, top: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg }} /> : null}
-          </IconBtn>
-          <IconBtn label="Messages" onPress={() => router.push('/messages')}>
-            <PaperPlaneTiltIcon size={22} color={colors.ink} />
-            {unread.data?.messages ? <View style={{ position: 'absolute', right: 8, top: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg }} /> : null}
-          </IconBtn>
-        </>
-      }
+      actions={<AppActions />}
     >
       {reading.isLoading ? (
         <View style={{ paddingHorizontal: spacing.lg }}>

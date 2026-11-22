@@ -2,6 +2,7 @@ import { unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 
 import { authorLine, toSummary, type BookSummary } from './catalogue';
+import { searchSubject } from './books/open-library';
 
 const summarySelect = 'id, title, cover_url, first_published_year, primary_genre_id, book_authors(position, role, authors(name))' as const;
 type Raw = Parameters<typeof toSummary>[0] & { primary_genre_id: number | null };
@@ -71,8 +72,7 @@ export async function genreTiles() {
       const mine = list.filter((b) => b.primary_genre_id === g.id);
       return { ...g, count: mine.length, covers: mine.slice(0, 2) };
     })
-    .filter((g) => g.count > 0)
-    .slice(0, 10);
+    .map((g) => ({ ...g, more: !!GENRE_SUBJECTS[g.slug] }));
 }
 
 /** Books by one author (author page). */
@@ -93,3 +93,34 @@ export async function booksByAuthor(name: string) {
 }
 
 export { authorLine };
+
+/** Open Library subject queries for each Grimore genre (by slug). */
+export const GENRE_SUBJECTS: Record<string, string> = {
+  'literary-fiction': 'subject:"literary fiction"',
+  romance: 'subject:romance',
+  mystery: 'subject:"detective and mystery stories"',
+  gothic: 'subject:horror',
+  'science-fiction': 'subject:"science fiction"',
+  fantasy: 'subject:fantasy',
+  dystopian: 'subject:dystopias',
+  'historical-fiction': 'subject:"historical fiction"',
+  'magical-realism': 'subject:"magic realism"',
+  adventure: 'subject:"adventure stories"',
+  satire: 'subject:satire',
+  childrens: 'subject:"children\'s literature"',
+  'young-adult': 'subject:"young adult fiction"',
+  thriller: 'subject:thriller',
+  poetry: 'subject:poetry',
+  philosophy: 'subject:philosophy',
+  'non-fiction': 'subject:nonfiction',
+  memoir: 'subject:biography',
+  'graphic-novels': 'subject:"graphic novels"',
+  'short-stories': 'subject:"short stories"',
+};
+
+/** One page of a genre from Open Library's whole catalogue (millions of works). */
+export async function worldGenreBooks(slug: string, page: number, signal?: AbortSignal) {
+  const q = GENRE_SUBJECTS[slug];
+  if (!q) return { books: [], total: 0 };
+  return searchSubject(q, page, signal);
+}

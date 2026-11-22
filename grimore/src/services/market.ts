@@ -12,6 +12,29 @@ export const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'used', label: 'Used' },
 ];
 export const conditionLabel = (c: string) => CONDITIONS.find((x) => x.value === c)?.label ?? c;
+export const CONDITION_HINTS: Record<Condition, string> = {
+  like_new: 'Unread or read once. No marks, spine uncreased.',
+  very_good: 'Light reading wear. No writing or loose pages.',
+  good: 'Visible wear, creased spine or small marks.',
+  used: 'Well loved: notes, highlights or worn cover.',
+};
+
+export type Format = 'paperback' | 'hardcover' | 'pocket' | 'special';
+export const FORMATS: { value: Format; label: string }[] = [
+  { value: 'paperback', label: 'Paperback' },
+  { value: 'hardcover', label: 'Hardcover' },
+  { value: 'pocket', label: 'Pocket' },
+  { value: 'special', label: 'Special edition' },
+];
+export const formatLabel = (f: string | null) => FORMATS.find((x) => x.value === f)?.label ?? null;
+
+export type Delivery = 'pickup' | 'shipping' | 'both';
+export const DELIVERIES: { value: Delivery; label: string }[] = [
+  { value: 'pickup', label: 'In person' },
+  { value: 'shipping', label: 'Shipping' },
+  { value: 'both', label: 'Either' },
+];
+export const deliveryLabel = (d: string | null) => ({ pickup: 'Hand-over in person', shipping: 'Ships by post', both: 'In person or by post' })[d ?? 'both'] ?? null;
 
 export const money = (cents: number | null | undefined, currency = 'EUR') =>
   cents === null || cents === undefined ? '' : new Intl.NumberFormat('en-IE', { style: 'currency', currency, minimumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
@@ -62,6 +85,11 @@ export async function createListing(input: {
   note?: string;
   isRare?: boolean;
   city?: string | null;
+  format?: Format | null;
+  language?: string;
+  delivery?: Delivery;
+  shippingCents?: number | null;
+  publishedYear?: number | null;
 }) {
   return unwrap(
     await supabase
@@ -77,6 +105,11 @@ export async function createListing(input: {
         note: input.note?.trim() || null,
         is_rare: !!input.isRare,
         city: input.city?.trim() || null,
+        format: input.format ?? null,
+        language: input.language?.trim() || null,
+        delivery: input.delivery ?? 'both',
+        shipping_cents: input.delivery === 'pickup' ? null : (input.shippingCents ?? null),
+        published_year: input.publishedYear ?? null,
       })
       .select('id')
       .single(),

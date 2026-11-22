@@ -7,7 +7,7 @@ import { CaretRightIcon, ChatCircleDotsIcon, MapPinIcon, ShieldCheckIcon } from 
 import { Avatar, Btn, Cover, Press, Screen, SectionHead, Skeleton, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { getListing, conditionLabel, money, offersForListing, respondToOffer, sellerStats, setListingStatus } from '@/services/market';
+import { CONDITION_HINTS, deliveryLabel, formatLabel, getListing, conditionLabel, money, offersForListing, respondToOffer, sellerStats, setListingStatus } from '@/services/market';
 import { openConversation, sendMessage } from '@/services/messages';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
@@ -75,7 +75,7 @@ export default function ListingScreen() {
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.base }}>
-          {[conditionLabel(d.condition), d.edition].filter(Boolean).map((t) => (
+          {[conditionLabel(d.condition), formatLabel(d.format), d.language, d.published_year ? String(d.published_year) : null, d.edition].filter((t): t is string => !!t).map((t) => (
             <View key={t} style={{ borderRadius: radius.full, backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 4 }}>
               <Text variant="small">{t}</Text>
             </View>
@@ -111,7 +111,8 @@ export default function ListingScreen() {
             <MapPinIcon size={20} color={colors.muted} />
             <Text style={{ flex: 1 }}>{d.city ?? d.seller?.city}</Text>
             <Text variant="small" tone="muted">
-              In person or post
+              {deliveryLabel(d.delivery)}
+              {d.delivery !== 'pickup' && d.shipping_cents != null ? ` · ${d.shipping_cents ? `${money(d.shipping_cents, d.currency)} postage` : 'free postage'}` : ''}
             </Text>
           </View>
         ) : null}
@@ -124,11 +125,15 @@ export default function ListingScreen() {
             In-app payments are not open yet. For now, arrange the swap or sale by message.
           </Text>
         </View>
-        {d.note ? (
-          <Text variant="body" style={{ marginTop: spacing.lg, opacity: 0.9 }}>
-            {d.note}
+        <View style={{ marginTop: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: 14, gap: 6 }}>
+          <Text variant="h2" style={{ fontSize: 14 }}>
+            About this copy
           </Text>
-        ) : null}
+          <Text variant="small" tone="muted">
+            {CONDITION_HINTS[d.condition as keyof typeof CONDITION_HINTS] ?? conditionLabel(d.condition)}
+          </Text>
+          {d.note ? <Text variant="body">{d.note}</Text> : null}
+        </View>
         <Text variant="caption" tone="faint" style={{ marginTop: spacing.sm }}>
           Listed {relativeTime(d.created_at)}
         </Text>

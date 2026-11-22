@@ -5,6 +5,7 @@ import { ActivityIndicator, TextInput, View } from 'react-native';
 
 import { BarcodeIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
 import { Btn, Cover, Press, Sheet, Text, toast } from '@/components/ui';
+import { ShelfPicker } from '@/components/shelf-picker';
 import { resolveBookId, useAddToLibrary } from '@/hooks/use-add-book';
 import { useDebounced } from '@/hooks/use-debounced';
 import { toAppError } from '@/lib/errors';
@@ -30,10 +31,13 @@ export default function SearchSheet() {
       .map((b) => ({ key: `${b.source}:${b.sourceId}`, external: b, title: b.title, authors: b.authors.join(', '), year: b.firstPublishedYear ?? null, cover: b.coverUrl ?? null })),
   ];
   const loading = local.isFetching || remote.isFetching;
+  const [picking, setPicking] = useState<Result | null>(null);
   const open = async (r: Result) => {
     try {
       const id = await resolveBookId(r);
-      router.push({ pathname: '/book/[id]', params: { id } });
+      // Close the sheet first: on iOS/Android a page pushed from a sheet opens behind it.
+      router.back();
+      setTimeout(() => router.push({ pathname: '/book/[id]', params: { id } }), 80);
     } catch (e) {
       toast(toAppError(e).message);
     }
@@ -86,8 +90,8 @@ export default function SearchSheet() {
                   </View>
                 </Press>
                 <Press
-                  accessibilityLabel={`Add ${r.title} to Want to read`}
-                  onPress={() => add.mutate({ book: r })}
+                  accessibilityLabel={`Add ${r.title} to a shelf`}
+                  onPress={() => setPicking(r)}
                   style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}
                 >
                   <PlusIcon size={18} weight="bold" color={colors.ink} />
@@ -97,6 +101,7 @@ export default function SearchSheet() {
           )}
         </View>
       </View>
+      <ShelfPicker visible={!!picking} title={picking?.title} onClose={() => setPicking(null)} onPick={(choice) => picking && add.mutate({ book: picking, choice })} />
     </Sheet>
   );
 }

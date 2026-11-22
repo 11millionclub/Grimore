@@ -13,6 +13,7 @@ import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { MessageAlerts } from '@/components/app-actions';
 import { Text, ToastHost } from '@/components/ui';
 import { useMyProfile } from '@/hooks/queries';
 import { envError } from '@/lib/env';
@@ -105,7 +106,7 @@ function Navigation() {
           <Stack.Screen name="add" options={sheet} />
           <Stack.Screen name="search" options={sheet} />
           <Stack.Screen name="progress/[bookId]" options={sheet} />
-          <Stack.Screen name="sell" options={sheet} />
+          <Stack.Screen name="sell" options={{ ...sheet, sheetAllowedDetents: [1] }} />
           <Stack.Screen name="trade/[id]" options={sheet} />
           <Stack.Screen name="community/join/[id]" options={sheet} />
           <Stack.Screen name="shelves/new" options={sheet} />
@@ -141,6 +142,7 @@ function Navigation() {
           <Stack.Screen name="settings" />
         </Stack.Protected>
       </Stack>
+      {signedIn && onboarded ? <MessageAlerts /> : null}
       <ToastHost />
     </>
   );

@@ -2,18 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
-import { BellIcon, BookmarkSimpleIcon, CaretRightIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, StorefrontIcon } from '@/components/icons';
+import { ShelfPicker } from '@/components/shelf-picker';
+import { BellIcon, BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, StorefrontIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
-import { getEntry, removeEntry, saveEntry, type EntryPatch } from '@/services/library';
+import { addToShelf, getEntry, removeEntry, saveEntry, STATUS_META, type EntryPatch } from '@/services/library';
 import { hasAlert, listingsForBook, money, setAlert } from '@/services/market';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -30,6 +32,7 @@ export default function BookScreen() {
   const friends = useQuery({ queryKey: ['book', id, 'friends'], queryFn: () => friendsWithBook(me, id) });
   const comms = useQuery({ queryKey: ['book', id, 'communities'], queryFn: () => communitiesForBook(id) });
   const listings = useQuery({ queryKey: ['book', id, 'listings'], queryFn: () => listingsForBook(id) });
+  const [picking, setPicking] = useState(false);
   const alert = useQuery({ queryKey: ['alert', id], queryFn: () => hasAlert(me, id) });
 
   const save = useMutation({
@@ -154,6 +157,62 @@ export default function BookScreen() {
             </Btn>
           </View>
         )}
+
+        <Press
+          accessibilityRole="button"
+          accessibilityLabel={e ? `Shelf: ${STATUS_META[e.status].label}. Change shelf` : 'Add to a shelf'}
+          onPress={() => setPicking(true)}
+          style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.base, minHeight: 52 }}
+        >
+          <StackIcon size={20} color={colors.accent} />
+          <Text variant="callout" style={{ flex: 1, fontFamily: fonts.medium }}>
+            {e ? 'Shelf' : 'Add to a shelf'}
+          </Text>
+          {e ? (
+            <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
+              {STATUS_META[e.status].label}
+            </Text>
+          ) : null}
+          <CaretDownIcon size={16} color={colors.muted} />
+        </Press>
+        {e && !reading ? (
+          <Press
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: id } })}
+            style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.base, minHeight: 52 }}
+          >
+            <BookOpenTextIcon size={20} color={colors.accent} />
+            <Text variant="callout" style={{ flex: 1, fontFamily: fonts.medium }}>
+              Log pages read
+            </Text>
+            <CaretRightIcon size={16} color={colors.muted} />
+          </Press>
+        ) : null}
+        <ShelfPicker
+          visible={picking}
+          title={b?.title}
+          current={e?.status ?? null}
+          onClose={() => setPicking(false)}
+          onRemove={() => {
+            save.mutate(null);
+            toast('Removed from your library');
+          }}
+          onPick={(choice) => {
+            if (choice.kind === 'status') {
+              const today = new Date().toISOString().slice(0, 10);
+              save.mutate({ status: choice.status, ...(choice.status === 'reading' && !e?.started_on ? { started_on: today } : {}), ...(choice.status === 'read' ? { finished_on: today } : {}) });
+              toast(`Moved to ${STATUS_META[choice.status].label}`);
+            } else
+              void addToShelf(choice.shelfId, id).then(
+                () => {
+                  if (!e) save.mutate({ status: 'want_to_read' });
+                  void qc.invalidateQueries({ queryKey: ['shelves'] });
+                  toast(`Added to ${choice.title}`);
+                },
+                (err) => toast(toAppError(err).message),
+              );
+          }}
+        />
 
         <View style={{ marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, paddingVertical: spacing.md }}>
           <Text variant="callout" style={{ fontFamily: fonts.medium }}>

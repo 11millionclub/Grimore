@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckIcon, ImageIcon, LightningIcon, QuotesIcon, XIcon } from '@/components/icons';
 import { Btn, Cover, IconBtn, Press, Segmented, Text, toast } from '@/components/ui';
 import { useMyId, useShelf } from '@/hooks/queries';
+import { ShelfPicker } from '@/components/shelf-picker';
 import { resolveBookId, useAddToLibrary } from '@/hooks/use-add-book';
 import { toAppError } from '@/lib/errors';
 import { searchExternal, type ExternalBook } from '@/services/books';
@@ -46,6 +47,7 @@ function Scan() {
   const [added, setAdded] = useState(0);
   const lastCode = useRef<string | null>(null);
   const add = useAddToLibrary();
+  const [picking, setPicking] = useState(false);
 
   const analyse = async (base64: string) => {
     setBusy(true);
@@ -224,23 +226,30 @@ function Scan() {
           <Btn
             size="sm"
             loading={add.isPending}
-            onPress={() =>
-              add.mutate(
-                { book: { external: isbnHit, title: isbnHit.title }, owned: true },
-                {
-                  onSuccess: () => {
-                    setAdded((a) => a + 1);
-                    setIsbnHit(null);
-                    lastCode.current = null;
-                  },
-                },
-              )
-            }
+            onPress={() => setPicking(true)}
           >
             Add
           </Btn>
         </Animated.View>
       ) : null}
+      <ShelfPicker
+        visible={picking && !!isbnHit}
+        title={isbnHit?.title}
+        onClose={() => setPicking(false)}
+        onPick={(choice) =>
+          isbnHit &&
+          add.mutate(
+            { book: { external: isbnHit, title: isbnHit.title }, choice, owned: true },
+            {
+              onSuccess: () => {
+                setAdded((a) => a + 1);
+                setIsbnHit(null);
+                lastCode.current = null;
+              },
+            },
+          )
+        }
+      />
 
       {found ? <ShelfReview me={me} found={found} onRetake={() => setFound(null)} /> : null}
       {sentences ? <QuoteReview me={me} sentences={sentences} onRetake={() => setSentences(null)} /> : null}

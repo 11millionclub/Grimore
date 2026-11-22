@@ -119,3 +119,6 @@ export { CompassRoseIcon } from 'phosphor-react-native/src/icons/CompassRose';
 export { DiceFiveIcon } from 'phosphor-react-native/src/icons/DiceFive';
 export { ShieldChevronIcon } from 'phosphor-react-native/src/icons/ShieldChevron';
 export { ScrollIcon } from 'phosphor-react-native/src/icons/Scroll';
+export { PauseCircleIcon } from 'phosphor-react-native/src/icons/PauseCircle';
+export { HandPalmIcon } from 'phosphor-react-native/src/icons/HandPalm';
+export { CaretDownIcon } from 'phosphor-react-native/src/icons/CaretDown';

@@ -1,3 +1,4 @@
+import { AppActions } from '@/components/app-actions';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -24,7 +25,7 @@ export default function Explore() {
   const { colors } = useTheme();
   const [seg, setSeg] = useState<Seg>('foryou');
   return (
-    <Screen title="Explore" tabs>
+    <Screen title="Explore" tabs actions={<AppActions />}>
       <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md }}>
         <Press onPress={() => router.push('/search')} accessibilityRole="search" style={{ height: 44, borderRadius: radius.full, backgroundColor: colors.surface2, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.base }}>
           <MagnifyingGlassIcon size={19} color={colors.muted} />
@@ -162,7 +163,7 @@ function ForYou() {
                   {g.name}
                 </Text>
                 <Text variant="caption" tone="muted" style={{ zIndex: 2 }}>
-                  {g.count} books
+                  {g.more ? 'Thousands of books' : `${g.count} books`}
                 </Text>
                 <View style={{ position: 'absolute', bottom: -12, right: -8, flexDirection: 'row' }}>
                   {g.covers.map((b, i) => (

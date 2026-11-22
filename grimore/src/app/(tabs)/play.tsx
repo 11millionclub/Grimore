@@ -1,3 +1,4 @@
+import { AppActions } from '@/components/app-actions';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -28,7 +29,7 @@ export default function Play() {
   const firstOpen = list.findIndex((g) => !g.attempt || g.attempt.status === 'in_progress');
 
   return (
-    <Screen title="Play" tabs refreshing={games.isRefetching} onRefresh={() => Promise.all([games.refetch(), rows.refetch(), streak.refetch()])}>
+    <Screen title="Play" tabs actions={<AppActions />} refreshing={games.isRefetching} onRefresh={() => Promise.all([games.refetch(), rows.refetch(), streak.refetch()])}>
       <View style={{ paddingHorizontal: spacing.lg }}>
         <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>

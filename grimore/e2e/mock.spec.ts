@@ -31,7 +31,7 @@ test.describe('@mock signed-in app', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Log a book' }).click();
     await expect(page.getByText('Photograph your shelf')).toBeVisible();
-    await expect(page.getByText('Scan ISBN')).toBeVisible();
+    await expect(page.getByText('Scan a barcode')).toBeVisible();
   });
 
   test('explore switches to communities and the market', async ({ page }) => {

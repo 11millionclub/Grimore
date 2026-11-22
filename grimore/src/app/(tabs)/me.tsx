@@ -1,3 +1,4 @@
+import { AppActions } from '@/components/app-actions';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
@@ -5,7 +6,7 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { DEFAULT_LOOK } from '@/components/corner';
 import { CornerBlocks } from '@/components/corner-view';
-import { GearSixIcon, PaintBrushIcon, ShareNetworkIcon } from '@/components/icons';
+import { PaintBrushIcon, ShareNetworkIcon } from '@/components/icons';
 import { ProfileHero } from '@/components/profile-hero';
 import { ShelvesView } from '@/components/shelves-view';
 import { StatsView } from '@/components/stats-view';
@@ -53,11 +54,7 @@ export default function Me() {
       tabs
       refreshing={corner.isRefetching}
       onRefresh={() => Promise.all([corner.refetch(), counts.refetch(), profile.refetch()])}
-      actions={
-        <IconBtn label="Settings" glass onPress={() => router.push('/settings')}>
-          <GearSixIcon size={20} color={colors.ink} />
-        </IconBtn>
-      }
+      actions={<AppActions />}
     >
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
         <Segmented
