@@ -29,7 +29,7 @@ test.describe('@mock signed-in app', () => {
 
   test('the + button opens the log sheet', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Log a book' }).click();
+    await page.getByRole('button', { name: 'Inscribe: add a book' }).click();
     await expect(page.getByText('Photograph your shelf')).toBeVisible();
     await expect(page.getByText('Scan a barcode')).toBeVisible();
   });

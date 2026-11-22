@@ -231,7 +231,7 @@ export async function listShelves(userId: string): Promise<Shelf[]> {
   const rows = unwrap(
     await supabase
       .from('reading_lists')
-      .select('id, title, description, is_public, reading_list_books(position, book:books(id, title, cover_url))')
+      .select('id, title, description, is_public, reading_list_books(position, book:books!reading_list_books_book_id_fkey(id, title, cover_url))')
       .eq('user_id', userId)
       .order('position'),
   ) as unknown as { id: string; title: string; description: string | null; is_public: boolean; reading_list_books: { position: number; book: { id: string; title: string; cover_url: string | null } | null }[] }[];
@@ -257,7 +257,7 @@ export async function getShelfBooks(listId: string) {
   const rows = unwrap(
     await supabase
       .from('reading_list_books')
-      .select('position, book:books(id, title, cover_url, first_published_year, book_authors(position, role, authors(name)))')
+      .select('position, book:books!reading_list_books_book_id_fkey(id, title, cover_url, first_published_year, book_authors(position, role, authors(name)))')
       .eq('list_id', listId)
       .order('position'),
   ) as unknown as { book: { id: string; title: string; cover_url: string | null; first_published_year: number | null; book_authors: Parameters<typeof authorLine>[0] } | null }[];
@@ -272,7 +272,7 @@ export async function addToShelf(listId: string, bookId: string) {
 
 export async function listQuotes(userId: string) {
   return unwrap(
-    await supabase.from('user_quotes').select('id, body, attribution, book_id, created_at, book:books(id, title, cover_url)').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+    await supabase.from('user_quotes').select('id, body, attribution, book_id, created_at, book:books!user_quotes_book_id_fkey(id, title, cover_url)').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
   ) as unknown as { id: string; body: string; attribution: string | null; book_id: string | null; created_at: string; book: { id: string; title: string; cover_url: string | null } | null }[];
 }
 

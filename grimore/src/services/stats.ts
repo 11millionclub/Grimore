@@ -40,7 +40,7 @@ async function loadAll(userId: string) {
   const [rows, sessions] = await Promise.all([
     supabase
       .from('user_books')
-      .select('status, rating, started_on, finished_on, added_at, book:books!inner(id, title, cover_url, page_count_estimate, moods, primary_genre:genres(name), book_authors(position, role, authors(name)))')
+      .select('status, rating, started_on, finished_on, added_at, book:books!inner(id, title, cover_url, page_count_estimate, moods, primary_genre:genres!books_primary_genre_id_fkey(name), book_authors(position, role, authors(name)))')
       .eq('user_id', userId)
       .limit(5000),
     supabase.from('reading_sessions').select('pages_read, created_at, user_book_id').eq('user_id', userId).order('created_at').limit(10000),

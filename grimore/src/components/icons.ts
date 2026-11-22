@@ -122,3 +122,7 @@ export { ScrollIcon } from 'phosphor-react-native/src/icons/Scroll';
 export { PauseCircleIcon } from 'phosphor-react-native/src/icons/PauseCircle';
 export { HandPalmIcon } from 'phosphor-react-native/src/icons/HandPalm';
 export { CaretDownIcon } from 'phosphor-react-native/src/icons/CaretDown';
+export { TextAaIcon } from 'phosphor-react-native/src/icons/TextAa';
+export { ImageSquareIcon } from 'phosphor-react-native/src/icons/ImageSquare';
+export { DetectiveIcon } from 'phosphor-react-native/src/icons/Detective';
+export { ListNumbersIcon } from 'phosphor-react-native/src/icons/ListNumbers';

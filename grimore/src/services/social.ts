@@ -172,7 +172,7 @@ export async function getBookReviews(bookId: string, viewerId: string) {
   const [rows, follows] = await Promise.all([
     supabase
       .from('reviews')
-      .select('id, rating, body, headline, has_spoilers, like_count, created_at, author:profiles(id, username, display_name, avatar_url)')
+      .select('id, rating, body, headline, has_spoilers, like_count, created_at, author:profiles!reviews_user_id_fkey(id, username, display_name, avatar_url)')
       .eq('book_id', bookId)
       .order('like_count', { ascending: false })
       .limit(200),
@@ -227,11 +227,11 @@ export async function setLiked(type: 'post' | 'review', id: string, userId: stri
 export type Comment = { id: string; body: string; created_at: string; parent_id: string | null; author: FeedAuthor | null };
 
 export async function getComments(type: 'post' | 'review', id: string): Promise<Comment[]> {
-  const select = 'id, body, created_at, parent_id, author:profiles(id, username, display_name, avatar_url)';
+  const author = 'author:profiles!%s_user_id_fkey(id, username, display_name, avatar_url)';
   const result =
     type === 'post'
-      ? await supabase.from('post_comments').select(select).eq('post_id', id).order('created_at').limit(200)
-      : await supabase.from('review_comments').select(select).eq('review_id', id).order('created_at').limit(200);
+      ? await supabase.from('post_comments').select(`id, body, created_at, parent_id, ${author.replace('%s', 'post_comments')}`).eq('post_id', id).order('created_at').limit(200)
+      : await supabase.from('review_comments').select(`id, body, created_at, parent_id, ${author.replace('%s', 'review_comments')}`).eq('review_id', id).order('created_at').limit(200);
   return unwrap(result) as unknown as Comment[];
 }
 
@@ -323,7 +323,7 @@ export async function getActivityFromFollowed(viewerId: string) {
   const rows = unwrap(
     await supabase
       .from('user_books')
-      .select('id, status, updated_at, user:profiles(id, username, display_name, avatar_url), book:books(id, title, cover_url)')
+      .select('id, status, updated_at, user:profiles!user_books_user_id_fkey(id, username, display_name, avatar_url), book:books!user_books_book_id_fkey(id, title, cover_url)')
       .in('user_id', ids)
       .in('status', ['reading', 'read'])
       .order('updated_at', { ascending: false })

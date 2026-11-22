@@ -44,7 +44,7 @@ export async function getBook(id: string) {
       .from('books')
       .select(
         `id, title, subtitle, description, first_published_year, page_count_estimate, cover_url, cover_source, original_language, moods,
-         primary_genre:genres(id, name, slug),
+         primary_genre:genres!books_primary_genre_id_fkey(id, name, slug),
          book_genres(genres(id, name, slug)),
          book_authors(position, role, authors(id, name, nationality_code)),
          book_editions(id, publisher, published_date, page_count, language, cover_url, book_identifiers(type, value))`,

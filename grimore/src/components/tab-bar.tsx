@@ -13,7 +13,7 @@ import { fonts, layout, spacing, useTheme } from '@/theme';
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
   index: { label: 'Home', Icon: CastleTurretIcon },
   explore: { label: 'Explore', Icon: CompassRoseIcon },
-  log: { label: 'Log', Icon: FeatherIcon },
+  log: { label: 'Inscribe', Icon: FeatherIcon },
   play: { label: 'Play', Icon: DiceFiveIcon },
   me: { label: 'Me', Icon: ShieldChevronIcon },
 };
@@ -33,7 +33,7 @@ function WaxSeal({ color, rim }: { color: string; rim: string }) {
   );
 }
 
-/** Parchment strip with a gilt rule. The wax seal in the centre logs a book; it is an action, not a page. */
+/** Parchment strip with a gilt rule. The wax seal in the centre (Inscribe) adds a book; it is an action, not a page. */
 export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -70,20 +70,19 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                   key={route.key}
                   onPress={tap}
                   accessibilityRole="button"
-                  accessibilityLabel="Log a book"
+                  accessibilityLabel="Inscribe: add a book"
                   hitSlop={8}
-                  style={{
-                    width: SEAL,
-                    height: SEAL,
-                    marginTop: -22,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                  style={{ width: 72, alignItems: 'center', marginTop: -24, gap: 3 }}
                 >
-                  <WaxSeal color={colors.accent} rim={colors.gold} />
-                  <View style={{ zIndex: 1 }}>
-                    <FeatherIcon size={24} weight="fill" color={colors.onAccent} />
+                  <View style={{ width: SEAL, height: SEAL, alignItems: 'center', justifyContent: 'center' }}>
+                    <WaxSeal color={colors.accent} rim={colors.gold} />
+                    <View style={{ zIndex: 1 }}>
+                      <FeatherIcon size={24} weight="fill" color={colors.onAccent} />
+                    </View>
                   </View>
+                  <Text style={{ fontFamily: fonts.displayMedium, fontSize: 9.5, lineHeight: 12, letterSpacing: 0.8 }} color={colors.accent}>
+                    INSCRIBE
+                  </Text>
                 </Press>
               );
             const { Icon } = meta;

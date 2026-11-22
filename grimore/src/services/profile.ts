@@ -58,7 +58,7 @@ export async function getFavoriteBooks(userId: string) {
   const rows = unwrap(
     await supabase
       .from('user_favorite_books')
-      .select('position, book:books(id, title, cover_url, first_published_year, book_authors(position, role, authors(name)))')
+      .select('position, book:books!user_favorite_books_book_id_fkey(id, title, cover_url, first_published_year, book_authors(position, role, authors(name)))')
       .eq('user_id', userId)
       .order('position'),
   );
