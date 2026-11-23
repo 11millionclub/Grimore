@@ -96,6 +96,8 @@ export default function Game() {
         void qc.invalidateQueries({ queryKey: qk.today });
         void qc.invalidateQueries({ queryKey: ['board'] });
         void qc.invalidateQueries({ queryKey: ['gameStreak'] });
+        // House Cup points are written the moment the game ends: refresh them now.
+        for (const key of ['standings', 'myHousePoints', 'duels', 'wallet', 'topContributors', 'myWeekGames']) void qc.invalidateQueries({ queryKey: [key] });
       }
     },
     onError: (e) => toast(toAppError(e).message),

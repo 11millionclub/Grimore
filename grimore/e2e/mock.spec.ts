@@ -57,7 +57,7 @@ test.describe('@mock signed-in app', () => {
 
   test('corner editor marks paid items and keeps payments off', async ({ page }) => {
     await page.goto('/corner/edit');
-    await expect(page.getByText('Your Corner')).toBeVisible();
+    await expect(page.getByText('My Grimore').first()).toBeVisible();
     await page.getByText('Holographic').click();
     await expect(page.getByText(/Holographic · €1\.99/)).toBeVisible();
     await page.getByText(/Holographic · €1\.99/).click();

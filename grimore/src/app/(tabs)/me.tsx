@@ -1,4 +1,5 @@
 import { AppActions } from '@/components/app-actions';
+import { UserPosts } from '@/components/user-posts';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -20,7 +21,7 @@ export default function Me() {
   const profile = useMyProfile();
   const corner = useCorner(me);
   const counts = useCounts(me);
-  const [tab, setTab] = useState<'corner' | 'stats' | 'shelves'>('corner');
+  const [tab, setTab] = useState<'corner' | 'posts' | 'stats' | 'shelves'>('corner');
   const c = corner.data;
   const look = c ? { theme: c.theme, frame: c.frame, shelf: c.shelf, name_style: c.name_style, pack: c.pack, banner_url: c.community_banner?.banner_url ?? null } : DEFAULT_LOOK;
   const p = profile.data;
@@ -61,14 +62,15 @@ export default function Me() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'corner', label: 'Corner' },
+            { value: 'corner', label: 'My Grimore' },
+            { value: 'posts', label: 'Posts' },
             { value: 'stats', label: 'Stats' },
             { value: 'shelves', label: 'Shelves' },
           ]}
         />
       </View>
       <Animated.View key={tab} entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}>
-        {tab === 'corner' ? <CornerBlocks userId={me} look={look} widgets={c?.widgets ?? []} status={c?.status_text} song={c?.song} /> : tab === 'stats' ? <StatsView userId={me} /> : <ShelvesView userId={me} isMe />}
+        {tab === 'corner' ? <CornerBlocks userId={me} look={look} widgets={c?.widgets ?? []} status={c?.status_text} song={c?.song} /> : tab === 'posts' ? <UserPosts userId={me} viewerId={me} /> : tab === 'stats' ? <StatsView userId={me} /> : <ShelvesView userId={me} isMe />}
       </Animated.View>
     </Screen>
   );

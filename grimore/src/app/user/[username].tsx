@@ -128,11 +128,11 @@ export default function UserProfile() {
       }
     >
       {!canSee ? (
-        <EmptyState title="This Corner is private" body="Follow to see their shelves and activity." />
+        <EmptyState title="This Grimore is private" body="Follow to see their shelves and activity." />
       ) : (
         <>
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
-            <Segmented value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Corner' }, { value: 'activity', label: 'Activity' }]} />
+            <Segmented value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Grimore' }, { value: 'activity', label: 'Posts' }]} />
           </View>
           {tab === 'corner' ? (
             <CornerBlocks userId={p.id} look={look} widgets={c?.widgets ?? ['top4', 'reading', 'shelf', 'guestbook']} status={c?.status_text} song={c?.song} />

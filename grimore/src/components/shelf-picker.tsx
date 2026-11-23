@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, PauseCircleIcon, PlusIcon, StackIcon, XIcon, type IconProps } from '@/components/icons';
+import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, PauseCircleIcon, PlusIcon, XIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { listShelves, shelvesWithBook, STATUS_META, type ReadingStatus } from '@/services/library';
@@ -47,7 +48,9 @@ export function ShelfPicker({
   const me = useMyId();
   const shelves = useQuery({ queryKey: ['shelves', me], queryFn: () => listShelves(me!), enabled: !!me && visible });
   const holding = useQuery({ queryKey: ['shelves', me, 'with', bookId], queryFn: () => shelvesWithBook(me!, bookId!), enabled: !!me && !!bookId && visible });
-  const onShelf = new Set(holding.data ?? []);
+  // Optimistic ticks so toggling several shelves feels instant.
+  const [ticks, setTicks] = useState<Record<string, boolean>>({});
+  const onShelf = new Set([...(holding.data ?? []).filter((id) => ticks[id] !== false), ...Object.keys(ticks).filter((id) => ticks[id])]);
   const choose = (c: ShelfChoice) => {
     onPick(c);
     onClose();
@@ -105,24 +108,43 @@ export function ShelfPicker({
           <Text variant="micro" tone="muted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs, textTransform: 'uppercase' }}>
             Your shelves
           </Text>
+          <Text variant="caption" tone="muted" style={{ marginBottom: spacing.xs }}>
+            Tick to add, untick to remove. Your reading status stays the same.
+          </Text>
           {(shelves.data ?? []).map((sh) => (
             <Press
               key={sh.id}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: onShelf.has(sh.id) }}
-              accessibilityLabel={onShelf.has(sh.id) ? `Remove from ${sh.title}` : `Add to ${sh.title}`}
-              onPress={() => choose({ kind: 'shelf', shelfId: sh.id, title: sh.title, remove: onShelf.has(sh.id) })}
+              accessibilityLabel={sh.title}
+              onPress={() => {
+                const on = onShelf.has(sh.id);
+                setTicks((t) => ({ ...t, [sh.id]: !on }));
+                // Shelves are a checklist: tick and untick several without closing.
+                onPick({ kind: 'shelf', shelfId: sh.id, title: sh.title, remove: on });
+              }}
               style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, borderBottomWidth: 1, borderBottomColor: colors.line }}
             >
-              <StackIcon size={20} weight={onShelf.has(sh.id) ? 'fill' : 'regular'} color={onShelf.has(sh.id) ? colors.accent : colors.ink} />
-              <Text variant="body" style={{ flex: 1 }} numberOfLines={1} tone={onShelf.has(sh.id) ? 'accent' : 'ink'}>
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 6,
+                  borderWidth: 2,
+                  borderColor: onShelf.has(sh.id) ? colors.accent : colors.lineStrong,
+                  backgroundColor: onShelf.has(sh.id) ? colors.accent : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {onShelf.has(sh.id) ? <CheckIcon size={14} weight="bold" color={colors.onAccent} /> : null}
+              </View>
+              <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>
                 {sh.title}
               </Text>
-              {onShelf.has(sh.id) ? <CheckIcon size={18} weight="bold" color={colors.accent} /> : (
-                <Text variant="caption" tone="faint">
-                  {sh.count}
-                </Text>
-              )}
+              <Text variant="caption" tone="faint">
+                {sh.count}
+              </Text>
             </Press>
           ))}
           <Press

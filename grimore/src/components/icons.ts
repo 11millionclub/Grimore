@@ -150,3 +150,5 @@ export { XLogoIcon } from 'phosphor-react-native/src/icons/XLogo';
 export { ThreadsLogoIcon } from 'phosphor-react-native/src/icons/ThreadsLogo';
 export { YoutubeLogoIcon } from 'phosphor-react-native/src/icons/YoutubeLogo';
 export { GoodreadsLogoIcon } from 'phosphor-react-native/src/icons/GoodreadsLogo';
+export { CoinsIcon } from 'phosphor-react-native/src/icons/Coins';
+export { CopySimpleIcon } from 'phosphor-react-native/src/icons/CopySimple';

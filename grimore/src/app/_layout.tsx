@@ -147,6 +147,7 @@ function Navigation() {
           <Stack.Screen name="settings" />
           <Stack.Screen name="house" />
           <Stack.Screen name="house-cup" />
+          <Stack.Screen name="points" />
           <Stack.Screen name="common-room/[house]" />
         </Stack.Protected>
       </Stack>

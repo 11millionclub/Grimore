@@ -68,7 +68,7 @@ export default function EditCorner() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.corner(me) });
       router.back();
-      toast('Corner updated');
+      toast('My Grimore updated');
     },
     onError: (e) => toast(toAppError(e).message),
   });
@@ -120,7 +120,7 @@ export default function EditCorner() {
             Cancel
           </Text>
         </Press>
-        <Text variant="bodyStrong">Your Corner</Text>
+        <Text variant="bodyStrong">My Grimore</Text>
         <Press onPress={() => (cart.length ? setCartOpen(true) : save.mutate(undefined))} style={{ height: 40, justifyContent: 'center', paddingHorizontal: spacing.sm }}>
           <Text tone="accent" style={{ fontFamily: fonts.semibold }}>
             Save
@@ -331,63 +331,53 @@ export default function EditCorner() {
             <Field icon={<MusicNotesIcon size={16} color={colors.muted} />} label="Listening to" value={d.song} onChange={(v) => set({ song: v })} placeholder="Artist · Track" />
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm }}>
-                <Text variant="small" tone="muted" style={{ fontFamily: fonts.semibold }}>
-                  In your Corner · use the arrows to reorder
+                <Text variant="small" tone="muted" style={{ fontFamily: fonts.semibold, flex: 1 }}>
+                  Tick the blocks to show · arrows reorder them
                 </Text>
                 <Text variant="caption" tone="faint">
                   {d.widgets.length} of {ALL_WIDGETS.length}
                 </Text>
               </View>
               <View style={{ gap: 6 }}>
-                {d.widgets.map((w, i) => (
-                  <Animated.View key={w} layout={LinearTransition} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.tile, backgroundColor: colors.surface, paddingVertical: spacing.sm, paddingLeft: spacing.md, paddingRight: spacing.sm }}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text variant="body" numberOfLines={1}>
-                        {WIDGETS[w as Widget]?.name ?? w}
-                      </Text>
-                      <Text variant="caption" tone="muted" numberOfLines={1}>
-                        {WIDGETS[w as Widget]?.desc}
-                      </Text>
-                    </View>
-                    <Press accessibilityLabel="Move up" disabled={i === 0} onPress={() => set({ widgets: swap(d.widgets, i, i - 1) })} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-                      <CaretRightIcon size={16} weight="bold" color={colors.muted} style={{ transform: [{ rotate: '-90deg' }] }} />
-                    </Press>
-                    <Press accessibilityLabel="Move down" disabled={i === d.widgets.length - 1} onPress={() => set({ widgets: swap(d.widgets, i, i + 1) })} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-                      <CaretRightIcon size={16} weight="bold" color={colors.muted} style={{ transform: [{ rotate: '90deg' }] }} />
-                    </Press>
-                    <Press onPress={() => set({ widgets: d.widgets.filter((x) => x !== w) })} style={{ borderRadius: radius.full, backgroundColor: colors.surface2, paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <Text variant="micro" tone="muted">
-                        Remove
-                      </Text>
-                    </Press>
-                  </Animated.View>
-                ))}
+                {[...d.widgets, ...ALL_WIDGETS.filter((w) => !d.widgets.includes(w))].map((w) => {
+                  const on = d.widgets.includes(w);
+                  const i = d.widgets.indexOf(w);
+                  return (
+                    <Animated.View key={w} layout={LinearTransition} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.tile, backgroundColor: colors.surface, opacity: on ? 1 : 0.75, paddingVertical: spacing.sm, paddingLeft: spacing.sm, paddingRight: spacing.sm }}>
+                      <Press
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: on }}
+                        accessibilityLabel={WIDGETS[w as Widget]?.name ?? w}
+                        onPress={() => set({ widgets: on ? d.widgets.filter((x) => x !== w) : [...d.widgets, w] })}
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 }}
+                      >
+                        <View style={{ width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: on ? colors.accent : colors.lineStrong, backgroundColor: on ? colors.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                          {on ? <CheckIcon size={14} weight="bold" color={colors.onAccent} /> : null}
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text variant="body" numberOfLines={1}>
+                            {WIDGETS[w as Widget]?.name ?? w}
+                          </Text>
+                          <Text variant="caption" tone="muted" numberOfLines={1}>
+                            {WIDGETS[w as Widget]?.desc}
+                          </Text>
+                        </View>
+                      </Press>
+                      {on ? (
+                        <>
+                          <Press accessibilityLabel="Move up" disabled={i === 0} onPress={() => set({ widgets: swap(d.widgets, i, i - 1) })} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', opacity: i === 0 ? 0.3 : 1 }}>
+                            <CaretRightIcon size={16} weight="bold" color={colors.muted} style={{ transform: [{ rotate: '-90deg' }] }} />
+                          </Press>
+                          <Press accessibilityLabel="Move down" disabled={i === d.widgets.length - 1} onPress={() => set({ widgets: swap(d.widgets, i, i + 1) })} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', opacity: i === d.widgets.length - 1 ? 0.3 : 1 }}>
+                            <CaretRightIcon size={16} weight="bold" color={colors.muted} style={{ transform: [{ rotate: '90deg' }] }} />
+                          </Press>
+                        </>
+                      ) : null}
+                    </Animated.View>
+                  );
+                })}
               </View>
             </View>
-            {d.widgets.length < ALL_WIDGETS.length ? (
-              <View>
-                <Text variant="small" tone="muted" style={{ fontFamily: fonts.semibold, marginBottom: spacing.sm }}>
-                  Available
-                </Text>
-                <View style={{ gap: 6 }}>
-                  {ALL_WIDGETS.filter((w) => !d.widgets.includes(w)).map((w) => (
-                    <Press key={w} onPress={() => set({ widgets: [...d.widgets, w] })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.tile, backgroundColor: colors.surface, paddingHorizontal: spacing.base, paddingVertical: spacing.md }}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="body">{WIDGETS[w].name}</Text>
-                        <Text variant="caption" tone="muted">
-                          {WIDGETS[w].desc}
-                        </Text>
-                      </View>
-                      <View style={{ borderRadius: radius.full, backgroundColor: colors.accentSoft, paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text variant="micro" tone="accent">
-                          Add
-                        </Text>
-                      </View>
-                    </Press>
-                  ))}
-                </View>
-              </View>
-            ) : null}
             <Text variant="caption" tone="faint" align="center">
               All blocks are free.
             </Text>

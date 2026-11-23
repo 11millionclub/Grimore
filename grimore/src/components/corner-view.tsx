@@ -326,27 +326,22 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
       </View>
     ) : null,
     tbr: (want.data ?? []).length ? (
-      <View style={{ paddingHorizontal: spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
-          <View style={{ width: 120, height: 86 }}>
-            {(want.data ?? []).slice(0, 4).map((e, i) => (
-              <View key={e.id} style={{ position: 'absolute', bottom: 0, left: i * 22, zIndex: 4 - i, transform: [{ rotate: `${(i - 1.5) * 5}deg` }] }}>
-                <Cover uri={e.book.cover_url} title={e.book.title} width={52} />
-              </View>
-            ))}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text variant="small" tone="muted" style={{ fontFamily: fonts.semibold }}>
-              Up next
-            </Text>
-            <Text variant="title">{(want.data ?? []).length} books</Text>
-            <Press onPress={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Want to read' } }))} style={{ marginTop: 4 }}>
-              <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
-                See the pile
+      <View>
+        <SectionHead
+          title={`Want to read · ${(want.data ?? []).length}`}
+          action="See all"
+          onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Want to read' } }))}
+        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+          {(want.data ?? []).slice(0, 12).map((e) => (
+            <Press key={e.id} accessibilityLabel={e.book.title} onPress={go(() => openBook(e.book.id))} style={{ width: 92 }}>
+              <Cover uri={e.book.cover_url} title={e.book.title} author={e.book.authors} width={92} />
+              <Text variant="caption" numberOfLines={2} style={{ marginTop: 6, fontFamily: fonts.medium }}>
+                {e.book.title}
               </Text>
             </Press>
-          </View>
-        </View>
+          ))}
+        </ScrollView>
       </View>
     ) : null,
     communities: (comms.data ?? []).length ? (

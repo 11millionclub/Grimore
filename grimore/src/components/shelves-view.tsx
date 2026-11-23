@@ -14,11 +14,9 @@ function ShelfCard({ s }: { s: Card }) {
   const { colors } = useTheme();
   return (
     <Press onPress={() => router.push({ pathname: '/shelf/[id]', params: { id: s.id, name: s.name } })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, padding: 14 }}>
-      <View style={{ width: 86, height: 64 }}>
-        {s.covers.slice(0, 3).map((b, i) => (
-          <View key={b.id} style={{ position: 'absolute', bottom: 0, left: i * 22, zIndex: 3 - i, transform: [{ rotate: `${(i - 1) * 4}deg` }] }}>
-            <Cover uri={b.cover_url} title={b.title} width={42} />
-          </View>
+      <View style={{ flexDirection: 'row', gap: 4, width: 3 * 38 + 8 }}>
+        {s.covers.slice(0, 3).map((b) => (
+          <Cover key={b.id} uri={b.cover_url} title={b.title} width={38} shadow={false} />
         ))}
       </View>
       <View style={{ flex: 1 }}>

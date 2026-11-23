@@ -34,7 +34,7 @@ export default function CreateCommunity() {
   const [members, setMembers] = useState(100);
   const [rules, setRules] = useState({ spoiler_tags: true, approve_members: false, live_sessions: true });
   const canNext = step === 0 ? name.trim().length >= 3 : true;
-  const gross = price * members * 0.8 + (price * 2 + 1) * members * 0.2;
+  const gross = price * members;
   const fee = gross * 0.15;
 
   const [logo, setLogo] = useState<PickedImage | null>(null);
@@ -43,10 +43,11 @@ export default function CreateCommunity() {
     mutationFn: async () => {
       const r = await createCommunity({ hostId: me, name, tagline, description: desc, scene, priceCents: paid ? price * 100 : null, rules });
       // Images upload after the community exists (they live in its folder). A failed upload can be retried from the community page.
-      await Promise.allSettled([
+      const uploads = await Promise.allSettled([
         logo ? uploadCommunityImage(r.id, 'logo', logo.base64, logo.mimeType) : Promise.resolve(),
         banner ? uploadCommunityImage(r.id, 'banner', banner.base64, banner.mimeType) : Promise.resolve(),
       ]);
+      if (uploads.some((u) => u.status === 'rejected')) setTimeout(() => toast('The logo or banner did not upload. Try again from the community page.'), 600);
       return r;
     },
     onSuccess: (r) => {
@@ -127,7 +128,7 @@ export default function CreateCommunity() {
                   <View style={[card, { gap: spacing.md }]}>
                     <Text variant="bodyStrong">Logo and banner</Text>
                     <ImageField kind="logo" label="Logo" hint="Square image, shown on your community." onPick={setLogo} />
-                    <ImageField kind="banner" label="Banner" hint="Wide image (3:1). Paying members can wear it on their Corner." onPick={setBanner} />
+                    <ImageField kind="banner" label="Banner" hint="Wide image (3:1). Paying members can wear it on their My Grimore page." onPick={setBanner} />
                   </View>
                 </View>
               ) : null}
@@ -141,7 +142,7 @@ export default function CreateCommunity() {
                   </View>
                   <View style={card}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text variant="bodyStrong">Circle</Text>
+                      <Text variant="bodyStrong">Member</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <IconBtn label="Lower price" size={32} filled onPress={() => setPrice(Math.max(1, price - 1))}>
                           <MinusIcon size={14} weight="bold" color={colors.ink} />
@@ -153,20 +154,11 @@ export default function CreateCommunity() {
                       </View>
                     </View>
                     <Text variant="small" tone="muted" style={{ marginTop: 4 }}>
-                      Chapter discussions, live sessions
-                    </Text>
-                  </View>
-                  <View style={card}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text variant="bodyStrong">Patron</Text>
-                      <Text style={{ fontFamily: fonts.bold, fontSize: 16 }}>{money((price * 2 + 1) * 100)}/mo</Text>
-                    </View>
-                    <Text variant="small" tone="muted" style={{ marginTop: 4 }}>
-                      Everything in Circle, and picks the book of the quarter
+                      Everything: discussions, live sessions, guides and the community banner for My Grimore
                     </Text>
                   </View>
                   <Text variant="caption" tone="muted">
-                    Paid tiers open when payments launch. Until then, everyone can join as a Visitor.
+                    Membership opens when payments launch. Until then, everyone can join as a Visitor.
                   </Text>
                 </View>
               ) : null}
@@ -215,7 +207,7 @@ export default function CreateCommunity() {
                     {tagline || desc || 'No description'}
                   </Text>
                   <Text variant="small" style={{ fontFamily: fonts.semibold, marginTop: spacing.sm }}>
-                    {paid ? `Free visitors · Circle ${money(price * 100)} · Patron ${money((price * 2 + 1) * 100)}` : 'Open to everyone'}
+                    {paid ? `Free visitors · Members ${money(price * 100)}/month` : 'Open to everyone'}
                   </Text>
                 </View>
               </View>

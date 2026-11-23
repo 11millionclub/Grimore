@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { CaretRightIcon } from '@/components/icons';
+import { PointsLink } from '@/components/house-cup-card';
 import { Sigil } from '@/components/sigil';
 import { Press, Screen, SectionHead, Skeleton, Text } from '@/components/ui';
 import { useMyHouse } from '@/hooks/queries';
@@ -28,7 +29,7 @@ export default function HouseCup() {
   const mine = useMyHouse();
   const h = mine.data?.house ?? null;
   const seasons = useQuery({ queryKey: ['seasons'], queryFn: listSeasons });
-  const standings = useQuery({ queryKey: ['standings'], queryFn: () => getStandings(), refetchInterval: 15 * 60_000 });
+  const standings = useQuery({ queryKey: ['standings'], queryFn: () => getStandings(), refetchInterval: 30_000 });
   const duels = useQuery({ queryKey: ['duels'], queryFn: getDuels });
   const points = useQuery({ queryKey: ['myHousePoints'], queryFn: () => myPoints(), enabled: !!h });
   const [now] = useState(() => Date.now());
@@ -164,6 +165,9 @@ export default function HouseCup() {
                 </Text>
               </View>
             ))}
+          </View>
+          <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.sm }}>
+            <PointsLink />
           </View>
         </View>
       ) : null}

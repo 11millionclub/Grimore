@@ -14,6 +14,7 @@ type ReadRow = {
     title: string;
     cover_url: string | null;
     page_count_estimate: number | null;
+    first_published_year: number | null;
     moods: string[];
     primary_genre: { name: string } | null;
     book_authors: Parameters<typeof authorLine>[0];
@@ -26,6 +27,7 @@ export type LibraryBook = {
   cover_url: string | null;
   authors: string;
   pages: number | null;
+  year: number | null;
   genre: string | null;
   moods: string[];
   rating: number | null;
@@ -40,7 +42,7 @@ async function loadAll(userId: string) {
   const [rows, sessions] = await Promise.all([
     supabase
       .from('user_books')
-      .select('status, rating, started_on, finished_on, added_at, book:books!user_books_book_id_fkey!inner(id, title, cover_url, page_count_estimate, moods, primary_genre:genres!books_primary_genre_id_fkey(name), book_authors(position, role, authors(name)))')
+      .select('status, rating, started_on, finished_on, added_at, book:books!user_books_book_id_fkey!inner(id, title, cover_url, page_count_estimate, first_published_year, moods, primary_genre:genres!books_primary_genre_id_fkey(name), book_authors(position, role, authors(name)))')
       .eq('user_id', userId)
       .limit(5000),
     supabase.from('reading_sessions').select('pages_read, created_at, user_book_id').eq('user_id', userId).order('created_at').limit(10000),
@@ -51,6 +53,7 @@ async function loadAll(userId: string) {
     cover_url: r.book.cover_url,
     authors: authorLine(r.book.book_authors),
     pages: r.book.page_count_estimate,
+    year: r.book.first_published_year ?? null,
     genre: r.book.primary_genre?.name ?? null,
     moods: r.book.moods ?? [],
     rating: r.rating === null ? null : Number(r.rating),
@@ -137,6 +140,49 @@ export async function getReadingStats(userId: string, year = new Date().getFullY
       return total ? (hours.slice(22).reduce((a, b) => a + b, 0) + hours.slice(0, 4).reduce((a, b) => a + b, 0)) / total : 0;
     })(),
     sessionsCount: sessions.length,
+    more: moreStats(books, finished, sessions, from, to),
+  };
+}
+
+/** The deeper numbers on the Stats tab. */
+function moreStats(books: LibraryBook[], finished: LibraryBook[], sessions: Session[], from: Date, to: Date) {
+  const readAll = books.filter((b) => b.status === 'read');
+  const withPages = readAll.filter((b) => b.pages);
+  const longest = withPages.reduce<LibraryBook | null>((a, b) => (!a || (b.pages ?? 0) > (a.pages ?? 0) ? b : a), null);
+  const shortest = withPages.reduce<LibraryBook | null>((a, b) => (!a || (b.pages ?? 0) < (a.pages ?? 0) ? b : a), null);
+  const fastest = readAll
+    .filter((b) => b.started_on && b.finished_on)
+    .map((b) => ({ b, days: Math.max(1, Math.round((Date.parse(b.finished_on!) - Date.parse(b.started_on!)) / 86_400_000)) }))
+    .sort((a, b) => a.days - b.days)[0] ?? null;
+  const authorCounts = new Map<string, number>();
+  readAll.forEach((b) => b.authors.split(',').map((a) => a.trim()).filter(Boolean).forEach((a) => authorCounts.set(a, (authorCounts.get(a) ?? 0) + 1)));
+  const decades = new Map<number, number>();
+  readAll.forEach((b) => b.year && decades.set(Math.floor(b.year / 10) * 10, (decades.get(Math.floor(b.year / 10) * 10) ?? 0) + 1));
+  const ratings = [1, 2, 3, 4, 5].map((n) => readAll.filter((b) => b.rating !== null && Math.ceil(b.rating) === n).length);
+  const booksByMonth = Array.from({ length: 12 }, () => 0);
+  finished.forEach((b) => (booksByMonth[new Date(b.finished_on!).getMonth()] += 1));
+  const weekdays = Array.from({ length: 7 }, () => 0);
+  sessions.forEach((x) => {
+    const d = new Date(x.created_at);
+    if (d >= from && d < to) weekdays[(d.getDay() + 6) % 7] += x.pages_read ?? 0;
+  });
+  const readingDays = new Set(sessions.map((x) => x.created_at.slice(0, 10))).size;
+  return {
+    allTimeBooks: readAll.length,
+    allTimePages: withPages.reduce((a, b) => a + (b.pages ?? 0), 0),
+    reading: books.filter((b) => b.status === 'reading').length,
+    wantToRead: books.filter((b) => b.status === 'want_to_read').length,
+    avgLength: withPages.length ? Math.round(withPages.reduce((a, b) => a + (b.pages ?? 0), 0) / withPages.length) : null,
+    longest,
+    shortest,
+    fastest,
+    topAuthors: [...authorCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, n]) => ({ name, n })),
+    decades: [...decades.entries()].sort((a, b) => a[0] - b[0]).map(([decade, n]) => ({ decade, n })),
+    ratings,
+    booksByMonth,
+    weekdays,
+    readingDays,
+    oldest: readAll.filter((b) => b.year).sort((a, b) => (a.year ?? 0) - (b.year ?? 0))[0] ?? null,
   };
 }
 
