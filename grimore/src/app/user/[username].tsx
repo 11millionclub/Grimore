@@ -76,7 +76,7 @@ export default function UserProfile() {
   if (!p) return <Screen title="Reader" back><EmptyState title="Reader not found" /></Screen>;
   if (p.id === me) return <Redirect href="/me" />;
   const c = corner.data;
-  const look = c ? { theme: c.theme, frame: c.frame, shelf: c.shelf, name_style: c.name_style, pack: c.pack } : DEFAULT_LOOK;
+  const look = c ? { theme: c.theme, frame: c.frame, shelf: c.shelf, name_style: c.name_style, pack: c.pack, banner_url: c.community_banner?.banner_url ?? null } : DEFAULT_LOOK;
   const canSee = !p.is_private || state.data === 'following';
   const items = feed.data?.pages.flatMap((x) => x.items) ?? [];
 

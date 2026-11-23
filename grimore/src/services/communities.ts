@@ -1,3 +1,5 @@
+import { decode } from 'base64-arraybuffer';
+
 import { unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database';
@@ -212,4 +214,27 @@ export async function membersProgress(communityId: string, bookId: string): Prom
 
 export async function communitiesForBook(bookId: string): Promise<Community[]> {
   return (unwrap(await supabase.from('communities').select(select).eq('reading_book_id', bookId).limit(6)) as unknown as Raw[]).map(map);
+}
+
+/** Uploads a community's logo or banner (host only) and saves its public URL. */
+export async function uploadCommunityImage(communityId: string, kind: 'logo' | 'banner', base64: string, mimeType = 'image/jpeg') {
+  const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${communityId}/${kind}-${Date.now()}.${ext}`;
+  unwrap(await supabase.storage.from('community-media').upload(path, decode(base64), { contentType: mimeType, upsert: true }));
+  const url = supabase.storage.from('community-media').getPublicUrl(path).data.publicUrl;
+  unwrap(await supabase.from('communities').update(kind === 'logo' ? { logo_url: url } : { banner_url: url }).eq('id', communityId));
+  return url;
+}
+
+/** Paid communities whose banner this reader may wear on their Corner (active paid membership). */
+export async function bannersIcanWear(userId: string) {
+  const rows = unwrap(
+    await supabase
+      .from('community_members')
+      .select('tier, community:communities!community_members_community_id_fkey(id, name, banner_url, price_cents, host_id)')
+      .eq('user_id', userId),
+  ) as unknown as { tier: string; community: { id: string; name: string; banner_url: string | null; price_cents: number | null; host_id: string | null } | null }[];
+  return rows
+    .filter((r) => r.community?.price_cents != null && r.community.banner_url && (r.tier !== 'visitor' || r.community.host_id === userId))
+    .map((r) => ({ id: r.community!.id, name: r.community!.name, banner_url: r.community!.banner_url! }));
 }

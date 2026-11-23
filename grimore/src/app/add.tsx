@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import type { ComponentType } from 'react';
 import { View } from 'react-native';
 
-import { ArrowRightIcon, BarcodeIcon, CameraIcon, CaretRightIcon, FileArrowUpIcon, MagnifyingGlassIcon, PencilSimpleLineIcon, QuotesIcon, StorefrontIcon, type IconProps } from '@/components/icons';
+import { ArrowRightIcon, BarcodeIcon, CameraIcon, CaretRightIcon, FileArrowUpIcon, MagnifyingGlassIcon, PencilSimpleLineIcon, QuotesIcon, type IconProps } from '@/components/icons';
 import { LibraryScene } from '@/components/scene';
 import { Press, Sheet, Text } from '@/components/ui';
 import { radius, spacing, useTheme } from '@/theme';
@@ -15,7 +15,6 @@ const ACTIONS: Action[] = [
   { label: 'Scan a barcode', hint: 'Point the camera at the ISBN', Icon: BarcodeIcon, href: { pathname: '/scan', params: { mode: 'isbn' } } },
   { label: 'Save a quote', hint: 'Photograph a page and pick the line', Icon: QuotesIcon, href: { pathname: '/scan', params: { mode: 'quote' } } },
   { label: 'Write a post', hint: 'Share a thought with your followers', Icon: PencilSimpleLineIcon, href: '/compose' },
-  { label: 'Sell or trade', hint: 'List a copy on the Market', Icon: StorefrontIcon, href: '/sell' },
   { label: 'Import a library', hint: 'Kindle, Kobo, Goodreads, StoryGraph', Icon: FileArrowUpIcon, href: '/import' },
 ];
 

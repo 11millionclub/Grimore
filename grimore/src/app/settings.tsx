@@ -11,7 +11,6 @@ import {
   DownloadSimpleIcon,
   EyeSlashIcon,
   GlobeIcon,
-  HandshakeIcon,
   SignOutIcon,
   TrophyIcon,
   UsersThreeIcon,
@@ -35,7 +34,6 @@ const NOTIFS: [string, string][] = [
   ['follows', 'New followers'],
   ['comments', 'Comments and likes'],
   ['communities', 'Communities'],
-  ['market', 'Market and trades'],
   ['messages', 'Messages'],
 ];
 
@@ -94,7 +92,7 @@ export default function Settings() {
           {chevron}
         </Press>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing.sm, paddingHorizontal: spacing.xs }}>
-          Grimore is free with every feature for everyone. Paid communities and a small market fee will keep it running once payments open.
+          Grimore is free with every feature for everyone. Paid communities and optional Corner cosmetics will keep it running once payments open.
         </Text>
       </View>
 
@@ -150,7 +148,6 @@ export default function Settings() {
 
       <Group title="Payments">
         <Row icon={icon(CreditCardIcon)} label="Payment methods" value="Coming soon" onPress={soon} />
-        <Row icon={icon(HandshakeIcon)} label="Sales and trades" onPress={() => router.push({ pathname: '/explore' })} right={chevron} />
         <Row icon={icon(UsersThreeIcon)} label="Community memberships" value="Coming soon" onPress={soon} />
         <Row icon={icon(CrownSimpleIcon)} label="Corner purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
       </Group>

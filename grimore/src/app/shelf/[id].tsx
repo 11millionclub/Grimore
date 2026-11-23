@@ -1,15 +1,18 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { openBook } from '@/components/books';
+import { XIcon } from '@/components/icons';
+import { useMyId } from '@/hooks/queries';
 import { Btn, Cover, EmptyState, Press, Screen, SectionHead, Stagger, Text, toast } from '@/components/ui';
 import { toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { importBook, type ExternalBook } from '@/services/books';
 import { booksByGenreId, GENRE_SUBJECTS, worldGenreBooks } from '@/services/discover';
-import { getShelfBooks, listByStatus, type ReadingStatus } from '@/services/library';
-import { fonts, spacing } from '@/theme';
+import { getShelfBooks, isMyShelf, listByStatus, removeEntry, removeFromShelf, type ReadingStatus } from '@/services/library';
+import { fonts, spacing, useTheme } from '@/theme';
 
 /** id is "genre:<id>", "<userId>:<status|owned>" or a custom shelf id. */
 async function load(id: string) {
@@ -23,6 +26,10 @@ async function load(id: string) {
 
 export default function ShelfScreen() {
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { colors } = useTheme();
+  const me = useMyId()!;
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
   const q = useQuery({ queryKey: ['shelf', id], queryFn: () => load(id) });
   const genreId = id.startsWith('genre:') ? Number(id.slice(6)) : null;
   const slug = useQuery({ queryKey: ['genre-slug', genreId], queryFn: () => genreSlug(genreId!), enabled: genreId != null, staleTime: Infinity });
@@ -52,18 +59,62 @@ export default function ShelfScreen() {
       toast(toAppError(e).message);
     }
   };
+  const statusShelf = genreId == null && id.includes(':');
+  const ownStatus = statusShelf && id.split(':')[0] === me;
+  const ownCustom = useQuery({ queryKey: ['shelf', id, 'mine'], queryFn: () => isMyShelf(me, id), enabled: genreId == null && !statusShelf });
+  const canEdit = ownStatus || !!ownCustom.data;
+  const remove = useMutation({
+    mutationFn: (bookId: string) => (statusShelf ? removeEntry(me, bookId) : removeFromShelf(id, bookId)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['shelf', id] });
+      void qc.invalidateQueries({ queryKey: ['shelves'] });
+      void qc.invalidateQueries({ queryKey: ['library'] });
+      toast(statusShelf ? 'Removed from your library' : 'Removed from this shelf');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
   return (
-    <Screen title={name ?? 'Shelf'} back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
+    <Screen
+      title={name ?? 'Shelf'}
+      back
+      refreshing={q.isRefetching}
+      onRefresh={() => q.refetch()}
+      actions={
+        canEdit && books.length ? (
+          <Press accessibilityRole="button" onPress={() => setEditing((x) => !x)} style={{ height: 40, justifyContent: 'center', paddingHorizontal: spacing.md }}>
+            <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
+              {editing ? 'Done' : 'Edit'}
+            </Text>
+          </Press>
+        ) : undefined
+      }
+    >
+      {editing ? (
+        <Text variant="small" tone="muted" style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+          {statusShelf ? 'Tap × to remove a book from your library.' : 'Tap × to take a book off this shelf. It stays in your library.'}
+        </Text>
+      ) : null}
       {!q.isLoading && books.length === 0 && genreId == null ? <EmptyState title="Nothing on this shelf yet" /> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, columnGap: spacing.md, rowGap: spacing.lg }}>
         {books.map((b, i) => (
           <Stagger key={b.id} i={i} style={{ width: '30.6%' }}>
-            <Press onPress={() => openBook(b.id)}>
+            <Press onPress={() => (editing ? undefined : openBook(b.id))} disabled={editing}>
               <Cover uri={b.cover_url} title={b.title} author={b.authors} width={100} style={{ width: '100%', height: undefined, aspectRatio: 2 / 3 }} />
               <Text variant="caption" numberOfLines={1} style={{ fontFamily: fonts.medium, marginTop: 6 }}>
                 {b.title}
               </Text>
             </Press>
+            {editing ? (
+              <Press
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${b.title}`}
+                onPress={() => remove.mutate(b.id)}
+                hitSlop={8}
+                style={{ position: 'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.danger, borderWidth: 2, borderColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <XIcon size={14} weight="bold" color="#fff" />
+              </Press>
+            ) : null}
           </Stagger>
         ))}
       </View>

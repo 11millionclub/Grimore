@@ -8,7 +8,7 @@ import { Btn, Press, Sheet, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { getCommunity, joinCommunity } from '@/services/communities';
-import { money } from '@/services/market';
+import { money } from '@/utils/money';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 export default function JoinSheet() {

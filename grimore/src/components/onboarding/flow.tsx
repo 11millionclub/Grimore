@@ -3,7 +3,7 @@ import { useState, type ComponentType } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInRight, ReduceMotion } from 'react-native-reanimated';
 
-import { BookOpenIcon, BooksIcon, ChatsCircleIcon, CheckIcon, DeviceTabletIcon, GameControllerIcon, HeadphonesIcon, MagnifyingGlassIcon, StorefrontIcon, type IconProps } from '@/components/icons';
+import { BookOpenIcon, BooksIcon, ChatsCircleIcon, CheckIcon, DeviceTabletIcon, GameControllerIcon, HeadphonesIcon, MagnifyingGlassIcon, type IconProps } from '@/components/icons';
 import { ImportPanel } from '@/components/import-panel';
 import { Btn, Slider, Text, toast } from '@/components/ui';
 import { useGenres } from '@/hooks/queries';
@@ -43,11 +43,10 @@ const FORMATS: { id: 'print' | 'ebook' | 'audio'; Icon: ComponentType<IconProps>
   { id: 'ebook', Icon: DeviceTabletIcon },
   { id: 'audio', Icon: HeadphonesIcon },
 ];
-const INTENTS: { id: 'track' | 'discover' | 'talk' | 'market' | 'games'; Icon: ComponentType<IconProps> }[] = [
+const INTENTS: { id: 'track' | 'discover' | 'talk' | 'games'; Icon: ComponentType<IconProps> }[] = [
   { id: 'track', Icon: BooksIcon },
   { id: 'discover', Icon: MagnifyingGlassIcon },
   { id: 'talk', Icon: ChatsCircleIcon },
-  { id: 'market', Icon: StorefrontIcon },
   { id: 'games', Icon: GameControllerIcon },
 ];
 const WARNINGS = ['violence', 'sexual', 'selfHarm', 'abuse', 'addiction', 'death'] as const;

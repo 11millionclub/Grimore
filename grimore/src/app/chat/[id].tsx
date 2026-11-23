@@ -75,12 +75,6 @@ export default function Chat() {
             <View key={m.id} style={{ flexDirection: 'row', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
               {m.book_id ? (
                 <BookBubble id={m.book_id} />
-              ) : m.listing_id ? (
-                <Press onPress={() => router.push({ pathname: '/listing/[id]', params: { id: m.listing_id! } })} style={{ borderRadius: 20, backgroundColor: colors.surface2, padding: spacing.md }}>
-                  <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
-                    Open the listing
-                  </Text>
-                </Press>
               ) : null}
               {m.body ? (
                 <View

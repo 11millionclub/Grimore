@@ -6,23 +6,22 @@ import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { ArrowsLeftRightIcon, BellIcon, CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
+import { CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
 import { HouseBadge } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
-import { useMyHouse, useMyId, useMyProfile, useReaderHouses } from '@/hooks/queries';
+import { useMyHouse, useMyId, useReaderHouses } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { listCommunities, suggestedCommunities, type Community } from '@/services/communities';
 import { becauseYouRead, booksByGenreSlug, classics, genreTiles, trendingBooks } from '@/services/discover';
-import { ListingTile } from '@/components/listing-tile';
-import { demandForMyBooks, listListings, money, type MarketFilter } from '@/services/market';
+import { money } from '@/utils/money';
 import { suggestReaders } from '@/services/profile';
 import { follow, unfollow } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
-type Seg = 'foryou' | 'communities' | 'market';
+type Seg = 'foryou' | 'communities';
 
 export default function Explore() {
   const { colors } = useTheme();
@@ -42,12 +41,11 @@ export default function Explore() {
           options={[
             { value: 'foryou', label: 'For you' },
             { value: 'communities', label: 'Communities' },
-            { value: 'market', label: 'Market' },
           ]}
         />
       </View>
       <Animated.View key={seg} entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}>
-        {seg === 'foryou' ? <ForYou /> : seg === 'communities' ? <Communities /> : <Market />}
+        {seg === 'foryou' ? <ForYou /> : <Communities />}
       </Animated.View>
     </Screen>
   );
@@ -257,63 +255,3 @@ function Communities() {
   );
 }
 
-function Market() {
-  const { colors } = useTheme();
-  const me = useMyId()!;
-  const profile = useMyProfile();
-  const [f, setF] = useState<MarketFilter>('all');
-  const list = useQuery({ queryKey: ['market', f, profile.data?.city], queryFn: () => listListings(f, profile.data?.city) });
-  const demand = useQuery({ queryKey: ['market', 'demand', me], queryFn: () => demandForMyBooks(me) });
-  const filters: [MarketFilter, string][] = [
-    ['all', 'Everything'],
-    ['sale', 'For sale'],
-    ['trade', 'Trade'],
-    ['near', profile.data?.city ? `In ${profile.data.city}` : 'Near me'],
-    ['rare', 'Rare editions'],
-  ];
-  return (
-    <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, gap: spacing.sm }}>
-        {filters.map(([v, l]) => (
-          <Chip key={v} active={f === v} onPress={() => (v === 'near' && !profile.data?.city ? router.push('/profile/edit') : setF(v))}>
-            {l}
-          </Chip>
-        ))}
-      </ScrollView>
-      <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: 14 }}>
-        <ArrowsLeftRightIcon size={22} color={colors.accent} />
-        <Text variant="small" tone="muted" style={{ flex: 1 }}>
-          {demand.data ? (
-            <>
-              <Text variant="small" style={{ fontFamily: fonts.semibold }}>
-                {demand.data} {demand.data === 1 ? 'reader wants' : 'readers want'}
-              </Text>{' '}
-              books you have already read.
-            </>
-          ) : (
-            'Sell or swap the books you have finished.'
-          )}
-        </Text>
-        <Btn size="sm" onPress={() => router.push('/sell')}>
-          Sell
-        </Btn>
-      </View>
-      {list.isLoading ? (
-        <View style={{ flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg }}>
-          <Skeleton width="48%" height={220} rounded={radius.card} />
-          <Skeleton width="48%" height={220} rounded={radius.card} />
-        </View>
-      ) : (list.data ?? []).length === 0 ? (
-        <EmptyState icon={<BellIcon size={24} color={colors.muted} />} title="Nothing here, for now" body="Open a book and switch on an alert: we tell you when someone lists it." />
-      ) : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, columnGap: spacing.md, rowGap: spacing.lg }}>
-          {(list.data ?? []).map((l, i) => (
-            <Stagger key={l.id} i={i} style={{ width: '47.5%' }}>
-              <ListingTile l={l} />
-            </Stagger>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}

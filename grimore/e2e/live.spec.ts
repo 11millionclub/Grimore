@@ -50,12 +50,10 @@ test.describe('@live real backend', () => {
     await expect(page.getByText('Frank Herbert').first()).toBeVisible({ timeout: 20_000 });
   });
 
-  test('communities and market load', async ({ page }) => {
+  test('communities load', async ({ page }) => {
     await signIn(page);
     await page.getByRole('tab', { name: 'Explore', exact: true }).click();
     await page.getByRole('tab', { name: 'Communities', exact: true }).click();
     await expect(page.getByText(/Do you run a book club\?|members/).first()).toBeVisible();
-    await page.getByRole('tab', { name: 'Market', exact: true }).click();
-    await expect(page.getByText(/Sell or swap|readers? want/).first()).toBeVisible();
   });
 });

@@ -383,6 +383,8 @@ export type Database = {
       }
       communities: {
         Row: {
+          logo_url: string | null
+          banner_url: string | null
           house_id: string | null
           cover_scene: string
           created_at: string
@@ -401,6 +403,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          logo_url?: string | null
+          banner_url?: string | null
           house_id?: string | null
           cover_scene?: string
           created_at?: string
@@ -419,6 +423,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          logo_url?: string | null
+          banner_url?: string | null
           house_id?: string | null
           cover_scene?: string
           created_at?: string
@@ -654,6 +660,8 @@ export type Database = {
       }
       content_reports: {
         Row: {
+          community_reply_id: string | null
+          community_thread_id: string | null
           created_at: string
           details: string | null
           id: string
@@ -667,6 +675,8 @@ export type Database = {
           status: Database["public"]["Enums"]["report_status"]
         }
         Insert: {
+          community_reply_id?: string | null
+          community_thread_id?: string | null
           created_at?: string
           details?: string | null
           id?: string
@@ -680,6 +690,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["report_status"]
         }
         Update: {
+          community_reply_id?: string | null
+          community_thread_id?: string | null
           created_at?: string
           details?: string | null
           id?: string
@@ -916,6 +928,7 @@ export type Database = {
       }
       corners: {
         Row: {
+          community_banner_id: string | null
           badge_ids: string[]
           frame: string
           name_style: string
@@ -930,6 +943,7 @@ export type Database = {
           widgets: string[]
         }
         Insert: {
+          community_banner_id?: string | null
           badge_ids?: string[]
           frame?: string
           name_style?: string
@@ -944,6 +958,7 @@ export type Database = {
           widgets?: string[]
         }
         Update: {
+          community_banner_id?: string | null
           badge_ids?: string[]
           frame?: string
           name_style?: string
@@ -1679,6 +1694,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          socials: Json
           house_hidden: boolean
           avatar_url: string | null
           bio: string | null
@@ -1693,6 +1709,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          socials?: Json
           house_hidden?: boolean
           avatar_url?: string | null
           bio?: string | null
@@ -1707,6 +1724,7 @@ export type Database = {
           username: string
         }
         Update: {
+          socials?: Json
           house_hidden?: boolean
           avatar_url?: string | null
           bio?: string | null

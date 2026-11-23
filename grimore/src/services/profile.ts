@@ -10,7 +10,7 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Preferences = Database['public']['Tables']['user_preferences']['Row'];
 export type Statistics = Database['public']['Tables']['user_statistics']['Row'];
 
-const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at, city, house_hidden';
+const profileSelect = 'id, username, display_name, bio, avatar_url, country_code, is_private, onboarding_completed_at, created_at, updated_at, city, house_hidden, socials';
 
 export async function getProfile(id: string): Promise<Profile> {
   return unwrap(await supabase.from('profiles').select(profileSelect).eq('id', id).single());
@@ -20,7 +20,7 @@ export async function getProfileByUsername(username: string): Promise<Profile | 
   return unwrap(await supabase.from('profiles').select(profileSelect).eq('username', username).maybeSingle());
 }
 
-export async function updateProfile(id: string, patch: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'avatar_url' | 'is_private' | 'onboarding_completed_at' | 'country_code' | 'city'>>) {
+export async function updateProfile(id: string, patch: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'avatar_url' | 'is_private' | 'onboarding_completed_at' | 'country_code' | 'city' | 'socials'>>) {
   return unwrap(await supabase.from('profiles').update(patch).eq('id', id).select(profileSelect).single());
 }
 

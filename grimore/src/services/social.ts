@@ -185,24 +185,21 @@ export async function getBookReviews(bookId: string, viewerId: string) {
   return { list, dist, avg, count: list.length };
 }
 
+/**
+ * Writes the reader's review of a book. The database only lets a review's
+ * text, rating and spoiler flag change after it exists (author and book are
+ * fixed), so an existing review is updated rather than upserted.
+ */
 export async function upsertReview(input: { userId: string; bookId: string; rating: number; headline?: string; body?: string; hasSpoilers?: boolean }) {
-  return unwrap(
-    await supabase
-      .from('reviews')
-      .upsert(
-        {
-          user_id: input.userId,
-          book_id: input.bookId,
-          rating: input.rating,
-          headline: input.headline?.trim() || null,
-          body: input.body?.trim() || null,
-          has_spoilers: !!input.hasSpoilers,
-        },
-        { onConflict: 'user_id,book_id' },
-      )
-      .select('id')
-      .single(),
-  );
+  const fields = {
+    rating: input.rating,
+    headline: input.headline?.trim() || null,
+    body: input.body?.trim() || null,
+    has_spoilers: !!input.hasSpoilers,
+  };
+  const existing = unwrap(await supabase.from('reviews').select('id').eq('user_id', input.userId).eq('book_id', input.bookId).maybeSingle());
+  if (existing) return unwrap(await supabase.from('reviews').update(fields).eq('id', existing.id).select('id').single());
+  return unwrap(await supabase.from('reviews').insert({ user_id: input.userId, book_id: input.bookId, ...fields }).select('id').single());
 }
 
 export async function getMyReview(userId: string, bookId: string) {
@@ -277,17 +274,25 @@ export async function report(input: {
   userId?: string;
   postId?: string;
   reviewId?: string;
+  postCommentId?: string;
+  reviewCommentId?: string;
+  communityReplyId?: string;
+  communityThreadId?: string;
 }) {
-  unwrap(
-    await supabase.from('content_reports').insert({
-      reporter_id: input.reporterId,
-      reason: input.reason,
-      details: input.details?.slice(0, 1000) ?? null,
-      reported_user_id: input.userId ?? null,
-      post_id: input.postId ?? null,
-      review_id: input.reviewId ?? null,
-    }),
-  );
+  const { error } = await supabase.from('content_reports').insert({
+    reporter_id: input.reporterId,
+    reason: input.reason,
+    details: input.details?.slice(0, 1000) ?? null,
+    reported_user_id: input.userId ?? null,
+    post_id: input.postId ?? null,
+    review_id: input.reviewId ?? null,
+    post_comment_id: input.postCommentId ?? null,
+    review_comment_id: input.reviewCommentId ?? null,
+    community_reply_id: input.communityReplyId ?? null,
+    community_thread_id: input.communityThreadId ?? null,
+  });
+  // Reporting the same thing twice is fine: the first report stands.
+  if (error && error.code !== '23505') unwrap({ data: null, error });
 }
 
 export async function setSaved(type: 'post' | 'review', id: string, userId: string, saved: boolean) {

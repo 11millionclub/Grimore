@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useEffect, type ComponentType } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -140,7 +141,8 @@ for (const h of HOUSE_IDS) {
   PACKS[`house-${h}-bundle`] = PACKS[`house-${h}-premium`];
 }
 
-export type CornerLook = { theme: string; frame: string; shelf: string; name_style: string; pack: string };
+/** `banner_url`: a paid community's banner worn instead of the theme. */
+export type CornerLook = { theme: string; frame: string; shelf: string; name_style: string; pack: string; banner_url?: string | null };
 export const DEFAULT_LOOK: CornerLook = { theme: 'forest', frame: 'ember', shelf: 'theme', name_style: 'plain', pack: 'reader' };
 
 const vec = (angle: number) => {
@@ -220,7 +222,7 @@ export function Banner({ look, height = 190, children }: { look: CornerLook; hei
   ] as const;
   return (
     <View style={{ height, overflow: 'hidden' }}>
-      <ThemeFill theme={look.theme} />
+      {look.banner_url ? <Image source={{ uri: look.banner_url }} style={{ position: 'absolute', inset: 0 }} contentFit="cover" /> : <ThemeFill theme={look.theme} />}
       <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.12)' }} />
       {pack.icons.map((Icon, i) => (
         <View key={i} pointerEvents="none" style={{ position: 'absolute', left: spots[i].left, top: spots[i].top, transform: [{ rotate: spots[i].rot }] }}>

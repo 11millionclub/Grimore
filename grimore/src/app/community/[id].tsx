@@ -4,13 +4,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CommunityCover, openBook } from '@/components/books';
+import { CommunityCover, CommunityLogo, openBook } from '@/components/books';
 import { CalendarBlankIcon, CheckIcon, LockSimpleIcon, PlusIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, EmptyState, Press, Progress, Screen, SectionHead, Skeleton, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { getCommunity, leaveCommunity, listThreads, membersProgress, myMembership, nextEvent } from '@/services/communities';
-import { money } from '@/services/market';
+import { ImageField } from '@/components/image-field';
+import { getCommunity, uploadCommunityImage, leaveCommunity, listThreads, membersProgress, myMembership, nextEvent } from '@/services/communities';
+import { money } from '@/utils/money';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
 
@@ -52,9 +53,12 @@ export default function CommunityScreen() {
       <CommunityCover c={d} height={300} />
       <LinearGradient colors={['rgba(0,0,0,0.3)', colors.bg + '4d', colors.bg]} locations={[0, 0.5, 1]} style={{ position: 'absolute', inset: 0 }} />
       <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.md }}>
-        <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 37, lineHeight: 39 }}>
-          {d.name}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <CommunityLogo url={d.logo_url} size={52} />
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 37, lineHeight: 39, flex: 1 }}>
+            {d.name}
+          </Text>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
           <Avatar uri={d.host?.avatar_url} name={d.host?.display_name} size={22} />
           <Text variant="small">
@@ -221,6 +225,21 @@ export default function CommunityScreen() {
         </View>
       </View>
       <View style={{ height: insets.bottom }} />
+      {isHost && paid ? (
+        <View style={{ marginTop: spacing.xxl, paddingHorizontal: spacing.lg }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.base, gap: spacing.md }}>
+            <Text variant="bodyStrong">Logo and banner</Text>
+            <ImageField kind="logo" label="Logo" value={d.logo_url} onUpload={(img) => uploadCommunityImage(id, 'logo', img.base64, img.mimeType).then(() => qc.invalidateQueries({ queryKey: ['community', id] }))} />
+            <ImageField
+              kind="banner"
+              label="Banner"
+              hint="Paying members can wear it on their Corner while their membership is active."
+              value={d.banner_url}
+              onUpload={(img) => uploadCommunityImage(id, 'banner', img.base64, img.mimeType).then(() => qc.invalidateQueries({ queryKey: ['community', id] }))}
+            />
+          </View>
+        </View>
+      ) : null}
     </Screen>
   );
 }

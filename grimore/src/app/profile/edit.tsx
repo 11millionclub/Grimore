@@ -8,8 +8,9 @@ import { Avatar, Btn, Press, Screen, Text, TextField, toast } from '@/components
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
+import { asSocials, cleanHandle, SOCIALS, type Socials } from '@/components/social-links';
 import { isUsernameAvailable, updateProfile, uploadAvatar } from '@/services/profile';
-import { fonts, spacing } from '@/theme';
+import { fonts, spacing, useTheme } from '@/theme';
 import { usernameSchema } from '@/validation/schemas';
 
 export default function EditProfile() {
@@ -21,8 +22,10 @@ export default function EditProfile() {
   const [handle, setHandle] = useState<string | null>(null);
   const [bio, setBio] = useState<string | null>(null);
   const [city, setCity] = useState<string | null>(null);
+  const { colors } = useTheme();
   const [avatar, setAvatar] = useState<string | null>(null);
-  const v = { name: name ?? p?.display_name ?? '', handle: handle ?? p?.username ?? '', bio: bio ?? p?.bio ?? '', city: city ?? p?.city ?? '' };
+  const [socials, setSocials] = useState<Socials | null>(null);
+  const v = { name: name ?? p?.display_name ?? '', handle: handle ?? p?.username ?? '', bio: bio ?? p?.bio ?? '', city: city ?? p?.city ?? '', socials: socials ?? asSocials(p?.socials) };
 
   const pickPhoto = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true });
@@ -40,7 +43,7 @@ export default function EditProfile() {
       const u = usernameSchema.safeParse(v.handle);
       if (!u.success) throw new Error(u.error.issues[0]?.message ?? 'Check your username');
       if (u.data.toLowerCase() !== p?.username.toLowerCase() && !(await isUsernameAvailable(u.data))) throw new Error('That username is taken');
-      await updateProfile(me, { display_name: v.name.trim() || null, username: u.data.toLowerCase(), bio: v.bio.trim() || null, city: v.city.trim() || null, ...(avatar ? { avatar_url: avatar } : {}) });
+      await updateProfile(me, { display_name: v.name.trim() || null, username: u.data.toLowerCase(), bio: v.bio.trim() || null, city: v.city.trim() || null, socials: Object.fromEntries(Object.entries(v.socials).map(([k, h]) => [k, cleanHandle(h ?? '')]).filter(([, h]) => h)), ...(avatar ? { avatar_url: avatar } : {}) });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.profile(me) });
@@ -74,7 +77,26 @@ export default function EditProfile() {
         <TextField label="Name" value={v.name} onChangeText={setName} maxLength={60} autoCapitalize="words" />
         <TextField label="Username" value={v.handle} onChangeText={(x) => setHandle(x.toLowerCase().replace(/[^a-z0-9._]/g, ''))} prefix="@" autoCapitalize="none" maxLength={24} />
         <TextField label="Bio" value={v.bio} onChangeText={(x) => setBio(x.slice(0, 160))} multiline helper={`${v.bio.length}/160`} />
-        <TextField label="City" value={v.city} onChangeText={setCity} maxLength={60} helper="Only used for the Market, never your exact location." />
+        <TextField label="City" value={v.city} onChangeText={setCity} maxLength={60} helper="Shown on your profile. Never your exact location." />
+        <Text variant="h2" style={{ fontSize: 15, marginTop: spacing.md }}>
+          Social profiles
+        </Text>
+        <Text variant="caption" tone="muted" style={{ marginTop: -spacing.sm }}>
+          Your @ on each network. Leave blank to hide.
+        </Text>
+        {SOCIALS.map(({ key, label, Icon }) => (
+          <TextField
+            key={key}
+            label={label}
+            value={v.socials[key] ?? ''}
+            onChangeText={(x) => setSocials({ ...v.socials, [key]: x.replace(/\s/g, '').slice(0, 60) })}
+            prefix="@"
+            left={<Icon size={18} color={colors.muted} />}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="handle"
+          />
+        ))}
       </View>
     </Screen>
   );

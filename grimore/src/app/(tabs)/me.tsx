@@ -22,7 +22,7 @@ export default function Me() {
   const counts = useCounts(me);
   const [tab, setTab] = useState<'corner' | 'stats' | 'shelves'>('corner');
   const c = corner.data;
-  const look = c ? { theme: c.theme, frame: c.frame, shelf: c.shelf, name_style: c.name_style, pack: c.pack } : DEFAULT_LOOK;
+  const look = c ? { theme: c.theme, frame: c.frame, shelf: c.shelf, name_style: c.name_style, pack: c.pack, banner_url: c.community_banner?.banner_url ?? null } : DEFAULT_LOOK;
   const p = profile.data;
 
   const hero = p ? (
