@@ -34,12 +34,11 @@ test.describe('@mock signed-in app', () => {
     await expect(page.getByText('Scan a barcode')).toBeVisible();
   });
 
-  test('explore switches to communities and the market', async ({ page }) => {
+  test('explore switches to communities and has no market', async ({ page }) => {
     await page.goto('/explore');
     await page.getByRole('tab', { name: 'Communities', exact: true }).click();
     await expect(page.getByText('Night Readers')).toBeVisible();
-    await page.getByRole('tab', { name: 'Market', exact: true }).click();
-    await expect(page.getByText('€9')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Market', exact: true })).toHaveCount(0);
   });
 
   test('a daily game shows its rules before the clock starts', async ({ page }) => {
@@ -73,7 +72,7 @@ test.describe('@mock signed-in app', () => {
   });
 
   test('screenshots of the main screens', async ({ page }, info) => {
-    for (const path of ['/', '/explore', '/play', '/me', '/book/b3', '/community/cm1', '/listing/l1']) {
+    for (const path of ['/', '/explore', '/play', '/me', '/book/b3', '/community/cm1']) {
       await page.goto(path);
       await page.waitForTimeout(1500);
       await info.attach(path === '/' ? 'home' : path.slice(1).replace(/\//g, '-'), { body: await page.screenshot(), contentType: 'image/png' });

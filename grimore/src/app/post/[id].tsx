@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Composer, PostCard } from '@/components/feed';
 import { Avatar, Divider, EmptyState, Press, Screen, Skeleton, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
+import { ReportButton, ReportedGate } from '@/components/report-button';
 import { addComment, getComments, getFeedItem } from '@/services/social';
 import { fonts, radius, spacing } from '@/theme';
 import { relativeTime } from '@/utils/dates';
@@ -47,17 +48,22 @@ export default function PostScreen() {
                 <Avatar uri={c.author?.avatar_url} name={c.author?.display_name} size={32} />
               </Press>
               <View style={{ flex: 1 }}>
-                <Text variant="small">
-                  <Text variant="small" style={{ fontFamily: fonts.semibold }}>
-                    {c.author?.display_name ?? c.author?.username}
-                  </Text>{' '}
-                  <Text variant="small" tone="faint">
-                    {relativeTime(c.created_at)}
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text variant="small" style={{ flex: 1 }}>
+                    <Text variant="small" style={{ fontFamily: fonts.semibold }}>
+                      {c.author?.display_name ?? c.author?.username}
+                    </Text>{' '}
+                    <Text variant="small" tone="faint">
+                      {relativeTime(c.created_at)}
+                    </Text>
                   </Text>
-                </Text>
-                <Text variant="callout" style={{ marginTop: 2 }}>
-                  {c.body}
-                </Text>
+                  <ReportButton target={kind === 'review' ? { reviewCommentId: c.id } : { postCommentId: c.id }} authorId={c.author?.id} />
+                </View>
+                <ReportedGate target={kind === 'review' ? { reviewCommentId: c.id } : { postCommentId: c.id }}>
+                  <Text variant="callout" style={{ marginTop: 2 }}>
+                    {c.body}
+                  </Text>
+                </ReportedGate>
               </View>
             </View>
           ))

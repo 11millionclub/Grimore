@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
@@ -39,9 +39,16 @@ function Count({ to, color, size }: { to: number; color: string; size: number })
   return <Text style={{ fontFamily: fonts.bold, fontSize: size, lineHeight: size * 1.02, fontVariant: ['tabular-nums'] }} color={color}>{fmt(v)}</Text>;
 }
 
+/**
+ * Story sizes scale with the screen (390 x 844 is 1.0), so the slides fit a
+ * small phone, a tablet and a desktop browser alike.
+ */
+const scaler = (k: number) => (n: number) => Math.round(n * k);
+
 const big = (size: number, color: string) => ({ fontFamily: fonts.display, fontSize: size * 1.1, lineHeight: size * 1.12, letterSpacing: -0.5, color });
 
-function slides(d: WrappedData, house: { id: HouseId; points: number } | null, summary: ReactNode): Slide[] {
+function slides(d: WrappedData, house: { id: HouseId; points: number } | null, summary: ReactNode, k = 1): Slide[] {
+  const sz = scaler(k);
   const s: Slide[] = [];
   const month = d.period === 'month';
   s.push({
@@ -77,10 +84,10 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={1}>
-            <Count to={d.pages} size={96} color="#d4b05e" />
+            <Count to={d.pages} size={sz(96)} color="#d4b05e" />
           </R>
           <R i={2}>
-            <Text style={big(34, '#efe6d4')}>pages.</Text>
+            <Text style={big(sz(34), '#efe6d4')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>pages.</Text>
           </R>
           {d.previousPages ? (
             <R i={3}>
@@ -104,10 +111,10 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={1}>
-            <Count to={d.books.length} size={150} color="#1f130a" />
+            <Count to={d.books.length} size={sz(150)} color="#1f130a" />
           </R>
           <R i={2}>
-            <Text style={big(34, '#1f130a')}>{d.books.length === 1 ? 'book.' : 'books.'}</Text>
+            <Text style={big(sz(34), '#1f130a')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{d.books.length === 1 ? 'book.' : 'books.'}</Text>
           </R>
         </View>
       ),
@@ -125,11 +132,11 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
           </R>
           <R i={1}>
             <View style={{ alignItems: 'center', marginVertical: spacing.xxl, transform: [{ rotate: '-3deg' }] }}>
-              <Cover uri={d.topBook.cover_url} title={d.topBook.title} author={d.topBook.authors} width={170} />
+              <Cover uri={d.topBook.cover_url} title={d.topBook.title} author={d.topBook.authors} width={sz(170)} />
             </View>
           </R>
           <R i={2}>
-            <Text style={big(38, '#f1e6d0')}>{d.topBook.title}</Text>
+            <Text style={big(sz(38), '#f1e6d0')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{d.topBook.title}</Text>
           </R>
           <R i={3}>
             <Text style={{ fontSize: 17, marginTop: spacing.sm, opacity: 0.8 }} color="#f1e6d0">
@@ -152,13 +159,13 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(52, '#efe6d4')}>{d.topAuthor.name}</Text>
+            <Text style={big(sz(52), '#efe6d4')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{d.topAuthor.name}</Text>
           </R>
           <R i={2}>
             <View style={{ flexDirection: 'row', gap: spacing.base, marginTop: spacing.xxl }}>
               {d.topAuthor.books.slice(0, 2).map((b, i) => (
                 <View key={b.id} style={{ transform: [{ rotate: i ? '3deg' : '-3deg' }] }}>
-                  <Cover uri={b.cover_url} title={b.title} width={130} />
+                  <Cover uri={b.cover_url} title={b.title} width={sz(130)} />
                 </View>
               ))}
             </View>
@@ -178,7 +185,7 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(56, '#c39a45')}>{d.topGenre[0].name}</Text>
+            <Text style={big(sz(56), '#c39a45')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{d.topGenre[0].name}</Text>
           </R>
           <R i={2}>
             <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
@@ -207,10 +214,10 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <MoonStarsIcon size={56} weight="fill" color="#d9b25c" />
+            <MoonStarsIcon size={sz(56)} weight="fill" color="#d9b25c" />
           </R>
           <R i={1}>
-            <Text style={[big(52, '#efe6d4'), { marginTop: spacing.xl }]}>{`The ${d.peakHour}:00 reader`}</Text>
+            <Text numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6} style={[big(sz(52), '#efe6d4'), { marginTop: spacing.xl }]}>{`The ${d.peakHour}:00 reader`}</Text>
           </R>
           <R i={2}>
             <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.8 }} color="#efe6d4">
@@ -232,7 +239,7 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={1}>
-            <Text style={big(52, '#241a12')}>{`You read more than ${d.percentile}%.`}</Text>
+            <Text style={big(sz(52), '#241a12')} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{`You read more than ${d.percentile}%.`}</Text>
           </R>
         </View>
       ),
@@ -245,7 +252,7 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
       body: (
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <R>
-            <Sigil house={house.id} size={72} color={tk.onPrimary} />
+            <Sigil house={house.id} size={sz(72)} color={tk.onPrimary} />
           </R>
           <R i={1}>
             <Text style={{ fontSize: 19, opacity: 0.8, marginTop: spacing.lg }} color={tk.onPrimary}>
@@ -253,7 +260,7 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
             </Text>
           </R>
           <R i={2}>
-            <Text style={big(52, tk.onPrimary)}>{`${fmt(house.points)} points`}</Text>
+            <Text style={big(sz(52), tk.onPrimary)} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.6}>{`${fmt(house.points)} points`}</Text>
           </R>
           <R i={3}>
             <Text style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.base, opacity: 0.85 }} color={tk.onPrimary}>
@@ -271,6 +278,9 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
 export default function Wrapped() {
   const { period } = useLocalSearchParams<{ period?: 'month' | 'year' }>();
   const insets = useSafeAreaInsets();
+  const win = useWindowDimensions();
+  // Scale type and covers to the screen; on wide screens the story keeps a phone-like column.
+  const scale = Math.max(0.72, Math.min(1.25, Math.min(Math.min(win.width, 560) / 390, (win.height - insets.top - insets.bottom) / 760)));
   const me = useMyId()!;
   const profile = useMyProfile();
   const q = useQuery({ queryKey: ['wrapped', me, period], queryFn: () => getWrapped(me, period === 'year' ? 'year' : 'month') });
@@ -324,7 +334,7 @@ export default function Wrapped() {
                 [d.topGenre[0]?.name ?? '—', 'genre'],
               ].map(([v, l]) => (
                 <View key={l} style={{ width: '50%' }}>
-                  <Text style={big(30, '#1f130a')} numberOfLines={1}>
+                  <Text style={big(Math.round(30 * Math.min(scale, 1.1)), '#1f130a')} numberOfLines={1} adjustsFontSizeToFit>
                     {v}
                   </Text>
                   <Text style={{ fontFamily: fonts.medium, fontSize: 13, opacity: 0.7 }} color="#1f130a">
@@ -356,7 +366,7 @@ export default function Wrapped() {
   ) : null;
 
   const houseSlide = myHouse.data?.house ? { id: myHouse.data.house, points: Object.values(seasonPoints.data ?? {}).reduce((a, b) => a + b, 0) } : null;
-  const list = d ? slides(d, houseSlide, summary) : [];
+  const list = d ? slides(d, houseSlide, summary, scale) : [];
   const n = list.length;
 
   useEffect(() => {
@@ -409,9 +419,9 @@ export default function Wrapped() {
         onPressOut={() => setPaused(false)}
         delayLongPress={250}
         onLongPress={() => undefined}
-        onPress={(e) => (e.nativeEvent.locationX < 120 ? go(i - 1) : go(i + 1))}
+        onPress={(e) => (e.nativeEvent.locationX < win.width * 0.3 ? go(i - 1) : go(i + 1))}
       />
-      <Animated.View key={i} entering={FadeIn.duration(350)} pointerEvents="box-none" style={{ flex: 1, paddingHorizontal: 28, paddingTop: insets.top + 70, paddingBottom: insets.bottom + 30 }}>
+      <Animated.View key={i} entering={FadeIn.duration(350)} pointerEvents="box-none" style={{ flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: Math.max(20, Math.min(28, win.width * 0.07)), paddingTop: insets.top + 70, paddingBottom: insets.bottom + 30 }}>
         {s.body}
       </Animated.View>
     </View>

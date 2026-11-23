@@ -9,14 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
 import { ShelfPicker } from '@/components/shelf-picker';
-import { BellIcon, BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, StorefrontIcon } from '@/components/icons';
+import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
-import { addToShelf, getEntry, removeEntry, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
-import { hasAlert, listingsForBook, money, setAlert } from '@/services/market';
+import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
+import { money } from '@/utils/money';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
@@ -31,9 +31,7 @@ export default function BookScreen() {
   const reviews = useQuery({ queryKey: ['book', id, 'reviews'], queryFn: () => getBookReviews(id, me) });
   const friends = useQuery({ queryKey: ['book', id, 'friends'], queryFn: () => friendsWithBook(me, id) });
   const comms = useQuery({ queryKey: ['book', id, 'communities'], queryFn: () => communitiesForBook(id) });
-  const listings = useQuery({ queryKey: ['book', id, 'listings'], queryFn: () => listingsForBook(id) });
   const [picking, setPicking] = useState(false);
-  const alert = useQuery({ queryKey: ['alert', id], queryFn: () => hasAlert(me, id) });
 
   const save = useMutation({
     mutationFn: async ({ patch }: { patch: EntryPatch | null; done?: string }) => {
@@ -47,13 +45,6 @@ export default function BookScreen() {
       if (done) toast(done);
     },
     onError: (e) => toast(toAppError(e).message),
-  });
-  const toggleAlert = useMutation({
-    mutationFn: (on: boolean) => setAlert(me, id, on),
-    onSuccess: (_d, on) => {
-      void qc.invalidateQueries({ queryKey: ['alert', id] });
-      toast(on ? 'We will tell you when someone lists it' : 'Alert removed');
-    },
   });
 
   if (book.isError) {
@@ -193,6 +184,7 @@ export default function BookScreen() {
         ) : null}
         <ShelfPicker
           visible={picking}
+          bookId={id}
           title={b?.title}
           current={e?.status ?? null}
           onClose={() => setPicking(false)}
@@ -200,7 +192,16 @@ export default function BookScreen() {
           onPick={(choice) => {
             if (choice.kind === 'status') {
               if (choice.status !== e?.status) save.mutate({ patch: statusPatch(choice.status, e), done: `Moved to ${STATUS_META[choice.status].label}` });
-            } else
+            } else if (choice.remove)
+              void removeFromShelf(choice.shelfId, id).then(
+                () => {
+                  void qc.invalidateQueries({ queryKey: ['shelves'] });
+                  void qc.invalidateQueries({ queryKey: ['shelf', choice.shelfId] });
+                  toast(`Removed from ${choice.title}`);
+                },
+                (err) => toast(toAppError(err).message),
+              );
+            else
               void addToShelf(choice.shelfId, id).then(
                 () => {
                   if (!e) save.mutate({ patch: statusPatch('want_to_read') });
@@ -335,30 +336,6 @@ export default function BookScreen() {
       ) : null}
 
       <View style={{ marginTop: spacing.xxl, paddingHorizontal: spacing.lg, gap: spacing.sm }}>
-        <Press
-          onPress={() => (listings.data?.[0] ? router.push({ pathname: '/listing/[id]', params: { id: listings.data[0].id } }) : router.push({ pathname: '/sell', params: { bookId: id } }))}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}
-        >
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <StorefrontIcon size={20} weight="bold" color={colors.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text variant="bodyStrong">{listings.data?.length ? `${listings.data.length} ${listings.data.length === 1 ? 'copy' : 'copies'} on the Market` : 'Nobody is selling it'}</Text>
-            <Text variant="small" tone="muted">
-              {listings.data?.length
-                ? listings.data[0].mode === 'trade'
-                  ? 'Available to trade'
-                  : `from ${money(listings.data[0].price_cents, listings.data[0].currency)}${listings.data[0].mode === 'both' ? ' or trade' : ''}`
-                : 'Sell or trade your copy'}
-            </Text>
-          </View>
-          <CaretRightIcon size={18} color={colors.muted} />
-        </Press>
-        {!listings.data?.length ? (
-          <Btn variant="ghost" size="sm" icon={<BellIcon size={14} weight={alert.data ? 'fill' : 'regular'} color={colors.ink} />} onPress={() => toggleAlert.mutate(!alert.data)}>
-            {alert.data ? 'Alert on: we will tell you' : 'Alert me when someone lists it'}
-          </Btn>
-        ) : null}
         {e ? (
           <Press
             onPress={() => save.mutate({ patch: null, done: 'Removed from your library' })}

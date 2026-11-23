@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
@@ -66,8 +67,17 @@ export function BookListRow({ book, right, onPress, subtitle }: { book: B; right
 export const openCommunity = (id: string) => router.push({ pathname: '/community/[id]', params: { id } });
 export const priceLabel = (cents: number | null) => (cents ? `from ${(cents / 100).toLocaleString('en-IE', { style: 'currency', currency: 'EUR' })}/month` : 'Free');
 
-export function CommunityCover({ c, height }: { c: Pick<Community, 'cover_scene'>; height: number | string }) {
+/** The community's uploaded banner, or its illustrated library scene. */
+export function CommunityCover({ c, height }: { c: Pick<Community, 'cover_scene'> & { banner_url?: string | null }; height: number | string }) {
+  if (c.banner_url) return <Image source={{ uri: c.banner_url }} style={{ height: height as number, width: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />;
   return <LibraryScene id={(c.cover_scene as SceneId) ?? 'great-hall'} style={{ height: height as number, width: '100%' }} />;
+}
+
+/** The community's uploaded logo, as a round badge (nothing when it has none). */
+export function CommunityLogo({ url, size = 40 }: { url?: string | null; size?: number }) {
+  const { colors } = useTheme();
+  if (!url) return null;
+  return <Image source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colors.bg }} contentFit="cover" accessibilityLabel="Community logo" />;
 }
 
 export function CommunityCard({ c }: { c: Community }) {
@@ -75,7 +85,12 @@ export function CommunityCard({ c }: { c: Community }) {
   return (
     <Press onPress={() => openCommunity(c.id)} style={{ width: 240, backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>
       <CommunityCover c={c} height={112} />
-      <View style={{ padding: 14 }}>
+      {c.logo_url ? (
+        <View style={{ position: 'absolute', left: 12, top: 84 }}>
+          <CommunityLogo url={c.logo_url} size={40} />
+        </View>
+      ) : null}
+      <View style={{ padding: 14, paddingTop: c.logo_url ? 22 : 14 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
           <Text variant="bodyStrong" numberOfLines={1} style={{ flex: 1 }}>
             {c.name}

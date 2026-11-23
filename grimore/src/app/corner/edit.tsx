@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
@@ -12,16 +13,17 @@ import { HouseBadge, ReaderMarks } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
 import { useCorner, useMyHouse, useMyId, useMyProfile, useShop } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
+import { bannersIcanWear } from '@/services/communities';
 import { myItems as getMyItems } from '@/services/houses';
 import { HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { ALL_WIDGETS, saveCorner, WIDGETS, type CornerItem, type Widget } from '@/services/corner';
-import { money } from '@/services/market';
+import { money } from '@/utils/money';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 type Tab = 'house' | 'themes' | 'blocks' | 'frames' | 'shelf' | 'extras';
-type Draft = CornerLook & { widgets: string[]; status_text: string; song: string };
+type Draft = CornerLook & { widgets: string[]; status_text: string; song: string; community_banner_id: string | null };
 const KIND_FIELD: Record<string, keyof CornerLook> = { theme: 'theme', frame: 'frame', shelf: 'shelf', name: 'name_style', pack: 'pack' };
 
 export default function EditCorner() {
@@ -38,10 +40,11 @@ export default function EditCorner() {
   const [cartOpen, setCartOpen] = useState(false);
   const [openedAt] = useState(() => Date.now());
   const myHouse = useMyHouse();
+  const wearable = useQuery({ queryKey: ['wearable-banners', me], queryFn: () => bannersIcanWear(me) });
   const myItems = useQuery({ queryKey: ['myItems', me], queryFn: () => getMyItems(me) });
   const base: Draft = saved.data
-    ? { theme: saved.data.theme, frame: saved.data.frame, shelf: saved.data.shelf, name_style: saved.data.name_style, pack: saved.data.pack, widgets: saved.data.widgets, status_text: saved.data.status_text ?? '', song: saved.data.song ?? '' }
-    : { ...DEFAULT_LOOK, widgets: ['status', 'top4', 'reading', 'goal', 'quote', 'shelf', 'badges', 'genres', 'tbr', 'guestbook'], status_text: '', song: '' };
+    ? { theme: saved.data.theme, frame: saved.data.frame, shelf: saved.data.shelf, name_style: saved.data.name_style, pack: saved.data.pack, widgets: saved.data.widgets, status_text: saved.data.status_text ?? '', song: saved.data.song ?? '', community_banner_id: saved.data.community_banner_id }
+    : { ...DEFAULT_LOOK, widgets: ['status', 'top4', 'reading', 'goal', 'quote', 'shelf', 'badges', 'genres', 'tbr', 'guestbook'], status_text: '', song: '', community_banner_id: null };
   const d = draft ?? base;
   const set = (p: Partial<Draft>) => setDraft({ ...d, ...p });
   const items = shop.data?.items ?? [];
@@ -60,7 +63,7 @@ export default function EditCorner() {
   const save = useMutation({
     mutationFn: (x?: Draft) => {
       const v = x ?? d;
-      return saveCorner(me, { theme: v.theme, frame: v.frame, shelf: v.shelf, name_style: v.name_style, pack: v.pack, widgets: v.widgets, status_text: v.status_text.trim() || null, song: v.song.trim() || null });
+      return saveCorner(me, { theme: v.theme, frame: v.frame, shelf: v.shelf, name_style: v.name_style, pack: v.pack, widgets: v.widgets, status_text: v.status_text.trim() || null, song: v.song.trim() || null, community_banner_id: v.community_banner_id });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.corner(me) });
@@ -126,7 +129,7 @@ export default function EditCorner() {
       </View>
 
       <View style={{ marginHorizontal: spacing.base, height: 176, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden', backgroundColor: colors.bg }}>
-        <Banner look={d} height={110} />
+        <Banner look={{ ...d, banner_url: wearable.data?.find((w) => w.id === d.community_banner_id)?.banner_url ?? null }} height={110} />
         <View style={{ marginTop: -36, flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingHorizontal: spacing.base }}>
           <FramedAvatar frame={d.frame} uri={profile.data?.avatar_url} name={name} size={56} />
           <View style={{ paddingBottom: 2, flex: 1 }}>
@@ -215,6 +218,37 @@ export default function EditCorner() {
                   </ShopTile>
                 ))}
               </Grid>
+            </View>
+          </View>
+        ) : null}
+        {tab === 'themes' && (wearable.data ?? []).length ? (
+          <View style={{ marginBottom: spacing.lg }}>
+            <Text variant="h2" style={{ fontSize: 14 }}>
+              From your communities
+            </Text>
+            <Text variant="caption" tone="muted" style={{ marginBottom: spacing.sm }}>
+              Banners of paid communities you belong to, while your membership is active.
+            </Text>
+            <View style={{ gap: spacing.sm }}>
+              {(wearable.data ?? []).map((w) => {
+                const on = d.community_banner_id === w.id;
+                return (
+                  <Press
+                    key={w.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`${w.name} banner`}
+                    onPress={() => set({ community_banner_id: on ? null : w.id })}
+                    style={{ borderRadius: radius.tile, borderWidth: 2, borderColor: on ? colors.accent : 'transparent', overflow: 'hidden' }}
+                  >
+                    <Image source={{ uri: w.banner_url }} style={{ width: '100%', aspectRatio: 3 }} contentFit="cover" />
+                    <Text variant="caption" style={{ padding: 6 }}>
+                      {w.name}
+                      {on ? ' · In use' : ''}
+                    </Text>
+                  </Press>
+                );
+              })}
             </View>
           </View>
         ) : null}

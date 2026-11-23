@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, PauseCircleIcon, PlusIcon, StackIcon, XIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
-import { listShelves, STATUS_META, type ReadingStatus } from '@/services/library';
+import { listShelves, shelvesWithBook, STATUS_META, type ReadingStatus } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
-export type ShelfChoice = { kind: 'status'; status: ReadingStatus } | { kind: 'shelf'; shelfId: string; title: string };
+/** `remove` takes the book off one of the reader's own shelves (it stays in the library). */
+export type ShelfChoice = { kind: 'status'; status: ReadingStatus } | { kind: 'shelf'; shelfId: string; title: string; remove?: boolean };
 
 const STATUS_ICONS: Record<ReadingStatus, React.ComponentType<IconProps>> = {
   want_to_read: BookmarkSimpleIcon,
@@ -31,7 +32,9 @@ export function ShelfPicker({
   onPick,
   onClose,
   onRemove,
+  bookId,
 }: {
+  bookId?: string;
   visible: boolean;
   title?: string;
   current?: ReadingStatus | null;
@@ -43,6 +46,8 @@ export function ShelfPicker({
   const insets = useSafeAreaInsets();
   const me = useMyId();
   const shelves = useQuery({ queryKey: ['shelves', me], queryFn: () => listShelves(me!), enabled: !!me && visible });
+  const holding = useQuery({ queryKey: ['shelves', me, 'with', bookId], queryFn: () => shelvesWithBook(me!, bookId!), enabled: !!me && !!bookId && visible });
+  const onShelf = new Set(holding.data ?? []);
   const choose = (c: ShelfChoice) => {
     onPick(c);
     onClose();
@@ -101,14 +106,23 @@ export function ShelfPicker({
             Your shelves
           </Text>
           {(shelves.data ?? []).map((sh) => (
-            <Press key={sh.id} accessibilityRole="button" onPress={() => choose({ kind: 'shelf', shelfId: sh.id, title: sh.title })} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, borderBottomWidth: 1, borderBottomColor: colors.line }}>
-              <StackIcon size={20} color={colors.ink} />
-              <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>
+            <Press
+              key={sh.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: onShelf.has(sh.id) }}
+              accessibilityLabel={onShelf.has(sh.id) ? `Remove from ${sh.title}` : `Add to ${sh.title}`}
+              onPress={() => choose({ kind: 'shelf', shelfId: sh.id, title: sh.title, remove: onShelf.has(sh.id) })}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, borderBottomWidth: 1, borderBottomColor: colors.line }}
+            >
+              <StackIcon size={20} weight={onShelf.has(sh.id) ? 'fill' : 'regular'} color={onShelf.has(sh.id) ? colors.accent : colors.ink} />
+              <Text variant="body" style={{ flex: 1 }} numberOfLines={1} tone={onShelf.has(sh.id) ? 'accent' : 'ink'}>
                 {sh.title}
               </Text>
-              <Text variant="caption" tone="faint">
-                {sh.count}
-              </Text>
+              {onShelf.has(sh.id) ? <CheckIcon size={18} weight="bold" color={colors.accent} /> : (
+                <Text variant="caption" tone="faint">
+                  {sh.count}
+                </Text>
+              )}
             </Press>
           ))}
           <Press

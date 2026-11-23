@@ -39,10 +39,11 @@ export const profile = {
   city: 'Lisboa',
   is_private: false,
   onboarding_completed_at: '2026-11-10T10:00:00Z',
+  socials: { instagram: 'test.reader', goodreads: 'testreader' },
   created_at: '2026-11-10T10:00:00Z',
   updated_at: '2026-11-10T10:00:00Z',
 };
-const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto' };
+const friend = { ...profile, id: FRIEND, username: 'ines.reads', display_name: 'Inês Costa', bio: null, city: 'Porto', socials: {} };
 
 const statuses = ['reading', 'read', 'read', 'want_to_read', 'reading', 'read'];
 type Entry = { id: string; status: string; rating: number | null; progress_percent: number | null; current_page: number | null; started_on: string | null; finished_on: string | null; book: (typeof BOOKS)[number] } & Record<string, unknown>;
@@ -280,6 +281,15 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
         { id: 2, slug: 'romance', name: 'Romance' },
         { id: 6, slug: 'fantasy', name: 'Fantasy' },
       ];
+    case 'post_comments':
+    case 'review_comments':
+      return [{ id: 'pc1', body: 'This chapter ruined me, the ending reveals who did it!', created_at: new Date(now - 600e3).toISOString(), parent_id: null, author: { id: FRIEND, username: friend.username, display_name: friend.display_name, avatar_url: null } }];
+    case 'content_reports':
+      return null;
+    case 'reading_lists':
+      return single ? { id: 'rl1' } : [{ id: 'rl1', title: 'Summer reads', description: null, is_public: true, reading_list_books: [{ position: 0, book: { id: BOOKS[0].id, title: BOOKS[0].title, cover_url: null } }] }];
+    case 'reading_list_books':
+      return [{ position: 0, book: BOOKS[0] }];
     case 'user_favorite_books':
       return BOOKS.slice(0, 4).map((b, i) => ({ position: i, book: b }));
     default:

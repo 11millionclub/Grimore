@@ -7,6 +7,7 @@ import { Spoiler } from '@/components/feed';
 import { HeartIcon } from '@/components/icons';
 import { Avatar, Chip, EmptyState, Progress, Screen, Stagger, Stars, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
+import { ReportButton, ReportedGate } from '@/components/report-button';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
@@ -70,12 +71,15 @@ export default function Reviews() {
                     {r.author?.display_name ?? r.author?.username}
                   </Text>
                   <Stars value={r.rating} size={12} />
+                  <ReportButton target={{ reviewId: r.id }} authorId={r.author?.id} size={16} />
                 </View>
                 <View style={{ marginTop: spacing.sm }}>
-                  <Spoiler hidden={r.has_spoilers}>
-                    {r.headline ? <Text variant="bodyStrong">{r.headline}</Text> : null}
-                    {r.body ? <Text variant="callout">{r.body}</Text> : null}
-                  </Spoiler>
+                  <ReportedGate target={{ reviewId: r.id }}>
+                    <Spoiler hidden={r.has_spoilers}>
+                      {r.headline ? <Text variant="bodyStrong">{r.headline}</Text> : null}
+                      {r.body ? <Text variant="callout">{r.body}</Text> : null}
+                    </Spoiler>
+                  </ReportedGate>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm }}>
                   <HeartIcon size={13} color={colors.muted} />

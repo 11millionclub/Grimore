@@ -12,8 +12,9 @@ import { LibraryScene } from '@/components/scene';
 import { Btn, IconBtn, Press, Slider, Text, TextField, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { createCommunity, SCENES, type SceneId } from '@/services/communities';
-import { money } from '@/services/market';
+import { ImageField, type PickedImage } from '@/components/image-field';
+import { createCommunity, SCENES, uploadCommunityImage, type SceneId } from '@/services/communities';
+import { money } from '@/utils/money';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 const STEPS = ['Basics', 'Access', 'Rules', 'Review'];
@@ -36,8 +37,18 @@ export default function CreateCommunity() {
   const gross = price * members * 0.8 + (price * 2 + 1) * members * 0.2;
   const fee = gross * 0.15;
 
+  const [logo, setLogo] = useState<PickedImage | null>(null);
+  const [banner, setBanner] = useState<PickedImage | null>(null);
   const create = useMutation({
-    mutationFn: () => createCommunity({ hostId: me, name, tagline, description: desc, scene, priceCents: paid ? price * 100 : null, rules }),
+    mutationFn: async () => {
+      const r = await createCommunity({ hostId: me, name, tagline, description: desc, scene, priceCents: paid ? price * 100 : null, rules });
+      // Images upload after the community exists (they live in its folder). A failed upload can be retried from the community page.
+      await Promise.allSettled([
+        logo ? uploadCommunityImage(r.id, 'logo', logo.base64, logo.mimeType) : Promise.resolve(),
+        banner ? uploadCommunityImage(r.id, 'banner', banner.base64, banner.mimeType) : Promise.resolve(),
+      ]);
+      return r;
+    },
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['communities'] });
       void qc.invalidateQueries({ queryKey: ['my-communities'] });
@@ -111,6 +122,15 @@ export default function CreateCommunity() {
                   </Press>
                 ))}
               </View>
+              {paid ? (
+                <View style={{ gap: spacing.md }}>
+                  <View style={[card, { gap: spacing.md }]}>
+                    <Text variant="bodyStrong">Logo and banner</Text>
+                    <ImageField kind="logo" label="Logo" hint="Square image, shown on your community." onPick={setLogo} />
+                    <ImageField kind="banner" label="Banner" hint="Wide image (3:1). Paying members can wear it on their Corner." onPick={setBanner} />
+                  </View>
+                </View>
+              ) : null}
               {paid ? (
                 <View style={{ gap: spacing.sm }}>
                   <View style={card}>

@@ -7,6 +7,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, HeartIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
 import { HouseBadge } from '@/components/house-badge';
+import { ReportButton } from '@/components/report-button';
 import { Avatar, Cover, Press, Progress, Stars, Text, toast, shareText } from '@/components/ui';
 import { useHouseOf } from '@/hooks/use-house-of';
 import { useMyId, useMyProfile } from '@/hooks/queries';
@@ -114,9 +115,12 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
             </Text>
           ) : null}
         </Text>
-        <Text variant="caption" tone="faint" style={{ alignSelf: 'flex-start' }}>
-          {relativeTime(post.created_at)}
-        </Text>
+        <View style={{ alignItems: 'flex-end', alignSelf: 'flex-start' }}>
+          <Text variant="caption" tone="faint">
+            {relativeTime(post.created_at)}
+          </Text>
+          <ReportButton target={post.item_type === 'review' ? { reviewId: post.id } : { postId: post.id }} authorId={post.author?.id} size={16} />
+        </View>
       </View>
 
       <Press onPress={open} disabled={full} style={{ marginTop: spacing.md }}>

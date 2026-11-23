@@ -312,3 +312,18 @@ export async function saveQuote(userId: string, input: { body: string; bookId?: 
       .single(),
   );
 }
+
+export async function removeFromShelf(listId: string, bookId: string) {
+  unwrap(await supabase.from('reading_list_books').delete().eq('list_id', listId).eq('book_id', bookId));
+}
+
+/** Ids of the reader's own shelves that hold this book. */
+export async function shelvesWithBook(userId: string, bookId: string): Promise<string[]> {
+  const rows = unwrap(await supabase.from('reading_list_books').select('list_id, reading_lists!inner(user_id)').eq('book_id', bookId).eq('reading_lists.user_id', userId));
+  return rows.map((r) => r.list_id);
+}
+
+/** Whether a custom shelf belongs to this reader. */
+export async function isMyShelf(userId: string, listId: string) {
+  return !!unwrap(await supabase.from('reading_lists').select('id').eq('id', listId).eq('user_id', userId).maybeSingle());
+}

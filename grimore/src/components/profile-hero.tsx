@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Banner, FramedAvatar, StyledName, type CornerLook } from '@/components/corner';
 import { ReaderMarks } from '@/components/house-badge';
 import { HousePlate } from '@/components/house-plate';
+import { SocialLinks } from '@/components/social-links';
 import { Press, Text } from '@/components/ui';
 import type { Profile } from '@/services/profile';
 import { readerMarks } from '@/services/houses';
@@ -42,6 +43,7 @@ export function ProfileHero({ profile, look, counts, actions, children }: { prof
             {profile.bio}
           </Text>
         ) : null}
+        <SocialLinks socials={profile.socials} />
         {counts ? (
           <View style={{ flexDirection: 'row', gap: spacing.xl, marginTop: spacing.base }}>
             <Text variant="callout">

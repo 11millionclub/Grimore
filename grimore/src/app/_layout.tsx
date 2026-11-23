@@ -115,8 +115,6 @@ function Navigation() {
           <Stack.Screen name="add" options={sheet} />
           <Stack.Screen name="search" options={sheet} />
           <Stack.Screen name="progress/[bookId]" options={sheet} />
-          <Stack.Screen name="sell" options={{ ...sheet, sheetAllowedDetents: [1] }} />
-          <Stack.Screen name="trade/[id]" options={sheet} />
           <Stack.Screen name="community/join/[id]" options={sheet} />
           <Stack.Screen name="shelves/new" options={sheet} />
           <Stack.Screen name="scan" options={fullscreen} />
@@ -141,8 +139,6 @@ function Navigation() {
           <Stack.Screen name="follows/[userId]" />
           <Stack.Screen name="community/[id]" />
           <Stack.Screen name="thread/[id]" />
-          <Stack.Screen name="listing/[id]" />
-          <Stack.Screen name="checkout/[id]" />
           <Stack.Screen name="leaderboard" />
           <Stack.Screen name="dna" />
           <Stack.Screen name="shelf/[id]" />

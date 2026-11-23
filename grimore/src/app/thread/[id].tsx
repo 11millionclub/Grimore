@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import { Composer, Spoiler } from '@/components/feed';
+import { ReportButton, ReportedGate } from '@/components/report-button';
 import { ChatCircleDotsIcon } from '@/components/icons';
 import { Avatar, Divider, Press, Screen, Skeleton, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
@@ -58,9 +59,10 @@ export default function ThreadScreen() {
             <Text variant="small" style={{ fontFamily: fonts.semibold }}>
               {d.author?.display_name ?? d.author?.username}
             </Text>
-            <Text variant="small" tone="faint">
+            <Text variant="small" tone="faint" style={{ flex: 1 }}>
               · {relativeTime(d.created_at)}
             </Text>
+            <ReportButton target={{ communityThreadId: d.id }} authorId={d.author?.id} />
           </View>
           <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 33, marginTop: spacing.base }}>
             {d.title}
@@ -88,19 +90,24 @@ export default function ThreadScreen() {
           <View key={r.id} style={{ flexDirection: 'row', gap: spacing.md }}>
             <Avatar uri={r.author?.avatar_url} name={r.author?.display_name} size={32} />
             <View style={{ flex: 1 }}>
-              <Text variant="small">
-                <Text variant="small" style={{ fontFamily: fonts.semibold }}>
-                  {r.author?.display_name ?? r.author?.username}
-                </Text>{' '}
-                <Text variant="small" tone="faint">
-                  {relativeTime(r.created_at)}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text variant="small" style={{ flex: 1 }}>
+                  <Text variant="small" style={{ fontFamily: fonts.semibold }}>
+                    {r.author?.display_name ?? r.author?.username}
+                  </Text>{' '}
+                  <Text variant="small" tone="faint">
+                    {relativeTime(r.created_at)}
+                  </Text>
                 </Text>
-              </Text>
-              <Spoiler hidden={r.has_spoilers}>
-                <Text variant="callout" style={{ marginTop: 2 }}>
-                  {r.body}
-                </Text>
-              </Spoiler>
+                <ReportButton target={{ communityReplyId: r.id }} authorId={r.author?.id} />
+              </View>
+              <ReportedGate target={{ communityReplyId: r.id }}>
+                <Spoiler hidden={r.has_spoilers}>
+                  <Text variant="callout" style={{ marginTop: 2 }}>
+                    {r.body}
+                  </Text>
+                </Spoiler>
+              </ReportedGate>
             </View>
           </View>
         ))}

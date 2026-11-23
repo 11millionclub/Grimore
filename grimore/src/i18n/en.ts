@@ -23,7 +23,7 @@ const en = {
       tooYoungTitle: 'Grimore is for readers aged 13 and over',
       tooYoungBody: 'Come back when you are 13. Your reading life will be waiting.',
       signOut: 'Sign out',
-      teenNote: 'Messages, the Market and paid communities open at 16. Everything else is yours.',
+      teenNote: 'Messages and paid communities open at 16. Everything else is yours.',
     },
     languages: {
       title: 'Which languages do you read in?',
@@ -68,7 +68,6 @@ const en = {
       track: 'Track my reading',
       discover: 'Find what to read next',
       talk: 'Talk about books',
-      market: 'Buy and swap books',
       games: 'Play the daily games',
     },
     goal: {
@@ -382,12 +381,13 @@ const en = {
   },
   errors: {
     too_young: 'Grimore is for readers aged 13 and over.',
-    not_available_under_16: 'Messages, the Market and paid communities open at 16.',
+    not_available_under_16: 'Messages and paid communities open at 16.',
     house_change_locked: 'You can change House in the week after a season ends.',
     house_change_used: 'You have already changed House this season.',
     item_house_locked: 'That item belongs to another House.',
     item_not_earned: 'You have not earned that item yet.',
     ritual_not_joined: 'Join the ritual first.',
+    community_banner_members_only: 'Only paying members can wear this community’s banner.',
     house_room_members_only: 'This Common Room is for members of its House.',
   },
 };

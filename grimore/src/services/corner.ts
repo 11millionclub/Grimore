@@ -41,8 +41,13 @@ export const WIDGETS: Record<Widget, { name: string; desc: string }> = {
 };
 export const ALL_WIDGETS = Object.keys(WIDGETS) as Widget[];
 
-export async function getCorner(userId: string): Promise<CornerRow | null> {
-  return unwrap(await supabase.from('corners').select('*').eq('user_id', userId).maybeSingle());
+export type CornerWithBanner = CornerRow & { community_banner: { id: string; name: string; banner_url: string | null } | null };
+
+/** The reader's Corner, with the community banner they wear (if any). */
+export async function getCorner(userId: string): Promise<CornerWithBanner | null> {
+  return unwrap(
+    await supabase.from('corners').select('*, community_banner:communities!corners_community_banner_id_fkey(id, name, banner_url)').eq('user_id', userId).maybeSingle(),
+  ) as unknown as CornerWithBanner | null;
 }
 
 export async function saveCorner(userId: string, patch: Partial<Omit<CornerRow, 'user_id' | 'updated_at'>>) {

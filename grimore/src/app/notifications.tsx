@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, type ComponentType } from 'react';
 import { View } from 'react-native';
 
-import { ChatCircleIcon, HeartIcon, MedalIcon, StorefrontIcon, TrophyIcon, UserPlusIcon, UsersThreeIcon, ArrowsLeftRightIcon, type IconProps } from '@/components/icons';
+import { ChatCircleIcon, HeartIcon, MedalIcon, TrophyIcon, UserPlusIcon, UsersThreeIcon, type IconProps } from '@/components/icons';
 import { Avatar, Btn, EmptyState, Press, Screen, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
@@ -25,8 +25,6 @@ const ICON: Record<string, ComponentType<IconProps>> = {
   comment_reply: ChatCircleIcon,
   achievement: MedalIcon,
   game: TrophyIcon,
-  market: StorefrontIcon,
-  trade: ArrowsLeftRightIcon,
   community: UsersThreeIcon,
 };
 
@@ -50,10 +48,6 @@ function text(n: N) {
       return 'replied to your comment';
     case 'achievement':
       return `You earned an achievement: ${n.achievement_id?.replace(/_/g, ' ')}`;
-    case 'market':
-      return 'listed a book you are waiting for';
-    case 'trade':
-      return d.event === 'accepted' ? 'accepted your trade offer' : d.event === 'declined' ? 'declined your trade offer' : 'made you a trade offer';
     case 'community':
       return d.event === 'reply' ? 'replied to your discussion' : 'started a discussion in your community';
     case 'game':
@@ -68,7 +62,6 @@ function open(n: N) {
   if (n.post_id) return router.push({ pathname: '/post/[id]', params: { id: n.post_id, type: 'post' } });
   if (n.review_id) return router.push({ pathname: '/post/[id]', params: { id: n.review_id, type: 'review' } });
   if (d.thread_id) return router.push({ pathname: '/thread/[id]', params: { id: d.thread_id } });
-  if (d.listing_id) return router.push({ pathname: '/listing/[id]', params: { id: d.listing_id } });
   if (n.type === 'achievement') return router.push('/achievements');
   if (n.actor) return router.push({ pathname: '/user/[username]', params: { username: n.actor.username } });
 }
@@ -89,10 +82,11 @@ export default function Notifications() {
     onSuccess: (_d, v) => toast(v.kind === 'accept' ? 'Request accepted' : 'Following'),
     onError: (e) => toast(toAppError(e).message),
   });
-  const list = q.data ?? [];
+  // The Market was retired; its old notifications are no longer shown.
+  const list = (q.data ?? []).filter((n) => n.type !== 'market' && n.type !== 'trade');
   return (
     <Screen title="Notifications" back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
-      {!q.isLoading && list.length === 0 ? <EmptyState title="Nothing yet" body="Follows, likes, trade offers and community replies show up here." /> : null}
+      {!q.isLoading && list.length === 0 ? <EmptyState title="Nothing yet" body="Follows, likes and community replies show up here." /> : null}
       {list.map((n) => {
         const Icon = ICON[n.type] ?? HeartIcon;
         const actor = n.actor as { id: string; username: string; display_name: string | null; avatar_url: string | null } | null;
