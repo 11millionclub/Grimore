@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { CaretRightIcon, TrophyIcon } from '@/components/icons';
+import { CaretRightIcon, CoinsIcon, TrophyIcon } from '@/components/icons';
 import { Sigil } from '@/components/sigil';
 import { Press, Text } from '@/components/ui';
 import { useMyHouse } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { getStandings } from '@/services/houses';
+import { getWallet } from '@/services/points';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { HOUSE_IDS, HOUSE_NAMES, houseTokens } from '@/theme/houses';
 
@@ -17,7 +18,7 @@ export function HouseCupCard() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const mine = useMyHouse();
-  const standings = useQuery({ queryKey: ['standings'], queryFn: () => getStandings(), staleTime: 5 * 60_000 });
+  const standings = useQuery({ queryKey: ['standings'], queryFn: () => getStandings(), staleTime: 20_000, refetchInterval: 60_000 });
   const rows = standings.data?.length ? standings.data : HOUSE_IDS.map((house) => ({ house, perMember: 0 }));
   const lead = standings.data?.find((r) => r.perMember > 0);
   return (
@@ -57,6 +58,29 @@ export function HouseCupCard() {
           );
         })}
       </View>
+    </Press>
+  );
+}
+
+/** Your own spendable points, earned alongside the Cup, with a way into the rewards. */
+export function PointsLink() {
+  const { colors } = useTheme();
+  const wallet = useQuery({ queryKey: ['wallet'], queryFn: getWallet, staleTime: 20_000 });
+  return (
+    <Press
+      accessibilityRole="button"
+      accessibilityLabel={`My points: ${wallet.data?.balance ?? 0}. Open rewards`}
+      onPress={() => router.push('/points')}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.md }}
+    >
+      <CoinsIcon size={22} weight="fill" color={colors.gold} />
+      <View style={{ flex: 1 }}>
+        <Text variant="bodyStrong">{wallet.data?.balance ?? 0} points to spend</Text>
+        <Text variant="caption" tone="muted">
+          Trade them for shop discounts or things for My Grimore
+        </Text>
+      </View>
+      <CaretRightIcon size={14} color={colors.muted} />
     </Press>
   );
 }

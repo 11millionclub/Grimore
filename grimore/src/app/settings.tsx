@@ -84,7 +84,7 @@ export default function Settings() {
             <CrownSimpleIcon size={22} weight="fill" color={colors.accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text variant="bodyStrong">Corner shop</Text>
+            <Text variant="bodyStrong">My Grimore shop</Text>
             <Text variant="small" tone="muted">
               Themes, frames and stickers. One-off purchases.
             </Text>
@@ -92,7 +92,7 @@ export default function Settings() {
           {chevron}
         </Press>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing.sm, paddingHorizontal: spacing.xs }}>
-          Grimore is free with every feature for everyone. Paid communities and optional Corner cosmetics will keep it running once payments open.
+          Grimore is free with every feature for everyone. Paid communities and optional My Grimore cosmetics will keep it running once payments open.
         </Text>
       </View>
 
@@ -124,7 +124,8 @@ export default function Settings() {
               />
             }
           />
-          <Row label={t('cup.title')} onPress={() => router.push('/house-cup')} right={chevron} last />
+          <Row label={t('cup.title')} onPress={() => router.push('/house-cup')} right={chevron} />
+          <Row label="My points & rewards" onPress={() => router.push('/points')} right={chevron} last />
         </Group>
       ) : null}
 

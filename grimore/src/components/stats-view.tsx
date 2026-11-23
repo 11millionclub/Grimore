@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+
+import { MoreStats } from '@/components/more-stats';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
@@ -177,6 +179,7 @@ export function StatsView({ userId }: { userId: string }) {
           </View>
         </View>
       ) : null}
+      <MoreStats s={s} />
     </View>
   );
 }

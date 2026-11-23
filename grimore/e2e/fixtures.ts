@@ -213,6 +213,18 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return [{ scores: { lantern: 10, quill: 2, thorn: 4, hourglass: 0 }, house_id: 'lantern', created_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/house_balance':
       return [];
+    case 'rpc/my_wallet':
+      return [{ earned: 1240, spent: 500, balance: 740 }];
+    case 'point_rewards':
+      return [
+        { id: 'shop-10', kind: 'shop_discount', title: '10% off in the shop', description: 'One-time code', cost_points: 500, item_key: null, discount_percent: 10 },
+        { id: 'shop-30', kind: 'shop_discount', title: '30% off in the shop', description: 'One-time code', cost_points: 1300, item_key: null, discount_percent: 30 },
+        { id: 'item-lamp', kind: 'corner_item', title: 'Brass reading lamp', description: null, cost_points: 600, item_key: 'lamp', discount_percent: null },
+      ];
+    case 'point_redemptions':
+      return [{ id: 'red1', reward_id: 'shop-10', points: 500, code: 'GRIM-AB12CD34', created_at: new Date(now - 86400e3).toISOString() }];
+    case 'rpc/redeem_reward':
+      return { reward: 'item-lamp', code: null, balance: 140 };
     case 'rpc/my_age_band':
       return 'adult';
     case 'analytics_events':

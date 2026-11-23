@@ -44,8 +44,7 @@ export default function CommunityScreen() {
   const tiers = paid
     ? [
         { name: 'Visitor', price: 0, perks: ['Public posts', 'Reading calendar'] },
-        { name: 'Circle', price: d.price_cents!, perks: ['Chapter discussions', 'Monthly live sessions', 'Reading guide'] },
-        { name: 'Patron', price: d.price_cents! * 2 + 100, perks: ['Everything in Circle', 'Vote on the next book', 'Exclusive profile frame'] },
+        { name: 'Member', price: d.price_cents!, perks: ['Every discussion', 'Live sessions and recordings', 'Reading guides', 'Community banner for My Grimore'] },
       ]
     : null;
   const hero = (
@@ -218,7 +217,7 @@ export default function CommunityScreen() {
             <View style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.lg, alignItems: 'center', gap: spacing.sm }}>
               <LockSimpleIcon size={20} weight="bold" color={colors.muted} />
               <Text variant="callout" tone="muted" align="center">
-                Members-only discussions, live session recordings and guides are for Circle members.
+                Members-only discussions, live session recordings and guides are for members.
               </Text>
             </View>
           ) : null}
@@ -233,7 +232,7 @@ export default function CommunityScreen() {
             <ImageField
               kind="banner"
               label="Banner"
-              hint="Paying members can wear it on their Corner while their membership is active."
+              hint="Paying members can wear it on their My Grimore page while their membership is active."
               value={d.banner_url}
               onUpload={(img) => uploadCommunityImage(id, 'banner', img.base64, img.mimeType).then(() => qc.invalidateQueries({ queryKey: ['community', id] }))}
             />

@@ -16,10 +16,10 @@ import { fonts, radius, spacing, useTheme } from '@/theme';
 
 type Kind = 'review' | 'progress' | 'quote' | 'free';
 const KINDS: { id: Kind; label: string; Icon: ComponentType<IconProps> }[] = [
+  { id: 'free', label: 'Post', Icon: FeatherIcon },
   { id: 'review', label: 'Review', Icon: StarIcon },
   { id: 'progress', label: 'Progress', Icon: BookOpenIcon },
   { id: 'quote', label: 'Quote', Icon: QuotesIcon },
-  { id: 'free', label: 'Free', Icon: FeatherIcon },
 ];
 
 export default function Compose() {
@@ -28,7 +28,7 @@ export default function Compose() {
   const insets = useSafeAreaInsets();
   const me = useMyId()!;
   const qc = useQueryClient();
-  const [kind, setKind] = useState<Kind>(params.kind ?? 'review');
+  const [kind, setKind] = useState<Kind>(params.kind ?? 'free');
   const [bookId, setBookId] = useState<string | null>(params.bookId ?? null);
   const [stars, setStars] = useState(4);
   const [text, setText] = useState('');
@@ -41,7 +41,8 @@ export default function Compose() {
     queryFn: async () => [...(await listByStatus(me, 'reading', 30)), ...(await listByStatus(me, 'read', 60))],
   });
   const comms = useQuery({ queryKey: ['my-communities', me], queryFn: () => myCommunities(me) });
-  const book = (books.data ?? []).find((e) => e.book.id === bookId)?.book ?? books.data?.[0]?.book;
+  // Free posts are about anything (an author, an idea…); a book is optional and only tagged when chosen.
+  const book = (books.data ?? []).find((e) => e.book.id === bookId)?.book ?? (kind === 'free' ? undefined : books.data?.[0]?.book);
   const entry = (books.data ?? []).find((e) => e.book.id === book?.id);
   const ok = kind === 'progress' ? !!book : kind === 'review' ? !!book && stars > 0 : text.trim().length > 2 && (kind !== 'quote' || !!book);
 
@@ -50,7 +51,7 @@ export default function Compose() {
       const aud = audience === 'community' && !communityId ? 'public' : audience;
       if (kind === 'review') return upsertReview({ userId: me, bookId: book!.id, rating: stars, body: text, hasSpoilers: spoiler });
       if (kind === 'progress') return logProgress({ bookId: book!.id, page: entry?.current_page ?? 0, note: text, share: true, audience: aud === 'followers' ? 'followers' : 'public' });
-      return createPost({ userId: me, kind: kind === 'quote' ? 'quote' : 'free', bookId: kind === 'quote' ? book!.id : null, quote: kind === 'quote' ? text : null, body: kind === 'free' ? text : null, hasSpoilers: spoiler, audience: aud, communityId });
+      return createPost({ userId: me, kind: kind === 'quote' ? 'quote' : 'free', bookId: kind === 'quote' || kind === 'free' ? (book?.id ?? null) : null, quote: kind === 'quote' ? text : null, body: kind === 'free' ? text : null, hasSpoilers: spoiler, audience: aud, communityId });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['feed'] });
@@ -85,7 +86,14 @@ export default function Compose() {
           ))}
         </ScrollView>
 
-        {kind !== 'free' ? (
+        {kind === 'free' ? (
+          <Press onPress={() => (book ? setBookId(null) : setPicking(!picking))} style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.md, alignSelf: 'flex-start', borderRadius: radius.full, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.md, height: 36 }}>
+            <BookOpenIcon size={16} color={colors.muted} />
+            <Text variant="small" tone="muted" numberOfLines={1}>
+              {book ? `About ${book.title} · remove` : 'Tag a book (optional)'}
+            </Text>
+          </Press>
+        ) : (
           <Press onPress={() => setPicking(!picking)} style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md }}>
             {book ? <Cover uri={book.cover_url} title={book.title} width={40} /> : null}
             <View style={{ flex: 1 }}>
@@ -98,7 +106,7 @@ export default function Compose() {
             </View>
             <CaretRightIcon size={16} color={colors.muted} style={{ transform: [{ rotate: picking ? '90deg' : '0deg' }] }} />
           </Press>
-        ) : null}
+        )}
         {picking ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.md }}>
             {(books.data ?? []).map((e) => (

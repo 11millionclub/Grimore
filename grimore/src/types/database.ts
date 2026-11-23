@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      point_rewards: {
+        Row: { active: boolean; cost_points: number; description: string | null; discount_percent: number | null; id: string; item_key: string | null; kind: string; sort_order: number; title: string }
+        Insert: { active?: boolean; cost_points: number; description?: string | null; discount_percent?: number | null; id: string; item_key?: string | null; kind: string; sort_order?: number; title: string }
+        Update: { active?: boolean; cost_points?: number; description?: string | null; discount_percent?: number | null; id?: string; item_key?: string | null; kind?: string; sort_order?: number; title?: string }
+        Relationships: []
+      }
+      point_redemptions: {
+        Row: { code: string | null; created_at: string; id: string; points: number; reward_id: string; user_id: string }
+        Insert: { code?: string | null; created_at?: string; id?: string; points: number; reward_id: string; user_id: string }
+        Update: { code?: string | null; created_at?: string; id?: string; points?: number; reward_id?: string; user_id?: string }
+        Relationships: []
+      }
       user_items: {
         Row: { acquired_at: string; expires_at: string | null; item_key: string; season_id: number | null; source: string; user_id: string }
         Insert: { acquired_at?: string; expires_at?: string | null; item_key: string; season_id?: number | null; source: string; user_id: string }
@@ -2878,6 +2890,8 @@ export type Database = {
       }
     }
     Functions: {
+      my_wallet: { Args: Record<PropertyKey, never>; Returns: { earned: number; spent: number; balance: number }[] }
+      redeem_reward: { Args: { p_reward: string }; Returns: Json }
       join_ritual: { Args: Record<PropertyKey, never>; Returns: string }
       complete_ritual: { Args: Record<PropertyKey, never>; Returns: undefined }
       my_ritual: { Args: Record<PropertyKey, never>; Returns: { period: string; status: string }[] }

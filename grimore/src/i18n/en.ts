@@ -49,7 +49,7 @@ const en = {
     },
     top4: {
       title: 'Your top four.',
-      sub: 'They go to the top of your Corner as "My 4". Pick four, or skip.',
+      sub: 'They go to the top of My Grimore as "My 4". Pick four, or skip.',
       search: 'Title, author or ISBN',
       scan: 'Scan a barcode',
       inGrimore: 'In Grimore',
@@ -387,6 +387,9 @@ const en = {
     item_house_locked: 'That item belongs to another House.',
     item_not_earned: 'You have not earned that item yet.',
     ritual_not_joined: 'Join the ritual first.',
+    not_enough_points: 'You do not have enough points for that yet.',
+    already_owned: 'You already have that item.',
+    reward_not_found: 'That reward is no longer available.',
     community_banner_members_only: 'Only paying members can wear this community’s banner.',
     house_room_members_only: 'This Common Room is for members of its House.',
   },

@@ -22,8 +22,7 @@ export default function JoinSheet() {
   const options = price
     ? [
         { id: 'visitor', name: 'Visitor', price: 0, desc: 'Public posts and the reading calendar' },
-        { id: 'circle', name: 'Circle', price, desc: 'Discussions, live sessions and guides' },
-        { id: 'patron', name: 'Patron', price: price * 2 + 100, desc: 'Everything, plus voting on the next book' },
+        { id: 'circle', name: 'Member', price, desc: 'Every discussion, live sessions, guides and the banner for My Grimore' },
       ]
     : [{ id: 'member', name: 'Member', price: 0, desc: 'Access to every discussion' }];
   const [sel, setSel] = useState<string | null>(null);
