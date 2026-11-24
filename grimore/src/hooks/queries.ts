@@ -5,7 +5,7 @@ import { qk } from '@/lib/query-client';
 import { getGenres } from '@/services/catalogue';
 import { getCorner, getPurchases, getShop } from '@/services/corner';
 import { getAchievements, getTodayGames } from '@/services/games';
-import { countReadInYear, getGoal, getReadingStreak, listByStatus } from '@/services/library';
+import { countReadInYear, getGoal, getReadingStreak, listByStatus, countByStatus } from '@/services/library';
 import { listConversations } from '@/services/messages';
 import { getCounts, getFavoriteBooks, getPreferences, getProfile, getProfileByUsername } from '@/services/profile';
 import { unreadNotificationCount } from '@/services/social';
@@ -64,6 +64,11 @@ export function useStreak(id?: string) {
 
 export function useShelf(id: string | undefined, status: Parameters<typeof listByStatus>[1]) {
   return useQuery({ queryKey: qk.library(`${id}:${status}`), queryFn: () => listByStatus(id!, status), enabled: !!id });
+}
+
+/** Exact count for a status shelf, for labels like "Wishlist · 1 024". */
+export function useShelfCount(id: string | undefined, status: Parameters<typeof countByStatus>[1]) {
+  return useQuery({ queryKey: qk.library(`${id}:${status}:count`), queryFn: () => countByStatus(id!, status), enabled: !!id });
 }
 
 export function useTodayGames() {

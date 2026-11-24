@@ -61,7 +61,7 @@ export default function Reviews() {
       </ScrollView>
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
         {list.length === 0 ? (
-          <EmptyState title="No reviews with this filter" />
+          <EmptyState title={f === 'all' ? 'No reviews yet' : 'No reviews with this filter'} body={f === 'all' ? 'Be the first to say what you thought.' : undefined} />
         ) : (
           list.map((r, i) => (
             <Stagger key={r.id} i={i}>

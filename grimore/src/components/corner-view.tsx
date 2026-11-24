@@ -23,7 +23,7 @@ import {
   type IconProps,
 } from '@/components/icons';
 import { Avatar, Cover, Press, Progress, SectionHead, Text, toast } from '@/components/ui';
-import { useAchievements, useFavoriteBooks, useMyId, useReadingGoal, useReadingStats, useShelf, useStreak } from '@/hooks/queries';
+import { useAchievements, useFavoriteBooks, useMyId, useReadingGoal, useReadingStats, useShelf, useShelfCount, useStreak } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { myCommunities } from '@/services/communities';
@@ -53,6 +53,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
   const favs = useFavoriteBooks(userId);
   const reading = useShelf(userId, 'reading');
   const want = useShelf(userId, 'want_to_read');
+  const wantN = useShelfCount(userId, 'want_to_read');
   const goal = useReadingGoal(userId);
   const streak = useStreak(userId);
   const stats = useReadingStats(widgets.some((w) => ['year', 'genres', 'authors'].includes(w)) ? userId : undefined);
@@ -305,7 +306,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
     tbr: (want.data ?? []).length ? (
       <View>
         <SectionHead
-          title={`Wishlist · ${(want.data ?? []).length}`}
+          title={`Wishlist · ${fmt(wantN.data ?? (want.data ?? []).length)}`}
           action="See all"
           onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Wishlist' } }))}
         />

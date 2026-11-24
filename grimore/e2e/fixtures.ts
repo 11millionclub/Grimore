@@ -412,7 +412,7 @@ export async function useMockBackend(page: Page, opts: MockOptions = {}) {
     if (url.pathname.startsWith('/realtime/')) return route.abort();
     const path = url.pathname.replace('/rest/v1/', '');
     const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
-    if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '0-0/3' } });
+    if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '*/3', 'access-control-expose-headers': 'Content-Range' } });
     const write = writeUserBooks(req.method(), path, url.searchParams, req.postData());
     if (write) return route.fulfill({ status: write.status, contentType: 'application/json', body: JSON.stringify(write.body) });
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/3' }, body: JSON.stringify(rows(path, url.searchParams, single, opts)) });

@@ -12,7 +12,7 @@ import {
   Segmented,
   Text,
 } from "@/components/ui";
-import { useShelf } from "@/hooks/queries";
+import { useShelf, useShelfCount } from "@/hooks/queries";
 import { listShelves } from "@/services/library";
 import { radius, spacing, useTheme } from "@/theme";
 
@@ -74,29 +74,36 @@ export function ShelvesView({
   isMe: boolean;
 }) {
   const reading = useShelf(userId, "reading");
+  const readingN = useShelfCount(userId, "reading");
   const read = useShelf(userId, "read");
+  const readN = useShelfCount(userId, "read");
   const want = useShelf(userId, "want_to_read");
+  const wantN = useShelfCount(userId, "want_to_read");
   const priority = useShelf(userId, "priority");
+  const priorityN = useShelfCount(userId, "priority");
   const owned = useShelf(userId, "owned");
+  const ownedN = useShelfCount(userId, "owned");
   const dnf = useShelf(userId, "dnf");
+  const dnfN = useShelfCount(userId, "dnf");
   const paused = useShelf(userId, "on_hold");
+  const pausedN = useShelfCount(userId, "on_hold");
   const [tab, setTab] = useState<"shelves" | "priority">("shelves");
   const custom = useQuery({
     queryKey: ["shelves", userId],
     queryFn: () => listShelves(userId),
   });
   const base: Card[] = [
-    { id: `${userId}:reading`, name: "Reading", data: reading.data },
-    { id: `${userId}:read`, name: "Finished", data: read.data },
-    { id: `${userId}:priority`, name: "Priority", data: priority.data },
-    { id: `${userId}:want_to_read`, name: "Wishlist", data: want.data },
-    { id: `${userId}:owned`, name: "On my shelf", data: owned.data },
-    { id: `${userId}:on_hold`, name: "Paused", data: paused.data },
-    { id: `${userId}:dnf`, name: "DNF", data: dnf.data },
+    { id: `${userId}:reading`, name: "Reading", data: reading.data, n: readingN.data },
+    { id: `${userId}:read`, name: "Finished", data: read.data, n: readN.data },
+    { id: `${userId}:priority`, name: "Priority", data: priority.data, n: priorityN.data },
+    { id: `${userId}:want_to_read`, name: "Wishlist", data: want.data, n: wantN.data },
+    { id: `${userId}:owned`, name: "On my shelf", data: owned.data, n: ownedN.data },
+    { id: `${userId}:on_hold`, name: "Paused", data: paused.data, n: pausedN.data },
+    { id: `${userId}:dnf`, name: "DNF", data: dnf.data, n: dnfN.data },
   ].map((s) => ({
     id: s.id,
     name: s.name,
-    count: s.data?.length ?? 0,
+    count: s.n ?? s.data?.length ?? 0,
     covers: (s.data ?? []).slice(0, 3).map((e) => e.book),
   }));
   const top = priority.data ?? [];
@@ -115,7 +122,7 @@ export function ShelvesView({
           { value: "shelves", label: "Shelves" },
           {
             value: "priority",
-            label: `Priority${top.length ? ` · ${top.length}` : ""}`,
+            label: `Priority${(priorityN.data ?? top.length) ? ` · ${priorityN.data ?? top.length}` : ""}`,
           },
         ]}
       />
