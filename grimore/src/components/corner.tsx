@@ -302,10 +302,10 @@ function OrbitingSigil({ house, radius }: { house: HouseId; radius: number }) {
 }
 
 /** The reader's name, optionally in a gradient (drawn with SVG text). */
-export function StyledName({ name, style: nameStyle, size = 26 }: { name: string; style: string; size?: number }) {
+export function StyledName({ name, style: nameStyle, size = 26, serif, centered }: { name: string; style: string; size?: number; serif?: boolean; centered?: boolean }) {
   const { colors } = useTheme();
   const s = NAME_STYLES[nameStyle]?.stops;
-  const width = Math.max(40, Math.round(name.length * size * 0.76));
+  const width = Math.max(40, Math.round(name.length * size * (serif ? 0.6 : 0.76)));
   const height = Math.round(size * 1.3);
   const id = `name-${nameStyle}`;
   return (
@@ -319,7 +319,7 @@ export function StyledName({ name, style: nameStyle, size = 26 }: { name: string
           </LinearGradient>
         </Defs>
       ) : null}
-      <SvgText x={0} y={size} fontFamily={fonts.bold} fontSize={size} fill={s ? `url(#${id})` : colors.ink}>
+      <SvgText x={centered ? width / 2 : 0} y={size} textAnchor={centered ? 'middle' : 'start'} fontFamily={serif ? fonts.serifBold : fonts.bold} fontSize={size} fill={s ? `url(#${id})` : colors.ink}>
         {name}
       </SvgText>
     </Svg>

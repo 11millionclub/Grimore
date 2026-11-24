@@ -5,7 +5,7 @@ import { ScrollView, View } from 'react-native';
 
 import { Spoiler } from '@/components/feed';
 import { HeartIcon } from '@/components/icons';
-import { Avatar, Chip, EmptyState, Progress, Screen, Stagger, Stars, Text } from '@/components/ui';
+import { Avatar, Chip, EmptyState, Progress, Screen, Segmented, Stagger, Stars, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { ReportButton, ReportedGate } from '@/components/report-button';
 import { ReviewTags } from '@/components/review-tags';
@@ -17,10 +17,13 @@ export default function Reviews() {
   const { colors } = useTheme();
   const me = useMyId()!;
   const [f, setF] = useState<'all' | 'friends' | 'six' | 'spoilers'>('all');
+  const [sort, setSort] = useState<'top' | 'new'>('top');
   const q = useQuery({ queryKey: ['book', bookId, 'reviews'], queryFn: () => getBookReviews(bookId, me) });
   const d = q.data;
   const max = Math.max(1, ...(d?.dist ?? [1]));
-  const list = (d?.list ?? []).filter((r) => (f === 'friends' ? r.friend : f === 'six' ? r.rating === 6 : f === 'spoilers' ? r.has_spoilers : true));
+  const list = (d?.list ?? [])
+    .filter((r) => (f === 'friends' ? r.friend : f === 'six' ? r.rating === 6 : f === 'spoilers' ? r.has_spoilers : true))
+    .sort((a, b) => (sort === 'new' ? Date.parse(b.created_at) - Date.parse(a.created_at) : b.like_count - a.like_count || Date.parse(b.created_at) - Date.parse(a.created_at)));
   return (
     <Screen title="Reviews" back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
       <View style={{ marginHorizontal: spacing.lg, flexDirection: 'row', gap: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
@@ -59,9 +62,12 @@ export default function Reviews() {
           With spoilers
         </Chip>
       </ScrollView>
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
+        <Segmented value={sort} onChange={setSort} options={[{ value: 'top', label: 'Most liked' }, { value: 'new', label: 'Newest' }]} />
+      </View>
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
         {list.length === 0 ? (
-          <EmptyState title="No reviews with this filter" />
+          <EmptyState title={f === 'all' ? 'No reviews yet' : 'No reviews with this filter'} body={f === 'all' ? 'Be the first to say what you thought.' : undefined} />
         ) : (
           list.map((r, i) => (
             <Stagger key={r.id} i={i}>

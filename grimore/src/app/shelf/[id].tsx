@@ -12,7 +12,7 @@ import { refreshLibrary } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
 import { importBook, type ExternalBook } from '@/services/books';
 import { booksByGenreId, GENRE_SUBJECTS, worldGenreBooks } from '@/services/discover';
-import { getShelfBooks, isMyShelf, listByStatus, removeEntry, removeFromShelf, type ReadingStatus } from '@/services/library';
+import { getShelfBooks, isMyShelf, listAllByStatus, removeEntry, removeFromShelf, type ReadingStatus } from '@/services/library';
 import { fonts, spacing, useTheme } from '@/theme';
 
 /** id is "genre:<id>", "<userId>:<status|owned>" or a custom shelf id. */
@@ -20,7 +20,7 @@ async function load(id: string) {
   if (id.startsWith('genre:')) return (await booksByGenreId(Number(id.slice(6)))).map((b) => ({ id: b.id, title: b.title, cover_url: b.cover_url, authors: b.authors }));
   if (id.includes(':')) {
     const [user, status] = id.split(':');
-    return (await listByStatus(user, status as ReadingStatus | 'owned' | 'priority', 500)).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
+    return (await listAllByStatus(user, status as ReadingStatus | 'owned' | 'priority')).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
   }
   return getShelfBooks(id);
 }
@@ -31,6 +31,8 @@ export default function ShelfScreen() {
   const me = useMyId()!;
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
+  // Long shelves (a 1 000-book wishlist) render in steps so the screen stays smooth.
+  const [shown, setShown] = useState(120);
   const q = useQuery({ queryKey: ['shelf', id], queryFn: () => load(id) });
   const genreId = id.startsWith('genre:') ? Number(id.slice(6)) : null;
   const slug = useQuery({ queryKey: ['genre-slug', genreId], queryFn: () => genreSlug(genreId!), enabled: genreId != null, staleTime: Infinity });
@@ -97,7 +99,7 @@ export default function ShelfScreen() {
       ) : null}
       {!q.isLoading && books.length === 0 && genreId == null ? <EmptyState title="Nothing on this shelf yet" /> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, columnGap: spacing.md, rowGap: spacing.lg }}>
-        {books.map((b, i) => (
+        {books.slice(0, shown).map((b, i) => (
           <Stagger key={b.id} i={i} style={{ width: '30.6%' }}>
             <Press onPress={() => (editing ? undefined : openBook(b.id))} disabled={editing}>
               <Cover uri={b.cover_url} title={b.title} author={b.authors} width={100} style={{ width: '100%', height: undefined, aspectRatio: 2 / 3 }} />
@@ -120,6 +122,11 @@ export default function ShelfScreen() {
           </Stagger>
         ))}
       </View>
+      {books.length > shown ? (
+        <Btn variant="secondary" onPress={() => setShown((n) => n + 120)} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+          {`Show more · ${books.length - shown} left`}
+        </Btn>
+      ) : null}
       {genreId != null ? (
         <View style={{ marginTop: spacing.xxl }}>
           <SectionHead title="From the world's library" />

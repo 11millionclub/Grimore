@@ -34,7 +34,7 @@ export default function InviteScreen() {
     <Screen title="Invite friends" back keyboard>
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.base }}>
         <Text variant="body" tone="muted">
-          Share your code. When a friend joins with it, you get {INVITE_POINTS.inviter} points and they get {INVITE_POINTS.invitee}. Points go to your wallet, to spend on My Grimore items and shop discounts.
+          Share your code. A friend who joins with it gets {INVITE_POINTS.invitee} points straight away; you get {INVITE_POINTS.inviter} once they start reading (three days of games, logged pages or a finished book). Points go to your wallet, to spend on My Grimore items and shop discounts.
         </Text>
 
         <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line }}>

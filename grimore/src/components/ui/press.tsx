@@ -2,12 +2,17 @@ import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from '
 
 import { layout } from '@/theme';
 
-/** Pressable with instant press feedback (scale 0.97), like the prototype's `.press`. */
+/**
+ * Pressable with instant press feedback (scale 0.97). Anything tappable is
+ * announced as a button to screen readers unless it says otherwise.
+ */
 export function Press({ style, children, hitSlop, ...props }: Omit<PressableProps, 'style'> & { style?: StyleProp<ViewStyle> }) {
   return (
     <Pressable
       hitSlop={hitSlop ?? layout.hitSlop}
+      accessibilityRole={props.onPress || props.onLongPress ? 'button' : undefined}
       {...props}
+      accessibilityState={props.disabled ? { disabled: true, ...props.accessibilityState } : props.accessibilityState}
       style={({ pressed }) => [style, pressed && !props.disabled && { transform: [{ scale: 0.97 }], opacity: 0.92 }, props.disabled && { opacity: 0.4 }]}
     >
       {children}

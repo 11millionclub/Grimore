@@ -4,7 +4,7 @@ import { getFavoriteGenres } from '@/services/profile';
 import { TROPES } from '@/utils/review-tags';
 
 import { getSuggestions } from './catalogue';
-import { listByStatus } from './library';
+import { listAllByStatus, listByStatus } from './library';
 
 export type WheelSource = 'tbr' | 'owned' | 'rec';
 export type WheelBook = {
@@ -16,6 +16,7 @@ export type WheelBook = {
   tropes: string[];
   spice: number | null;
   priority: boolean;
+  pages: number | null;
 };
 
 const TROPE_KEYS = new Set<string>(TROPES.map((t) => t.key));
@@ -27,11 +28,15 @@ const TROPE_KEYS = new Set<string>(TROPES.map((t) => t.key));
  * tagged and the average spice, for the filters.
  */
 export async function wheelPool(userId: string, source: WheelSource): Promise<WheelBook[]> {
-  let base: Omit<WheelBook, 'genreIds' | 'tropes' | 'spice'>[] = [];
+  let base: Omit<WheelBook, 'genreIds' | 'tropes' | 'spice' | 'pages'>[] = [];
+  const pagesOf = new Map<string, number | null>();
   const own = new Map<string, number | null>();
   if (source === 'tbr' || source === 'owned') {
-    const rows = source === 'tbr' ? await listByStatus(userId, 'want_to_read') : (await listByStatus(userId, 'owned')).filter((e) => e.status !== 'read' && e.status !== 'dnf');
-    rows.forEach((e) => own.set(e.book.id, e.spice));
+    const rows = source === 'tbr' ? await listAllByStatus(userId, 'want_to_read') : (await listAllByStatus(userId, 'owned')).filter((e) => e.status !== 'read' && e.status !== 'dnf');
+    rows.forEach((e) => {
+      own.set(e.book.id, e.spice);
+      pagesOf.set(e.book.id, e.book.page_count_estimate);
+    });
     base = rows.map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
   } else {
     const [favs, read, mine] = await Promise.all([
@@ -53,11 +58,13 @@ export async function wheelPool(userId: string, source: WheelSource): Promise<Wh
   }
   if (!base.length) return [];
   const ids = base.map((b) => b.id);
-  const [genres, tags, spice] = await Promise.all([
+  const [genres, tags, spice, pages] = await Promise.all([
     supabase.from('book_genres').select('book_id, genre_id').in('book_id', ids),
     supabase.rpc('book_tags', { p_books: ids }),
     supabase.from('reviews').select('book_id, spice').in('book_id', ids).not('spice', 'is', null).limit(5000),
+    pagesOf.size ? Promise.resolve({ data: [], error: null }) : supabase.from('books').select('id, page_count_estimate').in('id', ids),
   ]);
+  ((unwrap(pages) ?? []) as { id: string; page_count_estimate: number | null }[]).forEach((b) => pagesOf.set(b.id, b.page_count_estimate));
   const gMap = new Map<string, number[]>();
   (unwrap(genres) as { book_id: string; genre_id: number }[]).forEach((r) => gMap.set(r.book_id, [...(gMap.get(r.book_id) ?? []), r.genre_id]));
   const tMap = new Map<string, string[]>();
@@ -70,7 +77,7 @@ export async function wheelPool(userId: string, source: WheelSource): Promise<Wh
   return base.map((b) => {
     const s = sMap.get(b.id);
     const mine = own.get(b.id);
-    return { ...b, genreIds: gMap.get(b.id) ?? [], tropes: tMap.get(b.id) ?? [], spice: mine ?? (s ? Math.round(s.t / s.n) : null) };
+    return { ...b, genreIds: gMap.get(b.id) ?? [], tropes: tMap.get(b.id) ?? [], spice: mine ?? (s ? Math.round(s.t / s.n) : null), pages: pagesOf.get(b.id) ?? null };
   });
 }
 

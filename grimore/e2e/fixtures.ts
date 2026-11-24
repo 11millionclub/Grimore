@@ -12,7 +12,7 @@ const today = new Date().toISOString().slice(0, 10);
 const book = (id: string, title: string, author: string, year: number) => ({
   id,
   title,
-  cover_url: null,
+  cover_url: null as string | null,
   first_published_year: year,
   page_count_estimate: 320,
   normalized_title: title.toLowerCase(),
@@ -149,7 +149,51 @@ const feed = [
   },
 ];
 
-type MockOptions = { newReader?: boolean };
+type MockOptions = { newReader?: boolean; /** Real-looking covers and a fuller library, for screenshots. */ covers?: boolean };
+
+/** Invented sagas and stand-alones to fill the shelves in screenshot runs. */
+const EXTRA = [
+  ['The Ashen Crown (The Ember Throne, #1)', 'Mara Vell'],
+  ['A Court of Cinders (The Ember Throne, #2)', 'Mara Vell'],
+  ['The Last Empress (The Ember Throne, #3)', 'Mara Vell'],
+  ['Song of Blood and Stone (Stoneborn, #1)', 'Ilya Marsh'],
+  ['The Witch Collector (Stoneborn, #2)', 'Ilya Marsh'],
+  ['Ruin Rising (Stoneborn, #3)', 'Ilya Marsh'],
+  ['The Starless Sea', 'Odile Fenn'],
+  ['Vows of Vengeance', 'Odile Fenn'],
+  ['The Raven Heir (Crowmarch, #1)', 'Teodor Hale'],
+  ['Wings of Obsidian (Crowmarch, #2)', 'Teodor Hale'],
+  ['The Moonlit Court (Crowmarch, #3)', 'Teodor Hale'],
+  ['The Silent Realm', 'Wren Ashdown'],
+  ['A Touch of Darkness', 'Wren Ashdown'],
+  ['The Frosted Throne', 'Pell Quine'],
+  ['Echoes of Velaris', 'Pell Quine'],
+  ['The Ivory Tower', 'Sabine Rook'],
+  ['Shadow and Ember', 'Sabine Rook'],
+  ['A Realm of Ash', 'Lior Dane'],
+] as const;
+const PALETTE = ['#5E1A22', '#1E2748', '#1E3A2D', '#3B2346', '#17171B', '#E8DDC6', '#173C42', '#6E3A1E'];
+
+/** A simple painted cover as SVG, so screenshots show real-looking books without network access. */
+export function coverSvg(id: string, title: string) {
+  let h = 0;
+  for (const ch of id + title) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const bg = PALETTE[h % PALETTE.length];
+  const light = bg === '#E8DDC6';
+  const ink = light ? '#4a2c14' : '#E2C27A';
+  const words = title.replace(/\(.*\)/, '').trim().split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    if ((cur + ' ' + w).trim().length > 11 && cur) {
+      lines.push(cur);
+      cur = w;
+    } else cur = (cur + ' ' + w).trim();
+  }
+  if (cur) lines.push(cur);
+  const text = lines.map((l, i) => `<text x="100" y="${110 + i * 26}" font-family="Georgia, serif" font-size="22" fill="${ink}" text-anchor="middle">${l.toUpperCase()}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><defs><radialGradient id="r" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="${bg}" stop-opacity="0.75"/><stop offset="1" stop-color="${bg}"/></radialGradient></defs><rect width="200" height="300" fill="${bg}"/><rect width="200" height="300" fill="url(#r)"/><rect x="10" y="10" width="180" height="280" fill="none" stroke="${ink}" stroke-width="2"/><rect x="16" y="16" width="168" height="268" fill="none" stroke="${ink}" stroke-width="0.8"/>${text}<path d="M100 200 l14 22 -14 22 -14 -22z" fill="${ink}"/><circle cx="100" cy="60" r="14" fill="none" stroke="${ink}" stroke-width="2"/></svg>`;
+}
 
 function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptions = {}): unknown {
   const status = (q.get('status') ?? '').replace('eq.', '');
@@ -340,10 +384,13 @@ const violation = (e: Partial<Entry>) => !!(e.finished_on && e.started_on && e.f
  * Library writes keep state and apply the same rules as the database:
  * the status-date trigger and the finished_on >= started_on check.
  */
+const READ_RPCS = new Set(['rpc/book_tags', 'rpc/wheel_spins_left', 'rpc/my_wallet', 'rpc/get_house_standings', 'rpc/my_house', 'rpc/reader_marks', 'rpc/reader_houses']);
+
 function writeUserBooks(method: string, path: string, q: URLSearchParams, raw: string | null): { status: number; body: unknown } | null {
   if (method === 'GET') return null;
   const body = raw ? JSON.parse(raw) : null;
-  writes.push({ method, path, body });
+  // Read-only RPCs are POSTs too; they are not writes.
+  if (!READ_RPCS.has(path)) writes.push({ method, path, body });
   const fail = { status: 400, body: { code: '23514', message: 'new row for relation "user_books" violates check constraint "user_books_check"' } };
   const applyDates = (e: Entry) => {
     if (e.status === 'reading' && !e.started_on) e.started_on = utcToday();
@@ -395,6 +442,18 @@ function writeUserBooks(method: string, path: string, q: URLSearchParams, raw: s
 /** Sign the browser in as the fixture reader and answer every Supabase call. */
 export async function useMockBackend(page: Page, opts: MockOptions = {}) {
   resetLibrary();
+  if (opts.covers) {
+    for (const e of entries) e.book = { ...e.book, cover_url: `https://covers.test/${e.book.id}.svg` };
+    EXTRA.forEach(([title, author], i) => {
+      const b = { ...book(`x${i}`, title, author, 2000 + i), cover_url: `https://covers.test/x${i}.svg`, page_count_estimate: 280 + (i * 53) % 400 };
+      entries.push({ ...entries[1], id: `ex${i}`, status: i % 4 === 0 ? 'want_to_read' : 'read', rating: 5, book: b });
+    });
+    await page.route(/covers\.test\//, (route) => {
+      const id = new URL(route.request().url()).pathname.slice(1).replace('.svg', '');
+      const e = entries.find((x) => x.book.id === id);
+      return route.fulfill({ status: 200, contentType: 'image/svg+xml', body: coverSvg(id, e?.book.title ?? id) });
+    });
+  }
   await page.addInitScript((me) => {
     const token = `${btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${btoa(JSON.stringify({ sub: me, role: 'authenticated', exp: 4102444800 }))}.sig`;
     const session = { access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { id: me, aud: 'authenticated', role: 'authenticated', email: 'test@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-11-10T10:00:00Z' } };
@@ -412,7 +471,7 @@ export async function useMockBackend(page: Page, opts: MockOptions = {}) {
     if (url.pathname.startsWith('/realtime/')) return route.abort();
     const path = url.pathname.replace('/rest/v1/', '');
     const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
-    if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '0-0/3' } });
+    if (req.method() === 'HEAD') return route.fulfill({ status: 200, body: '', headers: { 'content-range': '*/3', 'access-control-expose-headers': 'Content-Range' } });
     const write = writeUserBooks(req.method(), path, url.searchParams, req.postData());
     if (write) return route.fulfill({ status: write.status, contentType: 'application/json', body: JSON.stringify(write.body) });
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/3' }, body: JSON.stringify(rows(path, url.searchParams, single, opts)) });

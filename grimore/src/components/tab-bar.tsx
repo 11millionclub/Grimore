@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BooksIcon, CompassIcon, FeatherIcon, PuzzlePieceIcon, UserCircleIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
-import { fonts, layout, spacing, useTheme } from '@/theme';
+import { fonts, GILT, layout, spacing } from '@/theme';
 
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
   index: { label: 'Home', Icon: BooksIcon },
@@ -20,11 +20,11 @@ const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = 
 const SEAL = 52;
 
 /**
- * Floating bar. The ember seal in the middle (Inscribe) adds a book: it is an
- * action, not a page, so it opens a sheet instead of switching tabs.
+ * Floating walnut bar with a gilt edge, like the plaque on a bookcase. The
+ * gold seal in the middle (Inscribe) adds a book: it is an action, not a
+ * page, so it opens a sheet instead of switching tabs.
  */
 export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: Math.max(insets.bottom, spacing.md), paddingHorizontal: spacing.md }}>
@@ -39,12 +39,12 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           alignItems: 'center',
           justifyContent: 'space-around',
           paddingHorizontal: spacing.xs,
-          backgroundColor: colors.glass,
+          backgroundColor: 'rgba(28,19,13,0.97)',
           borderRadius: layout.tabBarHeight / 2,
-          borderWidth: 1,
-          borderColor: colors.glassEdge,
-          shadowColor: colors.shadow,
-          shadowOpacity: 1,
+          borderWidth: 1.5,
+          borderColor: 'rgba(198,154,67,0.65)',
+          shadowColor: '#000',
+          shadowOpacity: 0.35,
           shadowRadius: 22,
           shadowOffset: { width: 0, height: 8 },
           elevation: 14,
@@ -67,18 +67,20 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                     width: SEAL,
                     height: SEAL,
                     borderRadius: SEAL / 2,
-                    backgroundColor: colors.accent,
+                    backgroundColor: GILT.burgundy,
+                    borderWidth: 2,
+                    borderColor: GILT.gold,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    shadowColor: colors.accent,
-                    shadowOpacity: 0.25,
+                    shadowColor: GILT.gold,
+                    shadowOpacity: 0.35,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: 4 },
                     elevation: 6,
                   }}
                 >
-                  <View style={{ position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderRadius: SEAL / 2, borderWidth: 1, borderColor: colors.gold, opacity: 0.7 }} />
-                  <FeatherIcon size={23} weight="fill" color={colors.onAccent} />
+                  <View style={{ position: 'absolute', top: 3, left: 3, right: 3, bottom: 3, borderRadius: SEAL / 2, borderWidth: 1, borderColor: GILT.champagne, opacity: 0.55 }} />
+                  <FeatherIcon size={23} weight="fill" color={GILT.champagne} />
                 </View>
               </Press>
             );
@@ -92,11 +94,11 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
               accessibilityLabel={meta.label}
               style={{ width: 60, height: layout.tabBarHeight - 8, alignItems: 'center', justifyContent: 'center', gap: 2 }}
             >
-              <Icon size={24} weight={focused ? 'fill' : 'regular'} color={focused ? colors.ink : colors.faint} />
-              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10.5, lineHeight: 13 }} color={focused ? colors.ink : colors.faint}>
+              <Icon size={24} weight={focused ? 'fill' : 'regular'} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'} />
+              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10.5, lineHeight: 13 }} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'}>
                 {meta.label}
               </Text>
-              <View style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: focused ? colors.gold : 'transparent' }} />
+              <View style={{ position: 'absolute', bottom: 2, width: 5, height: 5, transform: [{ rotate: '45deg' }], backgroundColor: focused ? GILT.gold : 'transparent' }} />
             </Pressable>
           );
         })}

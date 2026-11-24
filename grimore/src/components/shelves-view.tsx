@@ -1,64 +1,43 @@
-import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { View } from 'react-native';
 
-import { CaretRightIcon, StarIcon } from "@/components/icons";
-import {
-  Btn,
-  Cover,
-  EmptyState,
-  Press,
-  Segmented,
-  Text,
-} from "@/components/ui";
-import { useShelf } from "@/hooks/queries";
-import { listShelves } from "@/services/library";
-import { radius, spacing, useTheme } from "@/theme";
+import { CaretRightIcon, StarIcon } from '@/components/icons';
+import { Btn, Cover, Press, Text } from '@/components/ui';
+import { useShelfCount } from '@/hooks/queries';
+import { qk } from '@/lib/query-client';
+import { listByStatus, listShelves } from '@/services/library';
+import { fonts, radius, spacing, useTheme } from '@/theme';
 
-type Card = {
-  id: string;
-  name: string;
-  count: number;
-  covers: { id: string; title: string; cover_url: string | null }[];
-};
+type Status = Parameters<typeof listByStatus>[1];
+type Card = { id: string; name: string; count: number; covers: { id: string; title: string; cover_url: string | null }[]; star?: boolean };
+
+/** Three covers is all a shelf card shows, so that is all it asks for. */
+function useShelfPreview(userId: string, status: Status) {
+  return useQuery({ queryKey: qk.library(`${userId}:${status}:preview`), queryFn: () => listByStatus(userId, status, 3) });
+}
 
 function ShelfCard({ s }: { s: Card }) {
   const { colors } = useTheme();
   return (
     <Press
-      onPress={() =>
-        router.push({
-          pathname: "/shelf/[id]",
-          params: { id: s.id, name: s.name },
-        })
-      }
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.base,
-        backgroundColor: colors.surface,
-        borderRadius: radius.card,
-        padding: 14,
-      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${s.name}, ${s.count} ${s.count === 1 ? 'book' : 'books'}`}
+      onPress={() => router.push({ pathname: '/shelf/[id]', params: { id: s.id, name: s.name } })}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: s.star ? colors.gold : colors.line, padding: 14 }}
     >
-      <View style={{ flexDirection: "row", gap: 4, width: 3 * 38 + 8 }}>
+      <View style={{ flexDirection: 'row', gap: 4, width: 3 * 38 + 8 }}>
         {s.covers.slice(0, 3).map((b) => (
-          <Cover
-            key={b.id}
-            uri={b.cover_url}
-            title={b.title}
-            width={38}
-            shadow={false}
-          />
+          <Cover key={b.id} uri={b.cover_url} title={b.title} width={38} shadow={false} />
         ))}
       </View>
       <View style={{ flex: 1 }}>
-        <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-          {s.name}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {s.star ? <StarIcon size={14} weight="fill" color={colors.gold} /> : null}
+          <Text style={{ fontFamily: fonts.serifBold, fontSize: 19 }}>{s.name}</Text>
+        </View>
         <Text variant="small" tone="muted">
-          {s.count} {s.count === 1 ? "book" : "books"}
+          {s.count} {s.count === 1 ? 'book' : 'books'}
         </Text>
       </View>
       <CaretRightIcon size={16} color={colors.muted} />
@@ -66,144 +45,39 @@ function ShelfCard({ s }: { s: Card }) {
   );
 }
 
-export function ShelvesView({
-  userId,
-  isMe,
-}: {
-  userId: string;
-  isMe: boolean;
-}) {
-  const reading = useShelf(userId, "reading");
-  const read = useShelf(userId, "read");
-  const want = useShelf(userId, "want_to_read");
-  const priority = useShelf(userId, "priority");
-  const owned = useShelf(userId, "owned");
-  const dnf = useShelf(userId, "dnf");
-  const paused = useShelf(userId, "on_hold");
-  const [tab, setTab] = useState<"shelves" | "priority">("shelves");
-  const custom = useQuery({
-    queryKey: ["shelves", userId],
-    queryFn: () => listShelves(userId),
-  });
-  const base: Card[] = [
-    { id: `${userId}:reading`, name: "Reading", data: reading.data },
-    { id: `${userId}:read`, name: "Finished", data: read.data },
-    { id: `${userId}:priority`, name: "Priority", data: priority.data },
-    { id: `${userId}:want_to_read`, name: "Wishlist", data: want.data },
-    { id: `${userId}:owned`, name: "On my shelf", data: owned.data },
-    { id: `${userId}:on_hold`, name: "Paused", data: paused.data },
-    { id: `${userId}:dnf`, name: "DNF", data: dnf.data },
-  ].map((s) => ({
-    id: s.id,
-    name: s.name,
-    count: s.data?.length ?? 0,
-    covers: (s.data ?? []).slice(0, 3).map((e) => e.book),
-  }));
-  const top = priority.data ?? [];
+const BASE: { status: Status; name: string; always?: boolean; star?: boolean }[] = [
+  { status: 'reading', name: 'Reading' },
+  { status: 'priority', name: 'Priority', star: true },
+  { status: 'want_to_read', name: 'Wishlist', always: true },
+  { status: 'read', name: 'Finished', always: true },
+  { status: 'owned', name: 'On my shelf' },
+  { status: 'on_hold', name: 'Paused' },
+  { status: 'dnf', name: 'DNF' },
+];
+
+function StatusShelf({ userId, status, name, always, star }: { userId: string; status: Status; name: string; always?: boolean; star?: boolean }) {
+  const preview = useShelfPreview(userId, status);
+  const count = useShelfCount(userId, status);
+  const n = count.data ?? preview.data?.length ?? 0;
+  if (!n && !always) return null;
+  return <ShelfCard s={{ id: `${userId}:${status}`, name, count: n, covers: (preview.data ?? []).map((e) => e.book), star }} />;
+}
+
+/** Every shelf as one list: status shelves (Priority among them), then your own. */
+export function ShelvesView({ userId, isMe }: { userId: string; isMe: boolean }) {
+  const custom = useQuery({ queryKey: ['shelves', userId], queryFn: () => listShelves(userId) });
   return (
-    <View
-      style={{
-        paddingHorizontal: spacing.lg,
-        gap: spacing.sm,
-        paddingTop: spacing.sm,
-      }}
-    >
-      <Segmented
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "shelves", label: "Shelves" },
-          {
-            value: "priority",
-            label: `Priority${top.length ? ` · ${top.length}` : ""}`,
-          },
-        ]}
-      />
-      {tab === "priority" ? (
-        top.length === 0 ? (
-          <EmptyState
-            title="No priority books yet"
-            body={
-              isMe
-                ? "Open a book in your Wishlist and tap “Make it a priority” to pin it here."
-                : "Nothing pinned as a priority."
-            }
-          />
-        ) : (
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: spacing.md,
-              paddingTop: spacing.sm,
-            }}
-          >
-            {top.map((e, i) => (
-              <Press
-                key={e.id}
-                accessibilityLabel={`Priority ${i + 1}: ${e.book.title}`}
-                onPress={() =>
-                  router.push({
-                    pathname: "/book/[id]",
-                    params: { id: e.book.id },
-                  })
-                }
-                style={{ width: 96, gap: 4 }}
-              >
-                <Cover uri={e.book.cover_url} title={e.book.title} width={96} />
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    left: 6,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 2,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: 10,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                  }}
-                >
-                  <StarIcon size={10} weight="fill" color="#E8C26A" />
-                  <Text variant="micro" color="#fff">
-                    {i + 1}
-                  </Text>
-                </View>
-                <Text variant="caption" numberOfLines={2}>
-                  {e.book.title}
-                </Text>
-              </Press>
-            ))}
-          </View>
-        )
-      ) : null}
-      {tab === "shelves" ? (
-        <>
-          {base
-            .filter(
-              (s) => s.count > 0 || ["Finished", "Wishlist"].includes(s.name),
-            )
-            .map((s) => (
-              <ShelfCard key={s.id} s={s} />
-            ))}
-          {(custom.data ?? []).map((s) => (
-            <ShelfCard
-              key={s.id}
-              s={{ id: s.id, name: s.title, count: s.count, covers: s.covers }}
-            />
-          ))}
-          {isMe ? (
-            <Btn
-              variant="ghost"
-              full
-              style={{ marginTop: spacing.sm }}
-              onPress={() => router.push("/shelves/new")}
-            >
-              New shelf
-            </Btn>
-          ) : null}
-        </>
+    <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingTop: spacing.sm }}>
+      {BASE.map((b) => (
+        <StatusShelf key={b.status} userId={userId} {...b} />
+      ))}
+      {(custom.data ?? []).map((s) => (
+        <ShelfCard key={s.id} s={{ id: s.id, name: s.title, count: s.count, covers: s.covers }} />
+      ))}
+      {isMe ? (
+        <Btn variant="ghost" full style={{ marginTop: spacing.sm }} onPress={() => router.push('/shelves/new')}>
+          New shelf
+        </Btn>
       ) : null}
     </View>
   );

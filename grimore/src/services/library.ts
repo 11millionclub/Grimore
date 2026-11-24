@@ -218,6 +218,29 @@ export async function getNextReads(userId: string, favouriteGenreIds: number[], 
     .slice(0, limit);
 }
 
+/** A whole status shelf, fetched 1000 at a time (the API returns at most 1000 rows per request). */
+export async function listAllByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority', max = 10_000): Promise<LibraryEntry[]> {
+  const out: LibraryEntry[] = [];
+  for (let from = 0; from < max; from += 1000) {
+    let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);
+    q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
+    if (status === 'want_to_read') q = q.order('is_priority', { ascending: false });
+    const rows = unwrap(await q.order('updated_at', { ascending: false }).order('id').range(from, from + 999)) as unknown as RawEntry[];
+    out.push(...rows.map(mapEntry));
+    if (rows.length < 1000) break;
+  }
+  return out;
+}
+
+/** Exact number of entries on a status shelf (lists are capped; counts are not). */
+export async function countByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority'): Promise<number> {
+  let q = supabase.from('user_books').select('id', { count: 'exact', head: true }).eq('user_id', userId);
+  q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
+  const { count, error } = await q;
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /**
  * All entries of one status (for shelves and pickers), newest first. In the
  * wishlist, priority books come first; 'priority' lists only those.
@@ -346,4 +369,15 @@ export async function isMyShelf(userId: string, listId: string) {
 export async function logReadingSession(bookId: string | null, seconds: number) {
   const [row] = (unwrap(await supabase.rpc('log_reading_session', { p_book: bookId as string, p_seconds: Math.round(seconds) })) ?? []) as { minutes_today: number; minutes_book: number | null }[];
   return { minutesToday: row?.minutes_today ?? 0, minutesBook: row?.minutes_book ?? null };
+}
+
+/** Every entry in a reader's library (all statuses), 1000 rows per request. */
+export async function listWholeLibrary(userId: string, max = 20_000): Promise<LibraryEntry[]> {
+  const out: LibraryEntry[] = [];
+  for (let from = 0; from < max; from += 1000) {
+    const rows = unwrap(await supabase.from('user_books').select(entrySelect).eq('user_id', userId).order('updated_at', { ascending: false }).order('id').range(from, from + 999)) as unknown as RawEntry[];
+    out.push(...rows.map(mapEntry));
+    if (rows.length < 1000) break;
+  }
+  return out;
 }

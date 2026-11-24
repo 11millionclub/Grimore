@@ -71,7 +71,7 @@ export function Flourish({ style, centered }: { style?: StyleProp<ViewStyle>; ce
 export function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 18 }}>
+      <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 22 }}>
         {title}
       </Text>
       {action ? (

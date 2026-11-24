@@ -8,13 +8,15 @@ import { CornerBlocks } from '@/components/corner-view';
 import { PostCard } from '@/components/feed';
 import { ChatCircleDotsIcon, DotsThreeIcon } from '@/components/icons';
 import { ProfileHero } from '@/components/profile-hero';
-import { Btn, EmptyState, IconBtn, Screen, Segmented, Skeleton, Text, toast } from '@/components/ui';
+import { isScene } from '@/components/library-panel';
+import { GildedTabs } from '@/components/ornament';
+import { Btn, EmptyState, IconBtn, Screen, Skeleton, Text, toast } from '@/components/ui';
 import { useCorner, useCounts, useMyId, useProfileByUsername } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { openConversation } from '@/services/messages';
 import { blockUser, follow, getFeed, getFollowState, report, unfollow } from '@/services/social';
-import { fonts, radius, spacing, useTheme } from '@/theme';
+import { DarkTheme, fonts, radius, spacing, useTheme } from '@/theme';
 
 async function compatibility(me: string, them: string) {
   const [a, b] = await Promise.all([
@@ -28,7 +30,16 @@ async function compatibility(me: string, them: string) {
   return { shared: shared.length, score: union ? Math.round(Math.min(99, 35 + (shared.length / Math.max(1, Math.min(mine.size, theirs.length))) * 64)) : 0 };
 }
 
+/** Another reader's library, lit like the room at night. */
 export default function UserProfile() {
+  return (
+    <DarkTheme>
+      <UserProfileInner />
+    </DarkTheme>
+  );
+}
+
+function UserProfileInner() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const { colors } = useTheme();
   const me = useMyId()!;
@@ -89,6 +100,7 @@ export default function UserProfile() {
     <ProfileHero
       profile={p}
       look={look}
+      scene={isScene(c?.library) ? c.library : 'classic'}
       counts={counts.data}
       actions={
         <>
@@ -136,8 +148,8 @@ export default function UserProfile() {
         <EmptyState title="This Grimore is private" body="Follow to see their shelves and activity." />
       ) : (
         <>
-          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
-            <Segmented value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Grimore' }, { value: 'activity', label: 'Reviews' }]} />
+          <View style={{ paddingTop: spacing.lg, paddingBottom: spacing.lg }}>
+            <GildedTabs value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Grimore' }, { value: 'activity', label: 'Reviews' }]} />
           </View>
           {tab === 'corner' ? (
             <CornerBlocks userId={p.id} look={look} widgets={c?.widgets ?? ['top4', 'reading', 'shelf', 'guestbook']} status={c?.status_text} song={c?.song} library={c?.library} />

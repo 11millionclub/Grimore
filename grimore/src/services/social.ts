@@ -352,3 +352,8 @@ export async function myFollowStatuses(viewerId: string): Promise<Record<string,
   const rows = unwrap(await supabase.from('follows').select('followee_id, status').eq('follower_id', viewerId).limit(2000)) as { followee_id: string; status: string }[];
   return Object.fromEntries(rows.map((r) => [r.followee_id, r.status === 'accepted' ? 'accepted' : 'pending']));
 }
+
+/** The tags readers pinned on a book's reviews, most used first. */
+export async function getBookTags(bookId: string) {
+  return ((unwrap(await supabase.rpc('book_tags', { p_books: [bookId] })) ?? []) as { tag: string; n: number }[]).map((r) => ({ tag: r.tag, n: Number(r.n) }));
+}

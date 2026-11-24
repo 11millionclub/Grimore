@@ -1,5 +1,7 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { pauseAmbient, playAmbient, resumeAmbient, stopAmbient, type TrackId } from '@/lib/ambient';
 
@@ -33,54 +35,81 @@ type State = {
 
 export const elapsed = (s: Pick<State, 'runningSince' | 'banked'>, now = Date.now()) => s.banked + (s.runningSince ? Math.floor((now - s.runningSince) / 1000) : 0);
 
-/** A focused reading session: a stopwatch that survives leaving the screen, with optional background sound. */
-export const useReadingSession = create<State>((set, get) => ({
-  runningSince: null,
-  banked: 0,
-  active: false,
-  bookId: null,
-  track: null,
-  setBook: (bookId) => set({ bookId }),
-  setTrack: (track) => {
-    set({ track });
-    if (!get().active) return;
-    if (track) {
-      playAmbient(track);
-      if (!get().runningSince) pauseAmbient();
-    } else stopAmbient();
-  },
-  start: () => {
-    set({ active: true, runningSince: Date.now(), banked: 0 });
-    const { track } = get();
-    if (track) playAmbient(track);
-    awake(true);
-  },
-  pause: () => {
-    const s = get();
-    if (!s.runningSince) return;
-    set({ banked: elapsed(s), runningSince: null });
-    pauseAmbient();
-    awake(false);
-  },
-  resume: () => {
-    if (get().runningSince) return;
-    set({ runningSince: Date.now() });
-    resumeAmbient();
-    awake(true);
-  },
-  finish: () => {
-    const secs = elapsed(get());
-    stopAmbient();
-    awake(false);
-    set({ active: false, runningSince: null, banked: 0 });
-    return secs;
-  },
-  reset: () => {
-    stopAmbient();
-    awake(false);
-    set({ active: false, runningSince: null, banked: 0 });
-  },
-}));
+/**
+ * A focused reading session: a stopwatch that survives leaving the screen
+ * and closing the app (only timestamps are stored, so time keeps counting
+ * while the app is closed), with optional background sound.
+ */
+export const useReadingSession = create<State>()(
+  persist(
+    (set, get) => ({
+      runningSince: null,
+      banked: 0,
+      active: false,
+      bookId: null,
+      track: null,
+      setBook: (bookId) => set({ bookId }),
+      setTrack: (track) => {
+        set({ track });
+        if (!get().active) return;
+        if (track) {
+          playAmbient(track);
+          if (!get().runningSince) pauseAmbient();
+        } else stopAmbient();
+      },
+      start: () => {
+        set({ active: true, runningSince: Date.now(), banked: 0 });
+        const { track } = get();
+        if (track) playAmbient(track);
+        awake(true);
+      },
+      pause: () => {
+        const s = get();
+        if (!s.runningSince) return;
+        set({ banked: elapsed(s), runningSince: null });
+        pauseAmbient();
+        awake(false);
+      },
+      resume: () => {
+        if (get().runningSince) return;
+        set({ runningSince: Date.now() });
+        resumeAmbient();
+        awake(true);
+      },
+      finish: () => {
+        const secs = elapsed(get());
+        stopAmbient();
+        awake(false);
+        set({ active: false, runningSince: null, banked: 0 });
+        return secs;
+      },
+      reset: () => {
+        stopAmbient();
+        awake(false);
+        set({ active: false, runningSince: null, banked: 0 });
+      },
+    }),
+    {
+      name: 'grimore-reading-session',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (s) => ({
+        runningSince: s.runningSince,
+        banked: s.banked,
+        active: s.active,
+        bookId: s.bookId,
+        track: s.track,
+      }),
+      // A session left running for more than 12 hours was forgotten, not read: pause it there.
+      onRehydrateStorage: () => (s) => {
+        if (s?.runningSince && Date.now() - s.runningSince > 12 * 3600_000)
+          useReadingSession.setState({
+            runningSince: null,
+            banked: Math.min(43_200, elapsed(s)),
+          });
+      },
+    },
+  ),
+);
 
 export const clock = (secs: number) => {
   const h = Math.floor(secs / 3600);

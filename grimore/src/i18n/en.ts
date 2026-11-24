@@ -392,6 +392,8 @@ const en = {
     item_not_earned: 'You have not earned that item yet.',
     ritual_not_joined: 'Join the ritual first.',
     not_enough_points: 'You do not have enough points for that yet.',
+    daily_reading_limit: 'You have reached 16 hours of reading today. Time to rest your eyes!',
+    reading_time_limit: 'You can add at most 24 hours of reading at a time.',
     no_spins_left: 'No spins left today. The wheel resets tomorrow.',
     session_too_short: 'That session was too short to save.',
     item_not_owned: 'Unlock this first, with points or a purchase.',
