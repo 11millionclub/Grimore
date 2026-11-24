@@ -13,10 +13,10 @@ import { useMyId, useShelf } from '@/hooks/queries';
 import { ShelfPicker } from '@/components/shelf-picker';
 import { resolveBookId, useAddToLibrary } from '@/hooks/use-add-book';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { searchExternal, type ExternalBook } from '@/services/books';
 import { addMany, saveQuote, type EntryPatch } from '@/services/library';
 import { scanQuote, scanShelf } from '@/services/scan';
-import { createPost } from '@/services/social';
 import { DarkTheme, fonts, palettes, radius, spacing } from '@/theme';
 
 type Mode = 'shelf' | 'isbn' | 'quote';
@@ -271,7 +271,7 @@ function ShelfReview({ me, found, onRetake }: { me: string; found: Found[]; onRe
   const usable = found.filter((f) => f.id || f.external);
   const [sel, setSel] = useState<Set<string>>(() => new Set(usable.filter((f) => f.confidence >= 0.6).map((f) => f.key)));
   const [shelf, setShelf] = useState<'own' | 'read' | 'want'>('own');
-  const shelfName = { own: 'My shelf', read: 'Read', want: 'Want to read' }[shelf];
+  const shelfName = { own: 'My shelf', read: 'Read', want: 'Wishlist' }[shelf];
   const save = useMutation({
     mutationFn: async () => {
       const ids: string[] = [];
@@ -280,7 +280,7 @@ function ShelfReview({ me, found, onRetake }: { me: string; found: Found[]; onRe
       return addMany(me, ids, patch, shelf !== 'own');
     },
     onSuccess: (n) => {
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       router.back();
       toast(`${n} books added to ${shelfName}`);
     },
@@ -303,7 +303,7 @@ function ShelfReview({ me, found, onRetake }: { me: string; found: Found[]; onRe
           Uncertain matches start unticked. Check them before adding.
         </Text>
         <View style={{ marginTop: spacing.base }}>
-          <Segmented value={shelf} onChange={setShelf} options={[{ value: 'own', label: 'I own' }, { value: 'read', label: 'Read' }, { value: 'want', label: 'Want to read' }]} />
+          <Segmented value={shelf} onChange={setShelf} options={[{ value: 'own', label: 'I own' }, { value: 'read', label: 'Read' }, { value: 'want', label: 'Wishlist' }]} />
         </View>
       </View>
       <ScrollView style={{ marginTop: spacing.md }} contentContainerStyle={{ paddingHorizontal: spacing.md }}>
@@ -357,9 +357,8 @@ function QuoteReview({ me, sentences, onRetake }: { me: string; sentences: { lis
   const book = bookId ?? reading.data?.[0]?.book.id ?? null;
   const text = sentences.list.filter((_, i) => pick.has(i)).join(' ');
   const save = useMutation({
-    mutationFn: async (share: boolean) => {
+    mutationFn: async () => {
       await saveQuote(me, { body: text, bookId: book });
-      if (share && book) await createPost({ userId: me, kind: 'quote', bookId: book, quote: text, page: sentences.page });
     },
     onSuccess: () => {
       router.back();
@@ -413,11 +412,8 @@ function QuoteReview({ me, sentences, onRetake }: { me: string; sentences: { lis
         </ScrollView>
       ) : null}
       <View style={{ flexDirection: 'row', gap: spacing.sm, borderTopWidth: 1, borderTopColor: c.line, paddingHorizontal: spacing.lg, paddingTop: spacing.md, marginTop: spacing.md }}>
-        <Btn variant="secondary" size="lg" style={{ flex: 1 }} disabled={!text} loading={save.isPending} onPress={() => save.mutate(false)} icon={<QuotesIcon size={18} weight="fill" color={c.ink} />}>
-          Save
-        </Btn>
-        <Btn size="lg" style={{ flex: 1 }} disabled={!text || !book} loading={save.isPending} onPress={() => save.mutate(true)}>
-          Save and share
+        <Btn size="lg" style={{ flex: 1 }} disabled={!text} loading={save.isPending} onPress={() => save.mutate()} icon={<QuotesIcon size={18} weight="fill" color={c.onAccent} />}>
+          Save quote
         </Btn>
       </View>
     </SheetPanel>

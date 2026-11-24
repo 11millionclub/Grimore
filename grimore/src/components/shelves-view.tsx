@@ -36,19 +36,21 @@ export function ShelvesView({ userId, isMe }: { userId: string; isMe: boolean })
   const reading = useShelf(userId, 'reading');
   const read = useShelf(userId, 'read');
   const want = useShelf(userId, 'want_to_read');
+  const priority = useShelf(userId, 'priority');
   const owned = useShelf(userId, 'owned');
   const dnf = useShelf(userId, 'dnf');
   const custom = useQuery({ queryKey: ['shelves', userId], queryFn: () => listShelves(userId) });
   const base: Card[] = [
     { id: `${userId}:reading`, name: 'Reading', data: reading.data },
     { id: `${userId}:read`, name: 'Read', data: read.data },
-    { id: `${userId}:want_to_read`, name: 'Want to read', data: want.data },
+    { id: `${userId}:priority`, name: 'Priority', data: priority.data },
+    { id: `${userId}:want_to_read`, name: 'Wishlist', data: want.data },
     { id: `${userId}:owned`, name: 'On my shelf', data: owned.data },
     { id: `${userId}:dnf`, name: 'Abandoned', data: dnf.data },
   ].map((s) => ({ id: s.id, name: s.name, count: s.data?.length ?? 0, covers: (s.data ?? []).slice(0, 3).map((e) => e.book) }));
   return (
     <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingTop: spacing.sm }}>
-      {base.filter((s) => s.count > 0 || ['Read', 'Want to read'].includes(s.name)).map((s) => (
+      {base.filter((s) => s.count > 0 || ['Read', 'Wishlist'].includes(s.name)).map((s) => (
         <ShelfCard key={s.id} s={s} />
       ))}
       {(custom.data ?? []).map((s) => (

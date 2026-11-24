@@ -31,10 +31,10 @@ export default function Reviews() {
           </Text>
         </View>
         <View style={{ flex: 1, gap: 6, justifyContent: 'center' }}>
-          {(d?.dist ?? [0, 0, 0, 0, 0]).map((n, i) => (
+          {(d?.dist ?? [0, 0, 0, 0, 0, 0]).map((n, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Text variant="micro" tone="muted" style={{ width: 8 }}>
-                {5 - i}
+                {6 - i}
               </Text>
               <Progress value={n / max} height={6} style={{ flex: 1 }} />
               <Text variant="micro" tone="muted" style={{ width: 32, textAlign: 'right' }}>

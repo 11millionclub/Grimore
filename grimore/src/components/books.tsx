@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { CaretRightIcon } from '@/components/icons';
+import { CaretRightIcon, StarIcon } from '@/components/icons';
 import { Cover, Press, SectionHead, Text } from '@/components/ui';
 import { LibraryScene, type SceneId } from '@/components/scene';
 import type { Community } from '@/services/communities';
@@ -109,5 +109,15 @@ export function CommunityCard({ c }: { c: Community }) {
         </Text>
       </View>
     </Press>
+  );
+}
+
+/** Gold star in the corner of a cover: a priority book in the wishlist. */
+export function PriorityMark() {
+  const { colors } = useTheme();
+  return (
+    <View accessibilityLabel="Priority" style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 4 }}>
+      <StarIcon size={14} weight="fill" color={colors.gold} />
+    </View>
   );
 }

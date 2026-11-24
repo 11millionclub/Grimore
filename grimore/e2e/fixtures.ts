@@ -284,6 +284,13 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return single ? community : [community];
     case 'market_listings':
       return single ? listing : [listing];
+    case 'rpc/my_invite_code':
+      return 'ABCD2345';
+    case 'rpc/redeem_invite':
+      return { points: 50 };
+    case 'invite_redemptions':
+    case 'point_grants':
+      return single ? null : [];
     case 'feed_items':
       return feed;
     case 'genres':

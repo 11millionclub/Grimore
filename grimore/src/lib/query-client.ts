@@ -50,3 +50,14 @@ export const qk = {
   goal: (id: string, year: number) => ['goal', id, year] as const,
   suggestions: ['suggestions'] as const,
 };
+
+/**
+ * Everything that shows a reader's books: library lists, status shelves
+ * (/shelf/<user>:<status>), custom shelves, stats and the reading streak.
+ * Call after any change to a library entry so no list shows a stale status.
+ */
+export function refreshLibrary(client: QueryClient = queryClient) {
+  return Promise.all(
+    [['library'], ['shelf'], ['shelves'], ['readingStats'], ['streak'], ['book']].map((queryKey) => client.invalidateQueries({ queryKey })),
+  );
+}

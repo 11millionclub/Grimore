@@ -7,7 +7,7 @@ import { authorLine } from './catalogue';
 export type ReadingStatus = Database['public']['Enums']['reading_status'];
 
 export const STATUS_META: Record<ReadingStatus, { label: string; short: string }> = {
-  want_to_read: { label: 'Want to read', short: 'Want' },
+  want_to_read: { label: 'Wishlist', short: 'Wishlist' },
   reading: { label: 'Reading', short: 'Reading' },
   read: { label: 'Read', short: 'Read' },
   on_hold: { label: 'On hold', short: 'On hold' },
@@ -18,13 +18,15 @@ export const STATUS_ORDER: ReadingStatus[] = ['reading', 'want_to_read', 'read',
 export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
 export const PAGE_SIZE = 30;
 
-const entrySelect = `id, status, rating, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
+const entrySelect = `id, status, rating, spice, is_priority, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
   book:books!user_books_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, book_authors(position, role, authors(name)))` as const;
 
 type RawEntry = {
   id: string;
   status: ReadingStatus;
   rating: number | null;
+  spice: number | null;
+  is_priority: boolean;
   progress_percent: number | null;
   current_page: number | null;
   started_on: string | null;
@@ -94,7 +96,7 @@ export async function getEntry(userId: string, bookId: string): Promise<LibraryE
   return row ? mapEntry(row as unknown as RawEntry) : null;
 }
 
-export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
+export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'spice' | 'is_priority' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
 
 export async function saveEntry(userId: string, bookId: string, patch: EntryPatch) {
   return unwrap(
@@ -114,6 +116,12 @@ const utcToday = () => new Date().toISOString().slice(0, 10);
  * already finished begins a fresh read instead of keeping the old dates.
  */
 export function statusPatch(status: ReadingStatus, current?: Pick<LibraryEntry, 'status' | 'started_on' | 'finished_on'> | null): EntryPatch {
+  const base = statusPatchInner(status, current);
+  // Priority only means something inside the wishlist.
+  return status === 'want_to_read' ? base : { ...base, is_priority: false };
+}
+
+function statusPatchInner(status: ReadingStatus, current?: Pick<LibraryEntry, 'status' | 'started_on' | 'finished_on'> | null): EntryPatch {
   const today = utcToday();
   if (status === 'reading') {
     const rereading = !!current && (current.status === 'read' || !!current.finished_on);
@@ -208,10 +216,14 @@ export async function getNextReads(userId: string, favouriteGenreIds: number[], 
     .slice(0, limit);
 }
 
-/** All entries of one status (for shelves and pickers), newest first. */
-export async function listByStatus(userId: string, status: ReadingStatus | 'owned', limit = 200): Promise<LibraryEntry[]> {
+/**
+ * All entries of one status (for shelves and pickers), newest first. In the
+ * wishlist, priority books come first; 'priority' lists only those.
+ */
+export async function listByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority', limit = 200): Promise<LibraryEntry[]> {
   let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);
-  q = status === 'owned' ? q.eq('is_owned', true) : q.eq('status', status);
+  q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
+  if (status === 'want_to_read') q = q.order('is_priority', { ascending: false });
   const rows = unwrap(await q.order('updated_at', { ascending: false }).limit(limit)) as unknown as RawEntry[];
   return rows.map(mapEntry);
 }

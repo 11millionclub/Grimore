@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ShelfChoice } from '@/components/shelf-picker';
 import { toast } from '@/components/ui';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { importBook, type ExternalBook } from '@/services/books';
 import { addToShelf, getEntry, removeFromShelf, saveEntry, setStatus, STATUS_META, type ReadingStatus } from '@/services/library';
 
@@ -43,7 +44,7 @@ export function useAddToLibrary() {
     },
     onSuccess: (r) => {
       toast('removed' in r ? `${r.title} removed from ${r.label}` : `${r.title} added to ${r.label}`);
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       void qc.invalidateQueries({ queryKey: ['shelves'] });
       void qc.invalidateQueries({ queryKey: ['readingStats'] });
     },

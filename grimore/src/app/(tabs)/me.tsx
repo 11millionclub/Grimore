@@ -63,7 +63,7 @@ export default function Me() {
           onChange={setTab}
           options={[
             { value: 'corner', label: 'My Grimore' },
-            { value: 'posts', label: 'Posts' },
+            { value: 'posts', label: 'Reviews' },
             { value: 'stats', label: 'Stats' },
             { value: 'shelves', label: 'Shelves' },
           ]}

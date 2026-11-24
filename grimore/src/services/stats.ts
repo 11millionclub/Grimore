@@ -158,7 +158,7 @@ function moreStats(books: LibraryBook[], finished: LibraryBook[], sessions: Sess
   readAll.forEach((b) => b.authors.split(',').map((a) => a.trim()).filter(Boolean).forEach((a) => authorCounts.set(a, (authorCounts.get(a) ?? 0) + 1)));
   const decades = new Map<number, number>();
   readAll.forEach((b) => b.year && decades.set(Math.floor(b.year / 10) * 10, (decades.get(Math.floor(b.year / 10) * 10) ?? 0) + 1));
-  const ratings = [1, 2, 3, 4, 5].map((n) => readAll.filter((b) => b.rating !== null && Math.ceil(b.rating) === n).length);
+  const ratings = [1, 2, 3, 4, 5, 6].map((n) => readAll.filter((b) => b.rating !== null && Math.ceil(b.rating) === n).length);
   const booksByMonth = Array.from({ length: 12 }, () => 0);
   finished.forEach((b) => (booksByMonth[new Date(b.finished_on!).getMonth()] += 1));
   const weekdays = Array.from({ length: 7 }, () => 0);

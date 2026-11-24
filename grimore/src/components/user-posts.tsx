@@ -8,26 +8,26 @@ import { Btn, EmptyState, Skeleton } from '@/components/ui';
 import { getFeed } from '@/services/social';
 import { radius, spacing, useTheme } from '@/theme';
 
-/** A reader's own posts and reviews, newest first (their timeline, like Threads or X). */
+/** A reader's reviews, newest first. Posts only live inside communities. */
 export function UserPosts({ userId, viewerId }: { userId: string; viewerId: string }) {
   const { colors } = useTheme();
   const mine = userId === viewerId;
   const feed = useInfiniteQuery({
-    queryKey: ['feed', 'user', userId],
+    queryKey: ['feed', 'user', userId, 'reviews'],
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) => getFeed({ viewerId, scope: 'discover', userId, cursor: pageParam }),
+    queryFn: ({ pageParam }) => getFeed({ viewerId, scope: 'reviews', userId, cursor: pageParam }),
     getNextPageParam: (last) => last.nextCursor,
   });
   const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
   return (
     <View style={{ paddingHorizontal: spacing.md, gap: spacing.md }}>
       {mine ? (
-        <Btn variant="secondary" full icon={<PencilSimpleLineIcon size={16} color={colors.ink} />} onPress={() => router.push('/compose')}>
-          Write a post
+        <Btn variant="secondary" full icon={<PencilSimpleLineIcon size={16} color={colors.ink} />} onPress={() => router.push({ pathname: '/compose', params: { kind: 'review' } })}>
+          Write a review
         </Btn>
       ) : null}
       {feed.isLoading ? [0, 1].map((k) => <Skeleton key={k} height={140} rounded={radius.card} />) : null}
-      {!feed.isLoading && items.length === 0 ? <EmptyState title="No posts yet" body={mine ? 'Share a thought about a book, an author or anything you like.' : undefined} /> : null}
+      {!feed.isLoading && items.length === 0 ? <EmptyState title="No reviews yet" body={mine ? 'Rate a book and say what you thought. Your reviews show here.' : undefined} /> : null}
       {items.map((it) => (
         <PostCard key={`${it.item_type}-${it.id}`} post={it} />
       ))}

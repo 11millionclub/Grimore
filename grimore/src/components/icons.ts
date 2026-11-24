@@ -152,3 +152,6 @@ export { YoutubeLogoIcon } from 'phosphor-react-native/src/icons/YoutubeLogo';
 export { GoodreadsLogoIcon } from 'phosphor-react-native/src/icons/GoodreadsLogo';
 export { CoinsIcon } from 'phosphor-react-native/src/icons/Coins';
 export { CopySimpleIcon } from 'phosphor-react-native/src/icons/CopySimple';
+export { PepperIcon } from 'phosphor-react-native/src/icons/Pepper';
+export { CopyIcon } from 'phosphor-react-native/src/icons/Copy';
+export { GiftIcon } from 'phosphor-react-native/src/icons/Gift';

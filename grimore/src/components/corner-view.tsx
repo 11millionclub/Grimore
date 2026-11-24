@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 
-import { CommunityCover, openBook, openCommunity } from '@/components/books';
+import { CommunityCover, PriorityMark, openBook, openCommunity } from '@/components/books';
 import { Plank, ThemeFill, type CornerLook } from '@/components/corner';
 import { Ring } from '@/components/feed';
 import {
@@ -328,14 +328,15 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
     tbr: (want.data ?? []).length ? (
       <View>
         <SectionHead
-          title={`Want to read · ${(want.data ?? []).length}`}
+          title={`Wishlist · ${(want.data ?? []).length}`}
           action="See all"
-          onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Want to read' } }))}
+          onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Wishlist' } }))}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
           {(want.data ?? []).slice(0, 12).map((e) => (
             <Press key={e.id} accessibilityLabel={e.book.title} onPress={go(() => openBook(e.book.id))} style={{ width: 92 }}>
               <Cover uri={e.book.cover_url} title={e.book.title} author={e.book.authors} width={92} />
+              {e.is_priority ? <PriorityMark /> : null}
               <Text variant="caption" numberOfLines={2} style={{ marginTop: 6, fontFamily: fonts.medium }}>
                 {e.book.title}
               </Text>

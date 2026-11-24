@@ -14,7 +14,7 @@ const ACTIONS: Action[] = [
   { label: 'Search a book', hint: 'Title, author or ISBN, then pick the shelf', Icon: MagnifyingGlassIcon, href: '/search' },
   { label: 'Scan a barcode', hint: 'Point the camera at the ISBN', Icon: BarcodeIcon, href: { pathname: '/scan', params: { mode: 'isbn' } } },
   { label: 'Save a quote', hint: 'Photograph a page and pick the line', Icon: QuotesIcon, href: { pathname: '/scan', params: { mode: 'quote' } } },
-  { label: 'Write a post', hint: 'Share a thought with your followers', Icon: PencilSimpleLineIcon, href: '/compose' },
+  { label: 'Write a review', hint: 'Rate a book and say what you thought', Icon: PencilSimpleLineIcon, href: { pathname: '/compose', params: { kind: 'review' } } },
   { label: 'Import a library', hint: 'Kindle, Kobo, Goodreads, StoryGraph', Icon: FileArrowUpIcon, href: '/import' },
 ];
 
