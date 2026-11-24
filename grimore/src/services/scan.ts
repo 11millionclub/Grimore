@@ -17,6 +17,10 @@ const messages: Record<string, string> = {
   unreadable_image: 'That photo could not be read. Try again with better light.',
   refused: 'This photo could not be processed.',
   busy: 'The scanner is busy. Try again in a minute.',
+  scanner_paused: 'The scanner is paused for a moment. You can still search or scan the barcode.',
+  scanner_busy: 'The scanner has reached today’s limit. Search or scan the barcode instead.',
+  scan_daily_limit: 'You have used today’s photo scans. Search or scan the barcode instead.',
+  could_not_start: 'The scan could not start. Please try again.',
 };
 
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
