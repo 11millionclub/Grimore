@@ -380,6 +380,8 @@ const en = {
     houseHidden: 'Only you can see your House',
   },
   errors: {
+    writes_paused: 'Posting is paused for a moment. Please try again later.',
+    birth_date_locked: 'Your date of birth cannot be changed in the app. Contact support to correct it.',
     invite_not_found: 'That invite code does not exist. Check the letters and try again.',
     invite_own_code: 'That is your own invite code.',
     invite_already_used: 'You have already used an invite code.',

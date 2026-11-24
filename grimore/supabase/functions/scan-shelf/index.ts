@@ -104,6 +104,11 @@ Deno.serve(async (req) => {
     .select("id")
     .single();
   if (jobError || !job) {
+    // Server-side switches and caps (migration 33) come back as their own codes.
+    const msg = jobError?.message ?? "";
+    for (const code of ["scanner_paused", "scanner_busy", "scan_daily_limit", "writes_paused"]) {
+      if (msg.includes(code)) return json({ error: code }, code === "scan_daily_limit" ? 429 : 503);
+    }
     const limited = jobError?.code === "P0429";
     return json({ error: limited ? "rate_limited" : "could_not_start" }, limited ? 429 : 400);
   }
