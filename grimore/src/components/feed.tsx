@@ -7,6 +7,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, DotsThreeIcon, HeartIcon, PencilSimpleLineIcon, TrashIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
 import { HouseBadge } from '@/components/house-badge';
+import { ReviewTags } from '@/components/review-tags';
 import { ReportButton } from '@/components/report-button';
 import { Avatar, Cover, Press, Progress, Stars, Text, toast, shareText } from '@/components/ui';
 import { useHouseOf } from '@/hooks/use-house-of';
@@ -194,6 +195,11 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
                 <Text variant="body" style={{ marginTop: 6 }} numberOfLines={full ? undefined : 6}>
                   {post.body}
                 </Text>
+              ) : null}
+              {post.tags?.length ? (
+                <View style={{ marginTop: spacing.sm }}>
+                  <ReviewTags tags={post.tags} />
+                </View>
               ) : null}
             </View>
           ) : post.kind === 'progress' ? (

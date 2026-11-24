@@ -213,6 +213,14 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return [{ scores: { lantern: 10, quill: 2, thorn: 4, hourglass: 0 }, house_id: 'lantern', created_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/house_balance':
       return [];
+    case 'rpc/wheel_spins_left':
+      return 3;
+    case 'rpc/use_wheel_spin':
+      return 2;
+    case 'rpc/book_tags':
+      return [{ book_id: 'b4', tag: 'slow-burn', n: 2 }];
+    case 'rpc/log_reading_session':
+      return [{ minutes_today: 25, minutes_book: 140 }];
     case 'rpc/my_wallet':
       return [{ earned: 1240, spent: 500, balance: 740 }];
     case 'point_rewards':
@@ -263,7 +271,7 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'book_genres':
       return [{ genres: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' } }];
     case 'corners':
-      return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], updated_at: today };
+      return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], library: 'classic', updated_at: today };
     case 'corner_items':
       return [
         { key: 'theme:forest', kind: 'theme', name: 'Forest', price_cents: null, sort_order: 1 },

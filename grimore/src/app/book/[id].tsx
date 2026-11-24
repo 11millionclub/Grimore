@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
+import { ReadingTimeCard } from '@/components/reading-time';
 import { ShelfPicker } from '@/components/shelf-picker';
 import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, PepperIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
@@ -66,7 +67,8 @@ export default function BookScreen() {
   const mySpice = e?.spice ?? 0;
   const genres = [b?.primary_genre?.name, ...(b?.book_genres ?? []).map((g) => g.genres?.name)].filter((g, i, a): g is string => !!g && a.indexOf(g) === i);
   const myReview = reviews.data?.list.find((r) => r.author?.id === me);
-  const topReview = reviews.data?.list.find((r) => r.author?.id !== me);
+  // Someone else's review first; your own when it is the only one (the count includes it).
+  const topReview = reviews.data?.list.find((r) => r.author?.id !== me) ?? reviews.data?.list[0];
 
   const hero = (
     <View style={{ overflow: 'hidden', paddingTop: insets.top + 56 }}>
@@ -247,7 +249,7 @@ export default function BookScreen() {
                   key={i}
                   accessibilityLabel={`${i} stars`}
                   // Rating a book you have not finished files it under Read.
-                  onPress={() => save.mutate({ patch: { rating: i, ...(e?.status === 'read' ? {} : statusPatch('read', e)) }, done: e?.status === 'read' ? undefined : 'Rated and moved to Read' })}
+                  onPress={() => save.mutate({ patch: { rating: i, ...(e?.status === 'read' ? {} : statusPatch('read', e)) }, done: e?.status === 'read' ? undefined : 'Rated and moved to Finished' })}
                   style={{ padding: 3 }}
                 >
                   <StarIcon size={22} weight="fill" color={i <= myStars ? colors.gold : colors.surface3} />
@@ -281,6 +283,7 @@ export default function BookScreen() {
             </View>
           </View>
         </View>
+        {e?.status === 'read' ? <ReadingTimeCard entry={e} onSave={(patch) => save.mutate({ patch, done: 'Reading time saved' })} /> : null}
         <Press onPress={() => router.push({ pathname: '/review/[bookId]', params: { bookId: id } })} style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start', paddingVertical: spacing.xs }}>
           <PencilSimpleLineIcon size={16} color={colors.accent} />
           <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
@@ -349,13 +352,13 @@ export default function BookScreen() {
       ) : null}
 
       <View style={{ marginTop: spacing.xxl }}>
-        <SectionHead title="Reviews" action={reviews.data?.count ? `See ${reviews.data.count}` : undefined} onAction={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} />
+        <SectionHead title="Reviews" action={reviews.data?.count ? (reviews.data.count === 1 ? 'See review' : `See all ${reviews.data.count}`) : undefined} onAction={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} />
         {topReview ? (
           <Press onPress={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Avatar uri={topReview.author?.avatar_url} name={topReview.author?.display_name} size={28} />
               <Text variant="callout" style={{ fontFamily: fonts.semibold, flex: 1 }} numberOfLines={1}>
-                {topReview.author?.display_name ?? topReview.author?.username}
+                {topReview.author?.id === me ? 'Your review' : (topReview.author?.display_name ?? topReview.author?.username)}
               </Text>
               <Stars value={topReview.rating} size={12} />
             </View>

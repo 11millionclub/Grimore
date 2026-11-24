@@ -70,7 +70,7 @@ export default function Me() {
         />
       </View>
       <Animated.View key={tab} entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}>
-        {tab === 'corner' ? <CornerBlocks userId={me} look={look} widgets={c?.widgets ?? []} status={c?.status_text} song={c?.song} /> : tab === 'posts' ? <UserPosts userId={me} viewerId={me} /> : tab === 'stats' ? <StatsView userId={me} /> : <ShelvesView userId={me} isMe />}
+        {tab === 'corner' ? <CornerBlocks userId={me} look={look} widgets={c?.widgets ?? []} status={c?.status_text} song={c?.song} library={c?.library} /> : tab === 'posts' ? <UserPosts userId={me} viewerId={me} /> : tab === 'stats' ? <StatsView userId={me} /> : <ShelvesView userId={me} isMe />}
       </Animated.View>
     </Screen>
   );

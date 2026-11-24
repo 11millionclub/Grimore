@@ -960,6 +960,7 @@ export type Database = {
         Row: {
           community_banner_id: string | null
           badge_ids: string[]
+          library: string
           frame: string
           name_style: string
           pack: string
@@ -975,6 +976,7 @@ export type Database = {
         Insert: {
           community_banner_id?: string | null
           badge_ids?: string[]
+          library?: string
           frame?: string
           name_style?: string
           pack?: string
@@ -990,6 +992,7 @@ export type Database = {
         Update: {
           community_banner_id?: string | null
           badge_ids?: string[]
+          library?: string
           frame?: string
           name_style?: string
           pack?: string
@@ -2079,6 +2082,7 @@ export type Database = {
       }
       reviews: {
         Row: {
+          tags: string[]
           spice: number | null
           body: string | null
           book_id: string
@@ -2093,6 +2097,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          tags?: string[]
           spice?: number | null
           body?: string | null
           book_id: string
@@ -2107,6 +2112,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          tags?: string[]
           spice?: number | null
           body?: string | null
           book_id?: string
@@ -2388,6 +2394,7 @@ export type Database = {
       }
       user_books: {
         Row: {
+          minutes_read: number
           spice: number | null
           is_priority: boolean
           added_at: string
@@ -2407,6 +2414,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          minutes_read?: number
           spice?: number | null
           is_priority?: boolean
           added_at?: string
@@ -2426,6 +2434,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          minutes_read?: number
           spice?: number | null
           is_priority?: boolean
           added_at?: string
@@ -2917,6 +2926,10 @@ export type Database = {
       }
     }
     Functions: {
+      book_tags: { Args: { p_books: string[] }; Returns: { book_id: string; tag: string; n: number }[] }
+      log_reading_session: { Args: { p_book: string | null; p_seconds: number }; Returns: { minutes_today: number; minutes_book: number | null }[] }
+      wheel_spins_left: { Args: Record<PropertyKey, never>; Returns: number }
+      use_wheel_spin: { Args: { p_book: string | null }; Returns: number }
       my_wallet: { Args: Record<PropertyKey, never>; Returns: { earned: number; spent: number; balance: number }[] }
       my_invite_code: { Args: Record<PropertyKey, never>; Returns: string }
       redeem_invite: { Args: { p_code: string }; Returns: Json }

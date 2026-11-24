@@ -17,7 +17,7 @@ test.describe('@mock library', () => {
 
   test('every reading status can be picked from the shelf panel', async ({ page }) => {
     await page.goto('/book/b4');
-    for (const s of ['Reading', 'Read', 'On hold', 'Abandoned', 'Wishlist']) {
+    for (const s of ['Reading', 'Finished', 'Paused', 'DNF', 'Wishlist']) {
       await page.getByRole('button', { name: /^Shelf: / }).click();
       await page.getByRole('button', { name: s, exact: true }).click();
       await expect(page.getByText(`Moved to ${s}`).last()).toBeVisible();
@@ -47,11 +47,11 @@ test.describe('@mock library', () => {
     await expect(page.getByText('Error code: book_not_found')).toBeVisible();
   });
 
-  test('rating an unread book files it under Read', async ({ page }) => {
+  test('rating an unread book files it under Finished', async ({ page }) => {
     await page.goto('/book/b4'); // on the wishlist
     await page.getByRole('button', { name: /^Shelf: Wishlist/ }).waitFor();
     await page.getByLabel('6 stars').click();
-    await expect(page.getByText('Rated and moved to Read')).toBeVisible();
+    await expect(page.getByText('Rated and moved to Finished')).toBeVisible();
     expect(writes.at(-1)?.body).toMatchObject({ rating: 6, status: 'read' });
   });
 
@@ -73,7 +73,7 @@ test.describe('@mock library', () => {
   test('an abandoned book offers to continue reading', async ({ page }) => {
     await page.goto('/book/b4');
     await page.getByRole('button', { name: /^Shelf: / }).click();
-    await page.getByRole('button', { name: 'Abandoned', exact: true }).click();
+    await page.getByRole('button', { name: 'DNF', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Continue reading' })).toBeVisible();
   });
 });

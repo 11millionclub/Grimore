@@ -4,8 +4,9 @@ import { useState, type ComponentType, type ReactNode } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { CommunityCover, PriorityMark, openBook, openCommunity } from '@/components/books';
-import { Plank, ThemeFill, type CornerLook } from '@/components/corner';
+import { ThemeFill, type CornerLook } from '@/components/corner';
 import { Ring } from '@/components/feed';
+import { LibraryPanel } from '@/components/library-panel';
 import {
   BooksIcon,
   ChatTeardropTextIcon,
@@ -43,16 +44,15 @@ const BADGE_ICON: Record<string, ComponentType<IconProps>> = {
 };
 export const badgeIcon = (name: string) => BADGE_ICON[name] ?? MedalIcon;
 
-type Props = { userId: string; look: CornerLook; widgets: string[]; status?: string | null; song?: string | null; preview?: boolean };
+type Props = { userId: string; look: CornerLook; widgets: string[]; status?: string | null; song?: string | null; preview?: boolean; library?: string | null };
 
-export function CornerBlocks({ userId, look, widgets, status, song, preview }: Props) {
+export function CornerBlocks({ userId, look, widgets, status, song, preview, library }: Props) {
   const { colors } = useTheme();
   const me = useMyId();
   const isMe = me === userId;
   const favs = useFavoriteBooks(userId);
   const reading = useShelf(userId, 'reading');
   const want = useShelf(userId, 'want_to_read');
-  const read = useShelf(userId, 'read');
   const goal = useReadingGoal(userId);
   const streak = useStreak(userId);
   const stats = useReadingStats(widgets.some((w) => ['year', 'genres', 'authors'].includes(w)) ? userId : undefined);
@@ -262,31 +262,8 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
         </ScrollView>
       </View>
     ) : null,
-    shelf: (read.data ?? []).length ? (
-      <View>
-        <SectionHead title="Virtual shelf" action={`${(read.data ?? []).length} books`} onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:read`, name: 'Read' } }))} />
-        <View style={{ marginHorizontal: spacing.lg, overflow: 'hidden', borderRadius: radius.card, padding: spacing.base, paddingBottom: 4 }}>
-          <ThemeFill theme={look.theme} />
-          <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.2)' }} />
-          {[0, 1, 2].map((row) => {
-            const items = (read.data ?? []).slice(row * 7, row * 7 + 7);
-            if (!items.length) return null;
-            return (
-              <View key={row} style={{ marginBottom: spacing.base }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingHorizontal: 4 }}>
-                  {items.map((e, i) => (
-                    <Press key={e.id} onPress={go(() => openBook(e.book.id))} style={{ transform: [{ rotate: i === 3 && row === 0 ? '-6deg' : i === 5 && row === 2 ? '5deg' : '0deg' }] }}>
-                      <Cover uri={e.book.cover_url} title={e.book.title} width={40} />
-                    </Press>
-                  ))}
-                </View>
-                <Plank shelf={look.shelf} theme={look.theme} />
-              </View>
-            );
-          })}
-        </View>
-      </View>
-    ) : null,
+    // The painted library at the top of My Grimore replaced the old virtual shelf.
+    shelf: null,
     genres: stats.data && (stats.data.genres.length || stats.data.moods.length) ? (
       <View>
         <SectionHead title="Genres and moods" />
@@ -373,6 +350,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview }: P
 
   return (
     <View style={{ gap: spacing.xxl, paddingTop: spacing.sm }}>
+      {preview ? null : <LibraryPanel userId={userId} isMe={isMe} scene={library} />}
       {widgets.map((w) => {
         const node = blocks[w as Widget];
         return node ? <View key={w}>{node}</View> : null;

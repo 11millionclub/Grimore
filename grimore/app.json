@@ -52,7 +52,8 @@
           "cameraPermission": "Grimore uses the camera to scan book barcodes, photograph your shelves and capture quotes.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

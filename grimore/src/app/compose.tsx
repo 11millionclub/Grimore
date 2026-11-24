@@ -4,13 +4,15 @@ import { useState, type ComponentType } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReviewTagPicker } from '@/components/review-tags';
 import { Toggle } from '@/components/switch';
 import { BookOpenIcon, CaretRightIcon, EyeSlashIcon, FeatherIcon, QuotesIcon, StarIcon, type IconProps } from '@/components/icons';
 import { Btn, Cover, Press, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { myCommunities } from '@/services/communities';
-import { listByStatus } from '@/services/library';
+import { refreshLibrary } from '@/lib/query-client';
+import { listByStatus, saveEntry, statusPatch } from '@/services/library';
 import { createPost, upsertReview } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { STAR_STEPS } from '@/utils/ratings';
@@ -34,9 +36,11 @@ export default function Compose() {
   const qc = useQueryClient();
   const [kind, setKind] = useState<Kind>(params.kind && params.kind in { review: 1, quote: 1, free: 1 } ? params.kind : params.communityId ? 'free' : 'review');
   const [bookId, setBookId] = useState<string | null>(params.bookId ?? null);
-  const [stars, setStars] = useState(4);
+  // null = use the stars you already gave the chosen book in your library.
+  const [picked, setStars] = useState<number | null>(null);
   const [text, setText] = useState('');
   const [spoiler, setSpoiler] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
     const [communityId, setCommunityId] = useState<string | null>(params.communityId ?? null);
   const [picking, setPicking] = useState(false);
   const books = useQuery({
@@ -46,15 +50,23 @@ export default function Compose() {
   const comms = useQuery({ queryKey: ['my-communities', me], queryFn: () => myCommunities(me) });
   // Free posts are about anything (an author, an idea…); a book is optional and only tagged when chosen.
   const book = (books.data ?? []).find((e) => e.book.id === bookId)?.book ?? (kind === 'free' ? undefined : books.data?.[0]?.book);
+  const entryOf = (books.data ?? []).find((e) => e.book.id === book?.id);
+  const stars = picked ?? Number(entryOf?.rating ?? 0);
   const ok = kind === 'review' ? !!book && stars > 0 : !!communityId && text.trim().length > 2 && (kind !== 'quote' || !!book);
 
   const publish = useMutation({
     mutationFn: async () => {
-      if (kind === 'review') return upsertReview({ userId: me, bookId: book!.id, rating: stars, body: text, hasSpoilers: spoiler });
+      if (kind === 'review') {
+        await upsertReview({ userId: me, bookId: book!.id, rating: stars, body: text, hasSpoilers: spoiler, tags });
+        // Same as the review screen: the stars become the book's rating and the book counts as finished.
+        await saveEntry(me, book!.id, { rating: stars, ...(entryOf?.status === 'read' ? {} : statusPatch('read', entryOf ?? null)) });
+        return;
+      }
       return createPost({ userId: me, kind: kind === 'quote' ? 'quote' : 'free', bookId: book?.id ?? null, quote: kind === 'quote' ? text : null, body: kind === 'free' ? text : null, hasSpoilers: spoiler, audience: 'community', communityId });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['feed'] });
+      if (kind === 'review') void refreshLibrary(qc);
       router.back();
       toast('Published');
     },
@@ -114,6 +126,7 @@ export default function Compose() {
                 key={e.id}
                 onPress={() => {
                   setBookId(e.book.id);
+                  setStars(null);
                   setPicking(false);
                 }}
                 style={{ opacity: book?.id === e.book.id ? 1 : 0.6 }}
@@ -146,6 +159,11 @@ export default function Compose() {
         <Text variant="caption" tone="faint" align="right">
           {text.length}/1000
         </Text>
+        {kind === 'review' ? (
+          <View style={{ marginTop: spacing.base }}>
+            <ReviewTagPicker value={tags} onChange={setTags} />
+          </View>
+        ) : null}
 
         <View style={{ marginTop: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>
           <View style={{ height: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.base }}>

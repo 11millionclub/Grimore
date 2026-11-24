@@ -153,7 +153,7 @@ export default function Settings() {
       <Group title="Payments">
         <Row icon={icon(CreditCardIcon)} label="Payment methods" value="Coming soon" onPress={soon} />
         <Row icon={icon(UsersThreeIcon)} label="Community memberships" value="Coming soon" onPress={soon} />
-        <Row icon={icon(CrownSimpleIcon)} label="My Grimore purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
+        <Row icon={icon(CrownSimpleIcon)} label="Grimore purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
       </Group>
 
       <Group>

@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
+import { ReviewTagPicker } from '@/components/review-tags';
 import { Toggle } from '@/components/switch';
 import { PepperIcon, StarIcon, TrashIcon } from '@/components/icons';
 import { Btn, Cover, Press, Screen, Text, toast } from '@/components/ui';
@@ -22,12 +23,23 @@ export default function WriteReview() {
   const qc = useQueryClient();
   const book = useQuery({ queryKey: ['book', bookId], queryFn: () => getBook(bookId) });
   const mine = useQuery({ queryKey: ['review', 'mine', bookId], queryFn: () => getMyReview(me, bookId) });
+  const entry = useQuery({ queryKey: ['entry', me, bookId], queryFn: () => getEntry(me, bookId) });
   const [stars, setStars] = useState(0);
   const [spice, setSpice] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
   const [spoiler, setSpoiler] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  useEffect(() => {
+    // No review yet: carry the stars and spice you already gave the book in your library.
+    if (mine.isLoading || mine.data || !entry.data) return;
+    const t = setTimeout(() => {
+      setStars((s) => s || Number(entry.data?.rating ?? 0));
+      setSpice((s) => s || (entry.data?.spice ?? 0));
+    }, 0);
+    return () => clearTimeout(t);
+  }, [mine.isLoading, mine.data, entry.data]);
   useEffect(() => {
     // Prefill once the existing review loads (editing).
     if (!mine.data) return;
@@ -37,12 +49,13 @@ export default function WriteReview() {
       setHeadline(mine.data!.headline ?? '');
       setBody(mine.data!.body ?? '');
       setSpoiler(mine.data!.has_spoilers);
+      setTags(mine.data!.tags ?? []);
     }, 0);
     return () => clearTimeout(t);
   }, [mine.data]);
   const save = useMutation({
     mutationFn: async () => {
-      await upsertReview({ userId: me, bookId, rating: stars, spice, headline, body, hasSpoilers: spoiler });
+      await upsertReview({ userId: me, bookId, rating: stars, spice, headline, body, hasSpoilers: spoiler, tags });
       // The review's rating is the book's rating in your library, and a reviewed book counts as read.
       const entry = await getEntry(me, bookId);
       await saveEntry(me, bookId, { rating: stars, spice, ...(entry?.status === 'read' ? {} : statusPatch('read', entry)) });
@@ -129,6 +142,9 @@ export default function WriteReview() {
           selectionColor={colors.accent}
           style={{ marginTop: spacing.md, minHeight: 180, color: colors.ink, fontFamily: fonts.regular, fontSize: 17, lineHeight: 25, textAlignVertical: 'top' }}
         />
+        <View style={{ marginTop: spacing.base }}>
+          <ReviewTagPicker value={tags} onChange={setTags} />
+        </View>
         <View style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, height: 56 }}>
           <Text style={{ flex: 1 }}>Contains spoilers</Text>
           <Toggle value={spoiler} onChange={setSpoiler} label="Contains spoilers" />

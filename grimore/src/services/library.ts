@@ -9,17 +9,17 @@ export type ReadingStatus = Database['public']['Enums']['reading_status'];
 export const STATUS_META: Record<ReadingStatus, { label: string; short: string }> = {
   want_to_read: { label: 'Wishlist', short: 'Wishlist' },
   reading: { label: 'Reading', short: 'Reading' },
-  read: { label: 'Read', short: 'Read' },
-  on_hold: { label: 'On hold', short: 'On hold' },
-  dnf: { label: 'Abandoned', short: 'DNF' },
+  read: { label: 'Finished', short: 'Finished' },
+  on_hold: { label: 'Paused', short: 'Paused' },
+  dnf: { label: 'DNF', short: 'DNF' },
 };
 export const STATUS_ORDER: ReadingStatus[] = ['reading', 'want_to_read', 'read', 'on_hold', 'dnf'];
 
 export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
 export const PAGE_SIZE = 30;
 
-const entrySelect = `id, status, rating, spice, is_priority, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
-  book:books!user_books_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, book_authors(position, role, authors(name)))` as const;
+const entrySelect = `id, status, rating, spice, is_priority, minutes_read, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
+  book:books!user_books_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, primary_genre_id, book_authors(position, role, authors(name)))` as const;
 
 type RawEntry = {
   id: string;
@@ -27,6 +27,7 @@ type RawEntry = {
   rating: number | null;
   spice: number | null;
   is_priority: boolean;
+  minutes_read: number;
   progress_percent: number | null;
   current_page: number | null;
   started_on: string | null;
@@ -42,6 +43,7 @@ type RawEntry = {
     cover_url: string | null;
     first_published_year: number | null;
     page_count_estimate: number | null;
+    primary_genre_id: number | null;
     book_authors: { position: number; role: string; authors: { name: string } | null }[];
   };
 };
@@ -96,7 +98,7 @@ export async function getEntry(userId: string, bookId: string): Promise<LibraryE
   return row ? mapEntry(row as unknown as RawEntry) : null;
 }
 
-export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'spice' | 'is_priority' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
+export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'spice' | 'is_priority' | 'minutes_read' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
 
 export async function saveEntry(userId: string, bookId: string, patch: EntryPatch) {
   return unwrap(
@@ -338,4 +340,10 @@ export async function shelvesWithBook(userId: string, bookId: string): Promise<s
 /** Whether a custom shelf belongs to this reader. */
 export async function isMyShelf(userId: string, listId: string) {
   return !!unwrap(await supabase.from('reading_lists').select('id').eq('id', listId).eq('user_id', userId).maybeSingle());
+}
+
+/** Save a timed reading session; its minutes are added to the book's reading time. */
+export async function logReadingSession(bookId: string | null, seconds: number) {
+  const [row] = (unwrap(await supabase.rpc('log_reading_session', { p_book: bookId as string, p_seconds: Math.round(seconds) })) ?? []) as { minutes_today: number; minutes_book: number | null }[];
+  return { minutesToday: row?.minutes_today ?? 0, minutesBook: row?.minutes_book ?? null };
 }
