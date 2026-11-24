@@ -21,7 +21,7 @@ import { breakdown } from '@/utils/sorting';
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
 
 /** Your House: who you are, why you were sorted here, the ritual, your marks, and the change rules. */
-export default function HouseScreen() {
+export function HouseView({ embedded = false }: { embedded?: boolean }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const me = useMyId()!;
@@ -65,7 +65,7 @@ export default function HouseScreen() {
     onError: (e) => toast(toAppError(e).message),
   });
 
-  if (!h) return <Screen title={t('house.title')} back><View /></Screen>;
+  if (!h) return embedded ? <View /> : <Screen title={t('house.title')} back><View /></Screen>;
   const tk = houseTokens[h];
   const rows = sorting.data && !Object.values(sorting.data.scores ?? {}).every((v) => !v) ? breakdown(sorting.data.scores) : [];
   const about = t(`houses.${h}.about`, { returnObjects: true }) as unknown as string[];
@@ -87,8 +87,8 @@ export default function HouseScreen() {
     ]);
   };
 
-  return (
-    <Screen title={t('house.title')} back large={false} refreshing={mine.isRefetching} onRefresh={refresh}>
+  const body = (
+    <>
       <View style={{ marginHorizontal: spacing.lg, borderRadius: radius.card, backgroundColor: tk.primary, padding: spacing.xl, alignItems: 'center' }}>
         <Sigil house={h} size={84} color={tk.onPrimary} />
         <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 40, marginTop: spacing.md }} color={tk.onPrimary}>
@@ -233,6 +233,12 @@ export default function HouseScreen() {
           {t('house.changeOpen', { date: day(new Date(new Date(window.ends_at).getTime() + 7 * 86_400_000).toISOString()) })}
         </Text>
       ) : null}
-    </Screen>
+    </>
   );
+  // Inside the Houses tab the tab's own screen provides the scroll.
+  return embedded ? body : <Screen title={t('house.title')} back large={false} refreshing={mine.isRefetching} onRefresh={refresh}>{body}</Screen>;
+}
+
+export default function Route() {
+  return <HouseView />;
 }

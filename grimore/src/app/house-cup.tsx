@@ -23,7 +23,7 @@ const ROWS: [string, string][] = [
 ];
 
 /** The House Cup: season standings by points per active member, this week's duels and your contribution. */
-export default function HouseCup() {
+export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const mine = useMyHouse();
@@ -52,8 +52,8 @@ export default function HouseCup() {
     ['quill', 'thorn'],
   ];
 
-  return (
-    <Screen title={t('cup.title')} back refreshing={standings.isRefetching} onRefresh={() => Promise.all([standings.refetch(), duels.refetch(), points.refetch(), seasons.refetch()])}>
+  const body = (
+    <>
       <Text variant="small" tone="muted" style={{ paddingHorizontal: spacing.lg, marginTop: -spacing.sm, marginBottom: spacing.md }}>
         {header}
       </Text>
@@ -191,6 +191,12 @@ export default function HouseCup() {
           </Text>
         </View>
       </View>
-    </Screen>
+    </>
   );
+  // Inside the Houses tab the tab's own screen provides the scroll.
+  return embedded ? body : <Screen title={t('cup.title')} back refreshing={standings.isRefetching} onRefresh={() => Promise.all([standings.refetch(), duels.refetch(), points.refetch(), seasons.refetch()])}>{body}</Screen>;
+}
+
+export default function Route() {
+  return <HouseCupView />;
 }

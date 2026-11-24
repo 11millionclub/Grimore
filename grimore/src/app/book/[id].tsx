@@ -45,6 +45,8 @@ export default function BookScreen() {
     },
     onSuccess: (_d, { done }) => {
       void refreshLibrary(qc);
+      // The stars also update your review, which Home and the feed show.
+      void qc.invalidateQueries({ queryKey: ['feed'] });
       void qc.invalidateQueries({ queryKey: ['readingStats'] });
       void qc.invalidateQueries({ queryKey: ['streak'] });
       if (done) toast(done);
@@ -167,9 +169,9 @@ export default function BookScreen() {
             </Btn>
             <Btn
               variant="secondary"
-              accessibilityLabel={want ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              accessibilityLabel={want ? 'Remove from TBR' : 'Add to TBR (To be read)'}
               style={{ width: 48, paddingHorizontal: 0 }}
-              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from Wishlist' : 'Added to Wishlist' })}
+              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from your TBR' : 'Added to your TBR' })}
             >
               {want ? <CheckIcon size={18} weight="bold" color={colors.ink} /> : <BookmarkSimpleIcon size={18} color={colors.ink} />}
             </Btn>
@@ -251,7 +253,7 @@ export default function BookScreen() {
                 {e?.is_priority ? 'Priority' : 'Make it a priority'}
               </Text>
               <Text variant="caption" tone="muted">
-                Priority books stay at the top of your wishlist
+                Priority books stay at the top of your TBR
               </Text>
             </View>
           </Press>

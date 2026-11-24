@@ -33,7 +33,7 @@ export default function WheelScreen() {
 }
 
 /**
- * One spin and two rerolls a day, fed by your to-be-read list, the books you
+ * One spin and one more ("spin again") a day, fed by your to-be-read list, the books you
  * own, or recommendations from your reader profile. Spice, length and trope
  * are always on show; genre and priority sit under "More filters".
  */
@@ -117,10 +117,9 @@ function Wheel() {
   };
 
   const spins = left.data ?? 0;
-  const used = 3 - spins;
-  const rerolls = Math.min(2, spins);
+  const used = 2 - spins;
   const size = Math.min(width - spacing.md * 2, 440);
-  const label = spinning ? 'SPINNING' : spins <= 0 ? 'TOMORROW' : used === 0 ? 'SPIN' : 'REROLL';
+  const label = spinning ? 'SPINNING' : spins <= 0 ? 'TOMORROW' : used === 0 ? 'SPIN' : 'SPIN AGAIN';
   const extra = [genre != null, priority].filter(Boolean).length;
 
   return (
@@ -202,22 +201,21 @@ function Wheel() {
           ) : slots.length === 0 ? (
             <View style={{ paddingHorizontal: spacing.lg }}>
               <EmptyState
-                title={(pool.data ?? []).length ? 'Nothing matches these filters' : source === 'tbr' ? 'Your wishlist is empty' : source === 'owned' ? 'No unread books you own' : 'No recommendations yet'}
+                title={(pool.data ?? []).length ? 'Nothing matches these filters' : source === 'tbr' ? 'Your TBR is empty' : source === 'owned' ? 'No unread books you own' : 'No recommendations yet'}
                 body={(pool.data ?? []).length ? 'Loosen a filter to fill the wheel.' : 'Add books to your library and the wheel fills up.'}
               />
             </View>
           ) : (
             <>
               <BookWheel ref={wheel} slots={slots} size={size} reduceMotion={!!reduce} highlight={!!result} />
-              <SpinButton label={label} disabled={spinning || spins <= 0} onPress={() => void spin()} a11y={spins <= 0 ? 'No spins left today' : used === 0 ? 'Spin the wheel' : `Reroll, ${spins} left today`} />
+              <SpinButton label={label} disabled={spinning || spins <= 0} onPress={() => void spin()} a11y={spins <= 0 ? 'No spins left today' : used === 0 ? 'Spin the wheel' : 'Spin again'} />
               <View style={{ alignItems: 'center', gap: 4 }}>
-                <View style={{ flexDirection: 'row', gap: 8 }} accessibilityLabel={`${used === 0 ? 'Daily spin available' : 'Daily spin used'}, ${rerolls} of 2 rerolls left`}>
-                  <Pip on={used === 0} label="Spin" />
-                  <Pip on={rerolls >= 2} label="Reroll" />
-                  <Pip on={rerolls >= 1} label="Reroll" />
+                <View style={{ flexDirection: 'row', gap: 8 }} accessibilityLabel={`${spins} of 2 spins left today`}>
+                  <Pip on={spins >= 2} label="Spin" />
+                  <Pip on={spins >= 1} label="Again" />
                 </View>
                 <Text variant="caption" color="rgba(242,233,216,0.7)">
-                  {spins <= 0 ? 'The wheel rests until tomorrow' : used === 0 ? 'One spin and two rerolls a day' : `${rerolls} ${rerolls === 1 ? 'reroll' : 'rerolls'} left today`} · {matches.length} {matches.length === 1 ? 'book' : 'books'} eligible
+                  {spins <= 0 ? 'The wheel rests until tomorrow' : used === 0 ? 'One spin a day, and one more if you want' : 'One more spin left today'} · {matches.length} {matches.length === 1 ? 'book' : 'books'} eligible
                 </Text>
                 {matches.length > MAX_WEDGES && !spinning ? (
                   <Press onPress={() => setSeed(seed + 1)} style={{ paddingVertical: 4 }}>

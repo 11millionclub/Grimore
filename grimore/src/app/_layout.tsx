@@ -1,7 +1,7 @@
 import { CormorantGaramond_500Medium_Italic, CormorantGaramond_600SemiBold, CormorantGaramond_700Bold } from '@expo-google-fonts/cormorant-garamond';
 import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold } from '@expo-google-fonts/geist';
 import { GeistMono_500Medium, GeistMono_600SemiBold } from '@expo-google-fonts/geist-mono';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
 import { Stack, type NativeStackNavigationOptions } from 'expo-router';
@@ -19,6 +19,7 @@ import { useMyHouse, useMyProfile } from '@/hooks/queries';
 import { envError } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
 import { queryClient } from '@/lib/query-client';
+import { getMaintenance } from '@/services/app-config';
 import { consumeAuthLink } from '@/services/auth';
 import { pendingInvite, redeemInvite } from '@/services/invites';
 import { startSessionListener, useSessionStore } from '@/stores/session';
@@ -59,6 +60,8 @@ function Navigation() {
   const ready = useSessionStore((s) => s.ready);
   const recovering = useSessionStore((s) => s.recovering);
   const profile = useMyProfile();
+  // Kill switch: checked on launch, every minute and when the app comes back to the front.
+  const maintenance = useQuery({ queryKey: ['maintenance'], queryFn: getMaintenance, refetchInterval: 60_000, staleTime: 30_000 });
   const myHouse = useMyHouse();
 
   const signedIn = !!session;
@@ -90,6 +93,7 @@ function Navigation() {
   }, [url]);
 
   if (envError) return <ConfigError message={envError} />;
+  if (maintenance.data?.on) return <MaintenanceScreen message={maintenance.data.message} />;
   if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.colors.bg }} />;
 
   return (
@@ -186,6 +190,20 @@ function InviteRedeemer() {
     };
   }, []);
   return null;
+}
+
+function MaintenanceScreen({ message }: { message: string | null }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl, gap: spacing.md }}>
+      <Text variant="h1" align="center">
+        Back soon
+      </Text>
+      <Text variant="body" tone="muted" align="center">
+        {message ?? 'Grimore is getting a quick polish. Please try again in a little while.'}
+      </Text>
+    </View>
+  );
 }
 
 function ConfigError({ message }: { message: string }) {

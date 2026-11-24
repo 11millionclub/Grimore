@@ -112,7 +112,7 @@ export function CommunityCard({ c }: { c: Community }) {
   );
 }
 
-/** Gold star in the corner of a cover: a priority book in the wishlist. */
+/** Gold star in the corner of a cover: a priority book in your TBR. */
 export function PriorityMark() {
   const { colors } = useTheme();
   return (

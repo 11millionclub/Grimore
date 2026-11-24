@@ -48,7 +48,7 @@ function ShelfCard({ s }: { s: Card }) {
 const BASE: { status: Status; name: string; always?: boolean; star?: boolean }[] = [
   { status: 'reading', name: 'Reading' },
   { status: 'priority', name: 'Priority', star: true },
-  { status: 'want_to_read', name: 'Wishlist', always: true },
+  { status: 'want_to_read', name: 'TBR', always: true },
   { status: 'read', name: 'Finished', always: true },
   { status: 'owned', name: 'On my shelf' },
   { status: 'on_hold', name: 'Paused' },
