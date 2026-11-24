@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
 import { ReadingTimeCard } from '@/components/reading-time';
+import { tagLabel } from '@/utils/review-tags';
 import { ShelfPicker } from '@/components/shelf-picker';
 import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, PepperIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
@@ -19,7 +20,7 @@ import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
 import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
 import { money } from '@/utils/money';
-import { getBookReviews } from '@/services/social';
+import { getBookReviews, getBookTags } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { MAX_SPICE, SPICE_LABELS, SPICE_STEPS, STAR_STEPS } from '@/utils/ratings';
 
@@ -33,6 +34,7 @@ export default function BookScreen() {
   const entry = useQuery({ queryKey: ['library', 'entry', id], queryFn: () => getEntry(me, id) });
   const reviews = useQuery({ queryKey: ['book', id, 'reviews'], queryFn: () => getBookReviews(id, me) });
   const friends = useQuery({ queryKey: ['book', id, 'friends'], queryFn: () => friendsWithBook(me, id) });
+  const tags = useQuery({ queryKey: ['book', id, 'tags'], queryFn: () => getBookTags(id) });
   const comms = useQuery({ queryKey: ['book', id, 'communities'], queryFn: () => communitiesForBook(id) });
   const [picking, setPicking] = useState(false);
 
@@ -102,6 +104,23 @@ export default function BookScreen() {
             <Text variant="small" tone="muted">
               {reviews.data.count} {reviews.data.count === 1 ? 'rating' : 'ratings'}
             </Text>
+          </View>
+        ) : null}
+        {/* What readers say most about the book, right under its rating. */}
+        {(tags.data ?? []).length ? (
+          <View accessibilityLabel={`Readers say: ${(tags.data ?? []).slice(0, 4).map((t) => tagLabel(t.tag)).join(', ')}`} style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: spacing.md }}>
+            {(tags.data ?? []).slice(0, 4).map((t) => (
+              <View key={t.tag} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.full, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.goldSoft, paddingHorizontal: 10, paddingVertical: 3 }}>
+                <Text variant="caption" style={{ fontFamily: fonts.semibold }}>
+                  {tagLabel(t.tag)}
+                </Text>
+                {t.n > 1 ? (
+                  <Text variant="caption" tone="muted">
+                    {t.n}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
           </View>
         ) : null}
       </View>

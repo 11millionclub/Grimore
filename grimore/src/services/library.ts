@@ -370,3 +370,14 @@ export async function logReadingSession(bookId: string | null, seconds: number) 
   const [row] = (unwrap(await supabase.rpc('log_reading_session', { p_book: bookId as string, p_seconds: Math.round(seconds) })) ?? []) as { minutes_today: number; minutes_book: number | null }[];
   return { minutesToday: row?.minutes_today ?? 0, minutesBook: row?.minutes_book ?? null };
 }
+
+/** Every entry in a reader's library (all statuses), 1000 rows per request. */
+export async function listWholeLibrary(userId: string, max = 20_000): Promise<LibraryEntry[]> {
+  const out: LibraryEntry[] = [];
+  for (let from = 0; from < max; from += 1000) {
+    const rows = unwrap(await supabase.from('user_books').select(entrySelect).eq('user_id', userId).order('updated_at', { ascending: false }).order('id').range(from, from + 999)) as unknown as RawEntry[];
+    out.push(...rows.map(mapEntry));
+    if (rows.length < 1000) break;
+  }
+  return out;
+}

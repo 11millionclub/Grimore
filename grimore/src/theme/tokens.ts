@@ -45,7 +45,7 @@ export const fonts = {
 export const typeScale = {
   display: { fontFamily: fonts.display, fontSize: 36, lineHeight: 40, letterSpacing: -0.3 },
   h1: { fontFamily: fonts.display, fontSize: 29, lineHeight: 33, letterSpacing: -0.2 },
-  h2: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  h2: { fontFamily: fonts.serifBold, fontSize: 21, lineHeight: 25 },
   title: { fontFamily: fonts.serifBold, fontSize: 20, lineHeight: 24 },
   body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   bodyStrong: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21 },

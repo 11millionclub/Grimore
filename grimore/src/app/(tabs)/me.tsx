@@ -11,11 +11,22 @@ import { PaintBrushIcon, ShareNetworkIcon } from '@/components/icons';
 import { ProfileHero } from '@/components/profile-hero';
 import { ShelvesView } from '@/components/shelves-view';
 import { StatsView } from '@/components/stats-view';
-import { Btn, IconBtn, Screen, Segmented, Skeleton, shareText } from '@/components/ui';
+import { isScene } from '@/components/library-panel';
+import { GildedTabs } from '@/components/ornament';
+import { Btn, IconBtn, Screen, Skeleton, shareText } from '@/components/ui';
 import { useCorner, useCounts, useMyId, useMyProfile } from '@/hooks/queries';
-import { spacing, useTheme } from '@/theme';
+import { DarkTheme, spacing, useTheme } from '@/theme';
 
+/** Your profile is your library: the whole page is lit like the room at night. */
 export default function Me() {
+  return (
+    <DarkTheme>
+      <MeInner />
+    </DarkTheme>
+  );
+}
+
+function MeInner() {
   const { colors } = useTheme();
   const me = useMyId()!;
   const profile = useMyProfile();
@@ -30,6 +41,7 @@ export default function Me() {
     <ProfileHero
       profile={p}
       look={look}
+      scene={isScene(c?.library) ? c.library : 'classic'}
       counts={counts.data}
       actions={
         <>
@@ -57,8 +69,8 @@ export default function Me() {
       onRefresh={() => Promise.all([corner.refetch(), counts.refetch(), profile.refetch()])}
       actions={<AppActions />}
     >
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
-        <Segmented
+      <View style={{ paddingTop: spacing.lg, paddingBottom: spacing.lg }}>
+        <GildedTabs
           value={tab}
           onChange={setTab}
           options={[

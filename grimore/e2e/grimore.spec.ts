@@ -37,7 +37,7 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
     const used = page.waitForRequest((r) => r.url().includes('rpc/use_wheel_spin'));
     await spin.click();
     await used;
-    await expect(page.getByText('The wheel chose')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('THE WHEEL HAS CHOSEN')).toBeVisible({ timeout: 12_000 });
     await expect(page.getByRole('button', { name: /Reroll, 2 left today/ })).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/g-wheel-result.png`, fullPage: true });
   });
@@ -72,3 +72,38 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
     if (shots) await page.screenshot({ path: `${shots}/g-review.png`, fullPage: true });
   });
 });
+
+for (const vp of [
+  { name: 'phone', width: 390, height: 844 },
+  { name: 'desktop', width: 1280, height: 900 },
+]) {
+  test.describe(`@mock fantasy library and wheel on ${vp.name}`, () => {
+    test.use({ viewport: { width: vp.width, height: vp.height } });
+    test.beforeEach(async ({ page }) => {
+      await useMockBackend(page, { covers: true });
+    });
+
+    test('the profile is a library with covers on the shelves and books on display', async ({ page }) => {
+      await page.goto('/me');
+      await expect(page.getByRole('tab', { name: 'My Grimore' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /on display/ }).first()).toBeVisible();
+      await expect(page.getByRole('button', { name: /^The Ashen Crown, The Ember Throne/ })).toBeVisible();
+      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-me.png`, fullPage: false });
+      await page.getByRole('button', { name: /^The Ashen Crown/ }).scrollIntoViewIfNeeded();
+      await page.waitForTimeout(400);
+      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-me-shelves.png` });
+      await page.getByRole('button', { name: /^The Ashen Crown/ }).click();
+      await expect(page).toHaveURL(/\/book\/x0/);
+    });
+
+    test('the wheel is a full artefact and lands on an eligible book', async ({ page }) => {
+      await page.goto('/wheel');
+      await expect(page.getByText('Any spice')).toBeVisible();
+      await expect(page.getByText('Any trope')).toBeVisible();
+      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-wheel.png` });
+      await page.getByRole('button', { name: 'Spin the wheel' }).click();
+      await expect(page.getByText('THE WHEEL HAS CHOSEN')).toBeVisible({ timeout: 12_000 });
+      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-wheel-result.png`, fullPage: true });
+    });
+  });
+}

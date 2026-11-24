@@ -7,11 +7,11 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { CheckIcon, CoinsIcon, LockSimpleIcon, SpiralIcon, TimerIcon } from '@/components/icons';
 import { LibraryRoom, SCENE_IDS, SCENES, type LibraryScene, type ShelfBook } from '@/components/library-room';
 import { Btn, Chip, Press, Text, toast } from '@/components/ui';
-import { useShelf } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
+import { qk } from '@/lib/query-client';
 import { getPurchases, saveCorner } from '@/services/corner';
 import { myItems } from '@/services/houses';
-import type { LibraryEntry } from '@/services/library';
+import { listWholeLibrary, type LibraryEntry } from '@/services/library';
 import { useReadingSession } from '@/stores/reading-session';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
@@ -24,7 +24,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'want', label: 'Wishlist' },
 ];
 
-const toShelf = (e: LibraryEntry): ShelfBook => ({ id: e.book.id, title: e.book.title, authors: e.book.authors, year: e.book.first_published_year, pages: e.book.page_count_estimate, cover_url: e.book.cover_url });
+const toShelf = (e: LibraryEntry): ShelfBook => ({ id: e.book.id, title: e.book.title, authors: e.book.authors, year: e.book.first_published_year, pages: e.book.page_count_estimate, cover_url: e.book.cover_url, featured: e.status === 'reading' });
 
 export const isScene = (v: string | null | undefined): v is LibraryScene => !!v && v in SCENES;
 
@@ -36,11 +36,8 @@ export const isScene = (v: string | null | undefined): v is LibraryScene => !!v 
 export function LibraryPanel({ userId, isMe, scene: saved }: { userId: string; isMe: boolean; scene?: string | null }) {
   const { colors } = useTheme();
   const qc = useQueryClient();
-  const read = useShelf(userId, 'read');
-  const reading = useShelf(userId, 'reading');
-  const owned = useShelf(userId, 'owned');
-  const paused = useShelf(userId, 'on_hold');
-  const want = useShelf(userId, 'want_to_read');
+  // One paginated read of the whole library (no 200-book cap); filters run on it.
+  const lib = useQuery({ queryKey: qk.library(`${userId}:all`), queryFn: () => listWholeLibrary(userId) });
   const items = useQuery({ queryKey: ['myItems', userId], queryFn: () => myItems(userId), enabled: isMe });
   const bought = useQuery({ queryKey: ['purchases', userId], queryFn: () => getPurchases(userId), enabled: isMe });
   const [filter, setFilter] = useState<Filter>('all');
@@ -53,16 +50,11 @@ export function LibraryPanel({ userId, isMe, scene: saved }: { userId: string; i
   const ownsScene = (s: LibraryScene) => s === 'classic' || (items.data ?? []).some((x) => x.item_key === `library:${s}`) || (bought.data ?? []).includes(`library:${s}`);
 
   const books = useMemo(() => {
-    const pick = (lists: (LibraryEntry[] | undefined)[]) => {
-      const seen = new Set<string>();
-      return lists.flatMap((l) => l ?? []).filter((e) => (seen.has(e.book.id) ? false : (seen.add(e.book.id), true))).map(toShelf);
-    };
-    if (filter === 'read') return pick([read.data]);
-    if (filter === 'reading') return pick([reading.data]);
-    if (filter === 'owned') return pick([owned.data]);
-    if (filter === 'want') return pick([want.data]);
-    return pick([read.data, reading.data, paused.data, owned.data]);
-  }, [filter, read.data, reading.data, paused.data, owned.data, want.data]);
+    const all = lib.data ?? [];
+    const keep = (e: LibraryEntry) =>
+      filter === 'read' ? e.status === 'read' : filter === 'reading' ? e.status === 'reading' : filter === 'owned' ? e.is_owned : filter === 'want' ? e.status === 'want_to_read' : e.status !== 'want_to_read' || e.is_owned;
+    return all.filter(keep).map(toShelf);
+  }, [filter, lib.data]);
 
   const choose = useMutation({
     mutationFn: (s: LibraryScene) => saveCorner(userId, { library: s }),
@@ -85,7 +77,7 @@ export function LibraryPanel({ userId, isMe, scene: saved }: { userId: string; i
   };
 
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={{ gap: spacing.md, width: '100%', maxWidth: 760, alignSelf: 'center' }}>
       <View style={{ paddingHorizontal: spacing.lg }}>
         <LibraryRoom scene={shown} books={books} locked={!!preview && !ownsScene(preview)} empty={isMe ? 'Your shelves are waiting. Add books you own or have finished and they will appear here, grouped by saga.' : 'No books on these shelves yet.'} />
       </View>
@@ -100,12 +92,12 @@ export function LibraryPanel({ userId, isMe, scene: saved }: { userId: string; i
 
       {isMe ? (
         <>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg }}>
-            <Btn style={{ flex: 1 }} icon={<TimerIcon size={18} color={colors.onAccent} />} onPress={() => router.push('/reading-session')}>
+          <View style={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
+            <Btn full icon={<TimerIcon size={18} color={colors.onAccent} />} onPress={() => router.push('/reading-session')}>
               {sessionOn ? 'Session running' : 'Start reading session'}
             </Btn>
-            <Btn variant="secondary" style={{ flex: 1 }} icon={<SpiralIcon size={18} color={colors.ink} />} onPress={() => router.push('/wheel')}>
-              What next?
+            <Btn full variant="secondary" icon={<SpiralIcon size={18} color={colors.ink} />} onPress={() => router.push('/wheel')}>
+              What should I read next?
             </Btn>
           </View>
 
