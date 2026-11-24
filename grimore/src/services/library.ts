@@ -7,7 +7,7 @@ import { authorLine } from './catalogue';
 export type ReadingStatus = Database['public']['Enums']['reading_status'];
 
 export const STATUS_META: Record<ReadingStatus, { label: string; short: string }> = {
-  want_to_read: { label: 'Wishlist', short: 'Wishlist' },
+  want_to_read: { label: 'TBR (To be read)', short: 'TBR' },
   reading: { label: 'Reading', short: 'Reading' },
   read: { label: 'Finished', short: 'Finished' },
   on_hold: { label: 'Paused', short: 'Paused' },
@@ -119,7 +119,7 @@ const utcToday = () => new Date().toISOString().slice(0, 10);
  */
 export function statusPatch(status: ReadingStatus, current?: Pick<LibraryEntry, 'status' | 'started_on' | 'finished_on'> | null): EntryPatch {
   const base = statusPatchInner(status, current);
-  // Priority only means something inside the wishlist.
+  // Priority only means something inside the TBR.
   return status === 'want_to_read' ? base : { ...base, is_priority: false };
 }
 
@@ -243,7 +243,7 @@ export async function countByStatus(userId: string, status: ReadingStatus | 'own
 
 /**
  * All entries of one status (for shelves and pickers), newest first. In the
- * wishlist, priority books come first; 'priority' lists only those.
+ * TBR, priority books come first; 'priority' lists only those.
  */
 export async function listByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority', limit = 200): Promise<LibraryEntry[]> {
   let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);

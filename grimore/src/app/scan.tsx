@@ -271,7 +271,7 @@ function ShelfReview({ me, found, onRetake }: { me: string; found: Found[]; onRe
   const usable = found.filter((f) => f.id || f.external);
   const [sel, setSel] = useState<Set<string>>(() => new Set(usable.filter((f) => f.confidence >= 0.6).map((f) => f.key)));
   const [shelf, setShelf] = useState<'own' | 'read' | 'want'>('own');
-  const shelfName = { own: 'My shelf', read: 'Finished', want: 'Wishlist' }[shelf];
+  const shelfName = { own: 'My shelf', read: 'Finished', want: 'TBR' }[shelf];
   const save = useMutation({
     mutationFn: async () => {
       const ids: string[] = [];
@@ -303,7 +303,7 @@ function ShelfReview({ me, found, onRetake }: { me: string; found: Found[]; onRe
           Uncertain matches start unticked. Check them before adding.
         </Text>
         <View style={{ marginTop: spacing.base }}>
-          <Segmented value={shelf} onChange={setShelf} options={[{ value: 'own', label: 'I own' }, { value: 'read', label: 'Finished' }, { value: 'want', label: 'Wishlist' }]} />
+          <Segmented value={shelf} onChange={setShelf} options={[{ value: 'own', label: 'I own' }, { value: 'read', label: 'Finished' }, { value: 'want', label: 'TBR' }]} />
         </View>
       </View>
       <ScrollView style={{ marginTop: spacing.md }} contentContainerStyle={{ paddingHorizontal: spacing.md }}>

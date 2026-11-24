@@ -6,7 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { CommunityCover, PriorityMark, openBook, openCommunity } from '@/components/books';
 import { ThemeFill, type CornerLook } from '@/components/corner';
 import { Ring } from '@/components/feed';
-import { LibraryPanel } from '@/components/library-panel';
+import { EnterGrimoreCard, LibraryPanel } from '@/components/library-panel';
 import {
   BooksIcon,
   ChatTeardropTextIcon,
@@ -306,9 +306,9 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
     tbr: (want.data ?? []).length ? (
       <View>
         <SectionHead
-          title={`Wishlist · ${fmt(wantN.data ?? (want.data ?? []).length)}`}
+          title={`TBR · ${fmt(wantN.data ?? (want.data ?? []).length)}`}
           action="See all"
-          onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'Wishlist' } }))}
+          onAction={go(() => router.push({ pathname: '/shelf/[id]', params: { id: `${userId}:want_to_read`, name: 'TBR' } }))}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
           {(want.data ?? []).slice(0, 12).map((e) => (
@@ -351,7 +351,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
 
   return (
     <View style={{ gap: spacing.xxl, paddingTop: spacing.sm }}>
-      {preview ? null : <LibraryPanel userId={userId} isMe={isMe} scene={library} />}
+      {preview ? null : isMe ? <EnterGrimoreCard scene={library} /> : <LibraryPanel userId={userId} scene={library} />}
       {widgets.map((w) => {
         const node = blocks[w as Widget];
         return node ? <View key={w}>{node}</View> : null;

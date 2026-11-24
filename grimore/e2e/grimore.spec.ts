@@ -10,25 +10,43 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
     await useMockBackend(page);
   });
 
-  test('the library room puts your books on its shelves and they open', async ({ page }) => {
-    await page.goto('/me');
-    await expect(page.getByText('Classic Library').first()).toBeVisible();
+  test('the Grimore tab is the library: books on the shelves, a caption on hold, rooms behind the name', async ({ page }) => {
+    await page.goto('/grimore');
     const spine = page.getByRole('button', { name: /^Blindness/ });
     await expect(spine).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start reading session' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Palace Library, locked/ })).toBeVisible();
-    if (shots) await page.screenshot({ path: `${shots}/g-room.png`, fullPage: true });
+    // Holding (hovering on the web) a book shows its label.
+    await spine.hover();
+    await expect(page.getByText('José Saramago')).toBeVisible();
+    if (shots) await page.screenshot({ path: `${shots}/g-room.png` });
+    await page.mouse.move(5, 5);
+    // The room name opens the room picker; with paywalls on, other rooms are locked.
+    await page.getByRole('button', { name: /Classic Library\. Change library/ }).click();
     await page.getByRole('button', { name: /Palace Library, locked/ }).click();
     await expect(page.getByText('Unlock with 900 points')).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/g-locked.png` });
     await page.getByText('Not now').click();
-    await page.getByRole('button', { name: 'Show the whole room' }).click();
-    if (shots) await page.screenshot({ path: `${shots}/g-room-full.png` });
     await spine.click();
     await expect(page).toHaveURL(/\/book\/b3/);
   });
 
-  test('the wheel spins once, then offers rerolls', async ({ page }) => {
+  test('your profile points to the library tab', async ({ page }) => {
+    await page.goto('/me');
+    await page.getByRole('button', { name: 'Open your library' }).click();
+    await expect(page).toHaveURL(/\/grimore/);
+  });
+
+  test('the Houses tab gathers the Cup, your House and the common rooms', async ({ page }) => {
+    await page.goto('/houses');
+    await expect(page.getByRole('button', { name: /^1\. Thorn/ })).toBeVisible();
+    await page.getByText('My House', { exact: true }).click();
+    await expect(page.getByText('Wayfinders').first()).toBeVisible();
+    await page.getByText('Common rooms', { exact: true }).click();
+    await expect(page.getByRole('button', { name: /Lantern common room, your House/ })).toBeVisible();
+    if (shots) await page.screenshot({ path: `${shots}/g-houses.png` });
+  });
+
+  test('the wheel spins once, then offers to spin again', async ({ page }) => {
     await page.goto('/wheel');
     await page.getByRole('tab', { name: 'Owned' }).or(page.getByText('Owned', { exact: true })).first().click();
     const spin = page.getByRole('button', { name: 'Spin the wheel' });
@@ -38,7 +56,7 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
     await spin.click();
     await used;
     await expect(page.getByText('THE WHEEL HAS CHOSEN')).toBeVisible({ timeout: 12_000 });
-    await expect(page.getByRole('button', { name: /Reroll, 2 left today/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Spin again' })).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/g-wheel-result.png`, fullPage: true });
   });
 
@@ -83,15 +101,14 @@ for (const vp of [
       await useMockBackend(page, { covers: true });
     });
 
-    test('the profile is a library with covers on the shelves and books on display', async ({ page }) => {
-      await page.goto('/me');
-      await expect(page.getByRole('tab', { name: 'My Grimore' })).toBeVisible();
+    test('the Grimore tab shows covers on the shelves and books on display', async ({ page }) => {
+      await page.goto('/grimore');
       await expect(page.getByRole('button', { name: /on display/ }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: /^The Ashen Crown, The Ember Throne/ })).toBeVisible();
       if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-me.png`, fullPage: false });
-      await page.getByRole('button', { name: /^The Ashen Crown/ }).scrollIntoViewIfNeeded();
-      await page.waitForTimeout(400);
-      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-me-shelves.png` });
+      await page.getByRole('button', { name: /^The Ashen Crown/ }).hover();
+      await page.waitForTimeout(300);
+      if (shots) await page.screenshot({ path: `${shots}/v-${vp.name}-me-caption.png` });
       await page.getByRole('button', { name: /^The Ashen Crown/ }).click();
       await expect(page).toHaveURL(/\/book\/x0/);
     });

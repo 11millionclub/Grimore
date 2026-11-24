@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { CaretLeftIcon, CaretRightIcon, LockSimpleIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon } from '@/components/icons';
 import { Cartouche, CartoucheText } from '@/components/ornament';
@@ -87,15 +87,28 @@ function pack(books: ShelfBook[], scene: (typeof SCENES)[LibraryScene]) {
   return pages;
 }
 
+type Hold = (book: ShelfBook | null, saga?: string, row?: number) => void;
+
+/** Long press (or hover on the web) shows the caption; letting go hides it; a tap opens the book. */
+const holdProps = (book: ShelfBook, saga: string | undefined, row: number, onHold: Hold) => ({
+  delayLongPress: 220,
+  onLongPress: () => onHold(book, saga, row),
+  onPressOut: () => onHold(null),
+  onHoverIn: () => onHold(book, saga, row),
+  onHoverOut: () => onHold(null),
+});
+
 /** One book on the shelf: the binding takes its colours from the real cover, with gilt bands and a rounded, lit spine. */
-function SpineView({ s, scale, legible, left, top }: { s: Spine; scale: number; legible: boolean; left: number; top: number }) {
+function SpineView({ s, scale, legible, left, top, row, onHold }: { s: Spine; scale: number; legible: boolean; left: number; top: number; row: number; onHold: Hold }) {
   const w = s.w * scale;
   const h = s.h * scale;
   const cover = s.book.cover_url;
   return (
     <Press
       accessibilityLabel={`${spineTitle(s.book.title)}${s.saga !== s.book.title ? `, ${s.saga}` : ''}`}
+      accessibilityHint="Opens the book. Touch and hold to read its label."
       onPress={() => router.push({ pathname: '/book/[id]', params: { id: s.book.id } })}
+      {...holdProps(s.book, s.saga, row, onHold)}
       style={{ position: 'absolute', left, top, width: w, height: h, backgroundColor: s.bind.bg, borderTopLeftRadius: Math.max(1, scale * 1.2), borderTopRightRadius: Math.max(1, scale * 1.2), overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 2 * scale, shadowOffset: { width: scale, height: 0 } }}
     >
       {cover ? (
@@ -123,11 +136,13 @@ function SpineView({ s, scale, legible, left, top }: { s: Spine; scale: number; 
 }
 
 /** A book standing face-out, turned slightly towards the room. */
-function FaceOut({ book, w, h, left, top }: { book: ShelfBook; w: number; h: number; left: number; top: number }) {
+function FaceOut({ book, w, h, left, top, row, onHold }: { book: ShelfBook; w: number; h: number; left: number; top: number; row: number; onHold: Hold }) {
   return (
     <Press
       accessibilityLabel={`${spineTitle(book.title)}, on display`}
+      accessibilityHint="Opens the book. Touch and hold to read its label."
       onPress={() => router.push({ pathname: '/book/[id]', params: { id: book.id } })}
+      {...holdProps(book, undefined, row, onHold)}
       style={{ position: 'absolute', left, top, width: w, height: h, transform: [{ perspective: 600 }, { rotateY: '-14deg' }], shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 3, height: 2 } }}
     >
       <Image source={{ uri: book.cover_url ?? undefined }} style={{ width: '100%', height: '100%', borderRadius: 2, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.6)' }} contentFit="cover" />
@@ -137,66 +152,160 @@ function FaceOut({ book, w, h, left, top }: { book: ShelfBook; w: number; h: num
 }
 
 /**
- * Your books on the shelves of a painted library, grouped by saga. Tap a
- * book to open it. "Close-up" fills the screen with the bookcase so titles
- * are readable; "Room" shows the whole painting.
+ * The label that appears while you hold a book: the cover, the title in the
+ * display serif, the author and the saga, on a walnut plate with a gilt edge.
  */
-export function LibraryRoom({ scene: sceneId, books, locked, empty }: { scene: LibraryScene; books: ShelfBook[]; locked?: boolean; empty?: string }) {
+export function BookCaption({ book, saga }: { book: ShelfBook; saga?: string }) {
+  const title = spineTitle(book.title);
+  return (
+    <View pointerEvents="none" accessibilityLiveRegion="polite" style={{ alignSelf: 'center', maxWidth: 360, width: '92%', flexDirection: 'row', gap: spacing.md, alignItems: 'center', padding: spacing.md, borderRadius: 16, borderWidth: 1.5, borderColor: GILT.gold, backgroundColor: 'rgba(22,15,10,0.95)', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}>
+      <View pointerEvents="none" style={{ position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderRadius: 12, borderWidth: 0.75, borderColor: GILT.champagne, opacity: 0.4 }} />
+      {book.cover_url ? <Image source={{ uri: book.cover_url }} style={{ width: 52, height: 78, borderRadius: 3 }} contentFit="cover" /> : null}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text numberOfLines={3} style={{ fontFamily: fonts.serifBold, fontSize: 20, lineHeight: 23, color: GILT.ivory }}>
+          {title}
+        </Text>
+        {book.authors ? (
+          <Text numberOfLines={1} style={{ fontFamily: fonts.medium, fontSize: 13, color: 'rgba(242,233,216,0.75)' }}>
+            {book.authors}
+          </Text>
+        ) : null}
+        {saga && saga !== book.authors && saga !== title ? (
+          <Text numberOfLines={1} style={{ fontFamily: fonts.serifItalic, fontSize: 15, color: GILT.champagne }}>
+            {saga}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+export type RoomFill = { width: number; height: number; insetTop: number; insetBottom: number };
+
+/**
+ * Your books on the shelves of a painted library, grouped by saga. Tap a
+ * book to open it; hold it to read its label. In a card, "Close-up" fills
+ * the width with the bookcase and "Room" shows the whole painting. With
+ * `fill`, the room covers the whole area (the My Grimore tab) and scrolls
+ * if the shelves are taller than the space between the overlays.
+ */
+export function LibraryRoom({ scene: sceneId, books, locked, empty, fill }: { scene: LibraryScene; books: ShelfBook[]; locked?: boolean; empty?: string; fill?: RoomFill }) {
   const scene = SCENES[sceneId];
-  const [width, setWidth] = useState(0);
+  const [measured, setWidth] = useState(0);
   const [close, setClose] = useState(true);
   const [pageIx, setPage] = useState(0);
+  const [held, setHeld] = useState<{ book: ShelfBook; saga?: string; row: number } | null>(null);
+  const onHold: Hold = (book, saga, row = 0) => setHeld(book ? { book, saga, row } : null);
+  // The label sits away from the shelf you are holding: low for the upper shelves, high for the lower ones.
+  const captionLow = !!held && held.row < (scene.boards.length - 1) / 2;
   const pages = useMemo(() => pack(locked ? [] : books, scene), [books, scene, locked]);
   const page = pages[Math.min(pageIx, pages.length - 1)];
 
-  // Close-up: the bay fills ~94% of the width; Room: the painting fits the width.
   const bay = scene.x1 - scene.x0;
-  const scale = width ? (close ? (width * 0.97) / bay : width / scene.w) : 0;
-  const top = close ? scene.boards[0] - 34 : 0;
-  const bottom = close ? scene.boards[scene.boards.length - 1] + 22 : scene.h;
-  const left = close ? scene.x0 - (width / scale - bay) / 2 : 0;
+  const shelfTop = scene.boards[0] - 34;
+  const shelfBottom = scene.boards[scene.boards.length - 1] + 22;
+  const width = fill ? fill.width : measured;
+
+  // Card: close-up fits the bay to the width, room view fits the painting.
+  // Fill: big enough to cover the area, and at least big enough for the shelves to fill the free height.
+  let scale = 0;
+  let left = 0;
+  let top = 0;
+  let viewH = 0;
+  if (fill && width) {
+    const free = fill.height - fill.insetTop - fill.insetBottom;
+    scale = Math.max(fill.width / scene.w, fill.height / scene.h, Math.min(free / (shelfBottom - shelfTop), (fill.width * 0.97) / bay));
+    left = Math.min(0, Math.max(fill.width - scene.w * scale, fill.width / 2 - (scene.x0 + bay / 2) * scale)) / -scale;
+    viewH = scene.h * scale;
+  } else if (width) {
+    scale = close ? (width * 0.97) / bay : width / scene.w;
+    top = close ? shelfTop : 0;
+    left = close ? scene.x0 - (width / scale - bay) / 2 : 0;
+    viewH = ((close ? shelfBottom : scene.h) - top) * scale;
+  }
   const legible = 12 * scale >= 16;
+
+  const room = (
+    <View style={{ width, height: viewH, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', left: -left * scale, top: -top * scale, width: scene.w * scale, height: scene.h * scale }}>
+        <Image source={scene.image} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />
+        {page.map((r, ri) => {
+          const floor = scene.boards[ri + 1] - 1;
+          const rowTop = scene.boards[ri] + 4;
+          return (
+            <View key={ri} style={{ position: 'absolute', left: 0, top: 0 }}>
+              {/* Shadow the books cast on the back of the shelf. */}
+              {r.spines.length || r.face ? (
+                <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.38)']} style={{ position: 'absolute', left: (scene.x0 + 1) * scale, top: rowTop * scale, width: (bay - 2) * scale, height: (floor - rowTop) * scale }} />
+              ) : null}
+              {r.spines.map((s) => (
+                <SpineView key={s.book.id} s={s} scale={scale} legible={legible} left={(scene.x0 + 2 + s.x) * scale} top={floor * scale - s.h * scale} row={ri} onHold={onHold} />
+              ))}
+              {r.face ? <FaceOut book={r.face.book} w={r.face.w * scale} h={r.face.h * scale} left={(scene.x1 - 3 - r.face.w) * scale} top={floor * scale - r.face.h * scale} row={ri} onHold={onHold} /> : null}
+            </View>
+          );
+        })}
+      </View>
+      {fill ? null : <LinearGradient pointerEvents="none" colors={['rgba(16,13,11,0.55)', 'rgba(16,13,11,0)', 'rgba(16,13,11,0)', 'rgba(16,13,11,0.45)']} locations={[0, 0.16, 0.85, 1]} style={{ position: 'absolute', inset: 0 }} />}
+    </View>
+  );
+
+  const notice = locked ? (
+    <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(10,6,3,0.45)', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <LockSimpleIcon size={30} weight="fill" color={GILT.champagne} />
+      <Text style={{ fontFamily: fonts.serifBold, fontSize: 20, color: GILT.ivory }}>{scene.name}</Text>
+    </View>
+  ) : !books.length && empty ? (
+    <View pointerEvents="none" style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: (fill?.insetBottom ?? 0) + spacing.lg, backgroundColor: 'rgba(16,13,11,0.78)', borderRadius: radius.tile, borderWidth: 1, borderColor: 'rgba(198,154,67,0.5)', padding: spacing.md }}>
+      <Text variant="small" color={GILT.ivory} align="center">
+        {empty}
+      </Text>
+    </View>
+  ) : null;
+
+  const pager =
+    pages.length > 1 ? (
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16,13,11,0.72)', borderRadius: radius.full, borderWidth: 1, borderColor: 'rgba(198,154,67,0.5)' }}>
+        <Press accessibilityLabel="Previous bookcase" disabled={pageIx === 0} onPress={() => setPage(pageIx - 1)} style={{ padding: 8 }}>
+          <CaretLeftIcon size={14} color={GILT.champagne} />
+        </Press>
+        <Text variant="caption" color={GILT.champagne}>
+          {pageIx + 1}/{pages.length}
+        </Text>
+        <Press accessibilityLabel="Next bookcase" disabled={pageIx >= pages.length - 1} onPress={() => setPage(pageIx + 1)} style={{ padding: 8 }}>
+          <CaretRightIcon size={14} color={GILT.champagne} />
+        </Press>
+      </View>
+    ) : null;
+
+  if (fill) {
+    // Start with the shelves centred in the free space between the overlays.
+    const free = fill.height - fill.insetTop - fill.insetBottom;
+    const startY = Math.max(0, Math.min(viewH - fill.height, ((shelfTop + shelfBottom) / 2) * scale - (fill.insetTop + free / 2)));
+    return (
+      <View style={{ width: fill.width, height: fill.height, backgroundColor: GILT.black }}>
+        <ScrollView key={`${sceneId}-${Math.round(scale * 100)}`} contentOffset={{ x: 0, y: startY }} showsVerticalScrollIndicator={false} bounces={false}>
+          {room}
+        </ScrollView>
+        {notice}
+        <View pointerEvents="box-none" style={{ position: 'absolute', right: spacing.md, bottom: fill.insetBottom + spacing.sm }}>
+          {pager}
+        </View>
+        {held ? (
+          <View pointerEvents="none" style={[{ position: 'absolute', left: 0, right: 0 }, captionLow ? { bottom: fill.insetBottom + spacing.sm } : { top: fill.insetTop + spacing.sm }]}>
+            <BookCaption book={held.book} saga={held.saga} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ borderRadius: 18, overflow: 'hidden', backgroundColor: GILT.black, borderWidth: 1.5, borderColor: GILT.gold }}>
       {width ? (
-        <View style={{ width, height: (bottom - top) * scale, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', left: -left * scale, top: -top * scale, width: scene.w * scale, height: scene.h * scale }}>
-            <Image source={scene.image} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />
-            {page.map((r, ri) => {
-              const floor = scene.boards[ri + 1] - 1;
-              const rowTop = scene.boards[ri] + 4;
-              return (
-                <View key={ri} style={{ position: 'absolute', left: 0, top: 0 }}>
-                  {/* Shadow the books cast on the back of the shelf. */}
-                  {r.spines.length || r.face ? (
-                    <LinearGradient
-                      pointerEvents="none"
-                      colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.38)']}
-                      style={{ position: 'absolute', left: (scene.x0 + 1) * scale, top: rowTop * scale, width: (bay - 2) * scale, height: (floor - rowTop) * scale }}
-                    />
-                  ) : null}
-                  {r.spines.map((s) => (
-                    <SpineView key={s.book.id} s={s} scale={scale} legible={legible} left={(scene.x0 + 2 + s.x) * scale} top={floor * scale - s.h * scale} />
-                  ))}
-                  {r.face ? <FaceOut book={r.face.book} w={r.face.w * scale} h={r.face.h * scale} left={(scene.x1 - 3 - r.face.w) * scale} top={floor * scale - r.face.h * scale} /> : null}
-                </View>
-              );
-            })}
-          </View>
-          <LinearGradient pointerEvents="none" colors={['rgba(16,13,11,0.55)', 'rgba(16,13,11,0)', 'rgba(16,13,11,0)', 'rgba(16,13,11,0.45)']} locations={[0, 0.16, 0.85, 1]} style={{ position: 'absolute', inset: 0 }} />
-          {locked ? (
-            <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(10,6,3,0.45)', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <LockSimpleIcon size={30} weight="fill" color={GILT.champagne} />
-              <Text style={{ fontFamily: fonts.serifBold, fontSize: 20, color: GILT.ivory }}>{scene.name}</Text>
-            </View>
-          ) : !books.length && empty ? (
-            <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.lg, backgroundColor: 'rgba(16,13,11,0.78)', borderRadius: radius.tile, borderWidth: 1, borderColor: 'rgba(198,154,67,0.5)', padding: spacing.md }}>
-              <Text variant="small" color={GILT.ivory} align="center">
-                {empty}
-              </Text>
-            </View>
-          ) : null}
+        <View>
+          {room}
+          {notice}
         </View>
       ) : (
         <View style={{ aspectRatio: 1 }} />
@@ -207,19 +316,7 @@ export function LibraryRoom({ scene: sceneId, books, locked, empty }: { scene: L
         </Cartouche>
       </View>
       <View style={{ position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', gap: 6 }}>
-        {pages.length > 1 ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16,13,11,0.72)', borderRadius: radius.full, borderWidth: 1, borderColor: 'rgba(198,154,67,0.5)' }}>
-            <Press accessibilityLabel="Previous bookcase" disabled={pageIx === 0} onPress={() => setPage(pageIx - 1)} style={{ padding: 8 }}>
-              <CaretLeftIcon size={14} color={GILT.champagne} />
-            </Press>
-            <Text variant="caption" color={GILT.champagne}>
-              {pageIx + 1}/{pages.length}
-            </Text>
-            <Press accessibilityLabel="Next bookcase" disabled={pageIx >= pages.length - 1} onPress={() => setPage(pageIx + 1)} style={{ padding: 8 }}>
-              <CaretRightIcon size={14} color={GILT.champagne} />
-            </Press>
-          </View>
-        ) : null}
+        {pager}
         <Press
           accessibilityLabel={close ? 'Show the whole room' : 'Close-up of the shelves'}
           onPress={() => setClose(!close)}
@@ -228,6 +325,11 @@ export function LibraryRoom({ scene: sceneId, books, locked, empty }: { scene: L
           {close ? <MagnifyingGlassMinusIcon size={16} color={GILT.champagne} /> : <MagnifyingGlassPlusIcon size={16} color={GILT.champagne} />}
         </Press>
       </View>
+      {held ? (
+        <View pointerEvents="none" style={[{ position: 'absolute', left: 0, right: 0 }, captionLow ? { bottom: 52 } : { top: 52 }]}>
+          <BookCaption book={held.book} saga={held.saga} />
+        </View>
+      ) : null}
     </View>
   );
 }

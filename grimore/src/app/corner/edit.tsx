@@ -11,7 +11,7 @@ import { CaretRightIcon, CheckIcon, CrownSimpleIcon, MusicNotesIcon, PencilSimpl
 import { Btn, Press, Text, toast } from '@/components/ui';
 import { HouseBadge, ReaderMarks } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
-import { useCorner, useMyHouse, useMyId, useMyProfile, useShop } from '@/hooks/queries';
+import { useCorner, useMyHouse, useMyId, useMyProfile, usePaywalls, useShop } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { bannersIcanWear } from '@/services/communities';
 import { myItems as getMyItems } from '@/services/houses';
@@ -47,13 +47,15 @@ export default function EditCorner() {
     : { ...DEFAULT_LOOK, widgets: ['status', 'top4', 'reading', 'goal', 'quote', 'shelf', 'badges', 'genres', 'tbr', 'guestbook'], status_text: '', song: '', community_banner_id: null };
   const d = draft ?? base;
   const set = (p: Partial<Draft>) => setDraft({ ...d, ...p });
+  const paywalls = usePaywalls();
   const items = shop.data?.items ?? [];
   const owned = new Set(shop.data?.owned ?? []);
   const mine = new Set((myItems.data ?? []).filter((x) => !x.expires_at || new Date(x.expires_at).getTime() > openedAt).map((x) => x.item_key));
+  // While paywalls are switched off (testing), every shop item is yours to try.
   const isOwned = (it: CornerItem) => {
     if (it.source === 'starter') return it.house_id === myHouse.data?.house;
     if (it.source === 'earned') return mine.has(it.key);
-    return !it.price_cents || owned.has(it.key) || mine.has(it.key);
+    return !paywalls || !it.price_cents || owned.has(it.key) || mine.has(it.key);
   };
   const cart = (Object.entries(KIND_FIELD) as [string, keyof CornerLook][])
     .map(([kind, field]) => items.find((i) => i.key === `${kind}:${d[field]}`))

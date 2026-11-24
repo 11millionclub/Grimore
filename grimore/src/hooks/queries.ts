@@ -4,6 +4,7 @@ import { getMyHouse, readerHouses } from '@/services/houses';
 import { qk } from '@/lib/query-client';
 import { getGenres } from '@/services/catalogue';
 import { getCorner, getPurchases, getShop } from '@/services/corner';
+import { getPaywalls } from '@/services/app-config';
 import { getAchievements, getTodayGames } from '@/services/games';
 import { countReadInYear, getGoal, getReadingStreak, listByStatus, countByStatus } from '@/services/library';
 import { listConversations } from '@/services/messages';
@@ -66,7 +67,7 @@ export function useShelf(id: string | undefined, status: Parameters<typeof listB
   return useQuery({ queryKey: qk.library(`${id}:${status}`), queryFn: () => listByStatus(id!, status), enabled: !!id });
 }
 
-/** Exact count for a status shelf, for labels like "Wishlist · 1 024". */
+/** Exact count for a status shelf, for labels like "TBR · 1 024". */
 export function useShelfCount(id: string | undefined, status: Parameters<typeof countByStatus>[1]) {
   return useQuery({ queryKey: qk.library(`${id}:${status}:count`), queryFn: () => countByStatus(id!, status), enabled: !!id });
 }
@@ -128,4 +129,10 @@ export function useMyHouse() {
 export function useReaderHouses(ids: string[]) {
   const key = [...new Set(ids)].sort();
   return useQuery({ queryKey: ['readerHouses', key], queryFn: () => readerHouses(key), enabled: key.length > 0, staleTime: 10 * 60_000 });
+}
+
+/** Paywalls on or off (see getPaywalls). Treated as on until the switch has loaded. */
+export function usePaywalls() {
+  const q = useQuery({ queryKey: ['paywalls'], queryFn: getPaywalls, staleTime: 5 * 60_000 });
+  return q.data ?? true;
 }

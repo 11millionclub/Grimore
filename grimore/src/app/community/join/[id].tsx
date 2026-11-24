@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { CommunityCover } from '@/components/books';
 import { Btn, Press, Sheet, Text, toast } from '@/components/ui';
-import { useMyId } from '@/hooks/queries';
+import { useMyId, usePaywalls } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { getCommunity, joinCommunity } from '@/services/communities';
 import { money } from '@/utils/money';
@@ -26,6 +26,9 @@ export default function JoinSheet() {
       ]
     : [{ id: 'member', name: 'Member', price: 0, desc: 'Access to every discussion' }];
   const [sel, setSel] = useState<string | null>(null);
+  // Paywalls off (testing): the paid tier is free and joining gives full access.
+  const paywalls = usePaywalls();
+  const locked = paywalls && !!price;
   const chosen = options.find((o) => o.id === (sel ?? options[0].id))!;
   const join = useMutation({
     mutationFn: () => joinCommunity(id, me, !!price),
@@ -67,7 +70,11 @@ export default function JoinSheet() {
             );
           })}
         </View>
-        {chosen.price ? (
+        {chosen.price && !paywalls ? (
+          <Text variant="caption" tone="muted" style={{ marginTop: spacing.base }}>
+            Free while Grimore is in testing: you get everything members get.
+          </Text>
+        ) : chosen.price ? (
           <Text variant="caption" tone="muted" style={{ marginTop: spacing.base }}>
             Paid memberships are coming soon. You can join as a Visitor now and upgrade when payments open; your support will go straight to {d?.host?.display_name?.split(' ')[0] ?? 'the host'} and the community.
           </Text>
@@ -76,11 +83,11 @@ export default function JoinSheet() {
           size="lg"
           full
           style={{ marginTop: spacing.lg }}
-          disabled={!!chosen.price}
+          disabled={!!chosen.price && locked}
           loading={join.isPending}
           onPress={() => join.mutate()}
         >
-          {chosen.price ? `${chosen.name} · ${money(chosen.price)}/month · Coming soon` : price ? 'Join as a Visitor' : 'Join for free'}
+          {chosen.price && !paywalls ? `Join as a ${chosen.name} · free while testing` : chosen.price ? `${chosen.name} · ${money(chosen.price)}/month · Coming soon` : price ? 'Join as a Visitor' : 'Join for free'}
         </Btn>
       </View>
     </Sheet>

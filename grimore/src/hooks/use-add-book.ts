@@ -19,9 +19,9 @@ export async function resolveBookId(b: { id?: string; external?: ExternalBook })
 type AddInput = { book: { id?: string; external?: ExternalBook; title: string }; status?: ReadingStatus; choice?: ShelfChoice; owned?: boolean };
 
 /**
- * Puts a book on a reading status (Want to read, Reading, Read…) or on one of
+ * Puts a book on a reading status (TBR, Reading, Finished…) or on one of
  * the reader's own shelves. A book added to a custom shelf that is not yet in
- * the library also lands in Want to read, so it shows up everywhere.
+ * the library also lands in the TBR, so it shows up everywhere.
  */
 export function useAddToLibrary() {
   const me = useMyId();

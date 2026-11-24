@@ -12,3 +12,13 @@ export async function getMaintenance(): Promise<Maintenance> {
   const v = data.value as { on?: boolean; message?: string } | null;
   return { on: !!v?.on, message: v?.message ?? null };
 }
+
+/**
+ * Whether paid items, library rooms and paid community tiers are locked
+ * (app_config key "paywalls"; off while testing). Locked if unknown.
+ */
+export async function getPaywalls(): Promise<boolean> {
+  const { data, error } = await supabase.from('app_config').select('value').eq('key', 'paywalls').maybeSingle();
+  if (error || !data) return true;
+  return data.value !== false;
+}

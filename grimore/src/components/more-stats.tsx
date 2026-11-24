@@ -37,7 +37,7 @@ export function MoreStats({ s }: { s: ReadingStats }) {
     [m.avgLength ? fmt(m.avgLength) : '—', 'average book length'],
     [fmt(m.readingDays), 'days you logged pages'],
     [String(m.reading), 'reading now'],
-    [fmt(m.wantToRead), 'on your wishlist'],
+    [fmt(m.wantToRead), 'on your TBR'],
   ];
   const rmax = Math.max(1, ...m.ratings);
   const book = (label: string, b: { id: string; title: string; pages?: number | null } | null, extra: string) =>

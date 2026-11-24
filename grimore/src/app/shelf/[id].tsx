@@ -31,7 +31,7 @@ export default function ShelfScreen() {
   const me = useMyId()!;
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
-  // Long shelves (a 1 000-book wishlist) render in steps so the screen stays smooth.
+  // Long shelves (a 1 000-book TBR) render in steps so the screen stays smooth.
   const [shown, setShown] = useState(120);
   const q = useQuery({ queryKey: ['shelf', id], queryFn: () => load(id) });
   const genreId = id.startsWith('genre:') ? Number(id.slice(6)) : null;

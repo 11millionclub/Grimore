@@ -169,7 +169,7 @@ function ForYou() {
                   {g.name}
                 </Text>
                 <Text variant="caption" tone="muted" style={{ zIndex: 2 }}>
-                  {g.more ? 'Thousands of books' : `${g.count} books`}
+                  {g.more ? 'Many books' : `${g.count} books`}
                 </Text>
                 <View style={{ position: 'absolute', bottom: -12, right: -8, flexDirection: 'row' }}>
                   {g.covers.map((b, i) => (

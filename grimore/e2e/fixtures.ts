@@ -258,9 +258,9 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'rpc/house_balance':
       return [];
     case 'rpc/wheel_spins_left':
-      return 3;
-    case 'rpc/use_wheel_spin':
       return 2;
+    case 'rpc/use_wheel_spin':
+      return 1;
     case 'rpc/book_tags':
       return [{ book_id: 'b4', tag: 'slow-burn', n: 2 }];
     case 'rpc/log_reading_session':

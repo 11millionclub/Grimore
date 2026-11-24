@@ -5,14 +5,16 @@ import type { ComponentType } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BooksIcon, CompassIcon, FeatherIcon, PuzzlePieceIcon, UserCircleIcon, type IconProps } from '@/components/icons';
+import { BookBookmarkIcon, BooksIcon, CompassIcon, ShieldIcon, FeatherIcon, PuzzlePieceIcon, UserCircleIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
 import { fonts, GILT, layout, spacing } from '@/theme';
 
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
   index: { label: 'Home', Icon: BooksIcon },
   explore: { label: 'Explore', Icon: CompassIcon },
+  grimore: { label: 'Grimore', Icon: BookBookmarkIcon },
   log: { label: 'Inscribe', Icon: FeatherIcon },
+  houses: { label: 'Houses', Icon: ShieldIcon },
   play: { label: 'Play', Icon: PuzzlePieceIcon },
   me: { label: 'Me', Icon: UserCircleIcon },
 };
@@ -61,7 +63,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           };
           if (route.name === 'log')
             return (
-              <Press key={route.key} onPress={tap} accessibilityRole="button" accessibilityLabel="Inscribe: add a book" hitSlop={8} style={{ width: 64, alignItems: 'center' }}>
+              <Press key={route.key} onPress={tap} accessibilityRole="button" accessibilityLabel="Inscribe: add a book" hitSlop={8} style={{ width: 58, alignItems: 'center' }}>
                 <View
                   style={{
                     width: SEAL,
@@ -92,10 +94,10 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
               accessibilityLabel={meta.label}
-              style={{ width: 60, height: layout.tabBarHeight - 8, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+              style={{ flex: 1, maxWidth: 64, height: layout.tabBarHeight - 8, alignItems: 'center', justifyContent: 'center', gap: 2 }}
             >
-              <Icon size={24} weight={focused ? 'fill' : 'regular'} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'} />
-              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10.5, lineHeight: 13 }} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'}>
+              <Icon size={23} weight={focused ? 'fill' : 'regular'} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'} />
+              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10, lineHeight: 13 }} numberOfLines={1} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'}>
                 {meta.label}
               </Text>
               <View style={{ position: 'absolute', bottom: 2, width: 5, height: 5, transform: [{ rotate: '45deg' }], backgroundColor: focused ? GILT.gold : 'transparent' }} />

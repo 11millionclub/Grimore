@@ -22,7 +22,7 @@ export type WheelBook = {
 const TROPE_KEYS = new Set<string>(TROPES.map((t) => t.key));
 
 /**
- * Books the wheel can land on: your wishlist ("to be read"), books you own
+ * Books the wheel can land on: your TBR (to be read), books you own
  * and have not finished, or recommendations from your favourite genres and
  * the genres you read most. Each comes with its genres, the tropes readers
  * tagged and the average spice, for the filters.
