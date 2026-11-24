@@ -7,7 +7,7 @@ import { ChatCircleIcon, HeartIcon, MedalIcon, TrophyIcon, UserPlusIcon, UsersTh
 import { Avatar, Btn, EmptyState, Press, Screen, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { acceptFollow, follow, getNotifications, markNotificationsRead } from '@/services/social';
+import { acceptFollow, follow, getNotifications, markNotificationsRead, myFollowStatuses, unfollow } from '@/services/social';
 import { fonts, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
 
@@ -77,10 +77,27 @@ export default function Notifications() {
     }, 1200);
     return () => clearTimeout(t);
   }, [me, qc]);
+  const mine = useQuery({ queryKey: ['followStatuses', me], queryFn: () => myFollowStatuses(me) });
   const act = useMutation({
-    mutationFn: ({ kind, id }: { kind: 'accept' | 'follow'; id: string }) => (kind === 'accept' ? acceptFollow(me, id) : follow(me, id)),
-    onSuccess: (_d, v) => toast(v.kind === 'accept' ? 'Request accepted' : 'Following'),
-    onError: (e) => toast(toAppError(e).message),
+    mutationFn: ({ kind, id }: { kind: 'accept' | 'follow' | 'unfollow'; id: string }) => (kind === 'accept' ? acceptFollow(me, id) : kind === 'follow' ? follow(me, id) : unfollow(me, id)),
+    // Flip the button straight away; the server answer confirms or rolls it back.
+    onMutate: ({ kind, id }) => {
+      if (kind === 'accept') return;
+      qc.setQueryData<Record<string, string>>(['followStatuses', me], (old) => {
+        const next = { ...(old ?? {}) };
+        if (kind === 'follow') next[id] = 'accepted';
+        else delete next[id];
+        return next;
+      });
+    },
+    onSuccess: (_d, v) => {
+      if (v.kind === 'accept') toast('Request accepted');
+      for (const key of ['followStatuses', 'follows', 'profile', 'feed']) void qc.invalidateQueries({ queryKey: [key] });
+    },
+    onError: (e) => {
+      void qc.invalidateQueries({ queryKey: ['followStatuses', me] });
+      toast(toAppError(e).message);
+    },
   });
   // The Market was retired; its old notifications are no longer shown.
   const list = (q.data ?? []).filter((n) => n.type !== 'market' && n.type !== 'trade');
@@ -114,9 +131,15 @@ export default function Notifications() {
                 Accept
               </Btn>
             ) : n.type === 'follow' && actor ? (
-              <Btn size="sm" variant="secondary" onPress={() => act.mutate({ kind: 'follow', id: actor.id })}>
-                Follow back
-              </Btn>
+              mine.data?.[actor.id] ? (
+                <Btn size="sm" variant="secondary" onPress={() => act.mutate({ kind: 'unfollow', id: actor.id })}>
+                  {mine.data[actor.id] === 'pending' ? 'Requested' : 'Following'}
+                </Btn>
+              ) : (
+                <Btn size="sm" onPress={() => act.mutate({ kind: 'follow', id: actor.id })}>
+                  Follow back
+                </Btn>
+              )
             ) : null}
           </Press>
         );

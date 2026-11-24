@@ -41,14 +41,19 @@ export default function UserProfile() {
   const compat = useQuery({ queryKey: ['compat', p?.id], queryFn: () => compatibility(me, p!.id), enabled: !!p && p.id !== me });
   const [tab, setTab] = useState<'corner' | 'activity'>('corner');
   const feed = useInfiniteQuery({
-    queryKey: ['feed', 'user', p?.id],
+    queryKey: ['feed', 'user', p?.id, 'reviews'],
     enabled: !!p && tab === 'activity',
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) => getFeed({ viewerId: me, scope: 'discover', userId: p!.id, cursor: pageParam }),
+    queryFn: ({ pageParam }) => getFeed({ viewerId: me, scope: 'reviews', userId: p!.id, cursor: pageParam }),
     getNextPageParam: (l) => l.nextCursor,
   });
   const toggle = useMutation({
     mutationFn: () => (state.data === 'none' ? follow(me, p!.id) : unfollow(me, p!.id)),
+    onMutate: () => {
+      const was = state.data;
+      qc.setQueryData(['follow', p?.id], was === 'none' ? (p?.is_private ? 'pending' : 'following') : 'none');
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['myFollowing', me] }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['follow', p?.id] });
       void qc.invalidateQueries({ queryKey: ['counts', p?.id] });
@@ -132,10 +137,10 @@ export default function UserProfile() {
       ) : (
         <>
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
-            <Segmented value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Grimore' }, { value: 'activity', label: 'Posts' }]} />
+            <Segmented value={tab} onChange={setTab} options={[{ value: 'corner', label: 'Grimore' }, { value: 'activity', label: 'Reviews' }]} />
           </View>
           {tab === 'corner' ? (
-            <CornerBlocks userId={p.id} look={look} widgets={c?.widgets ?? ['top4', 'reading', 'shelf', 'guestbook']} status={c?.status_text} song={c?.song} />
+            <CornerBlocks userId={p.id} look={look} widgets={c?.widgets ?? ['top4', 'reading', 'shelf', 'guestbook']} status={c?.status_text} song={c?.song} library={c?.library} />
           ) : (
             <View style={{ paddingHorizontal: spacing.md, gap: spacing.md }}>
               {items.length === 0 && !feed.isLoading ? <EmptyState title="No posts yet" /> : items.map((it) => <PostCard key={`${it.item_type}-${it.id}`} post={it} />)}

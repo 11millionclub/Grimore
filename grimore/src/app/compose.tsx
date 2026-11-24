@@ -4,21 +4,27 @@ import { useState, type ComponentType } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReviewTagPicker } from '@/components/review-tags';
 import { Toggle } from '@/components/switch';
 import { BookOpenIcon, CaretRightIcon, EyeSlashIcon, FeatherIcon, QuotesIcon, StarIcon, type IconProps } from '@/components/icons';
-import { Btn, Cover, Press, Segmented, Text, toast } from '@/components/ui';
+import { Btn, Cover, Press, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { myCommunities } from '@/services/communities';
-import { listByStatus, logProgress } from '@/services/library';
+import { refreshLibrary } from '@/lib/query-client';
+import { listByStatus, saveEntry, statusPatch } from '@/services/library';
 import { createPost, upsertReview } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
+import { STAR_STEPS } from '@/utils/ratings';
 
-type Kind = 'review' | 'progress' | 'quote' | 'free';
+/**
+ * Reviews are public. Posts and quotes only live inside a community, so
+ * choosing one of them asks which community it is for.
+ */
+type Kind = 'review' | 'quote' | 'free';
 const KINDS: { id: Kind; label: string; Icon: ComponentType<IconProps> }[] = [
-  { id: 'free', label: 'Post', Icon: FeatherIcon },
   { id: 'review', label: 'Review', Icon: StarIcon },
-  { id: 'progress', label: 'Progress', Icon: BookOpenIcon },
+  { id: 'free', label: 'Community post', Icon: FeatherIcon },
   { id: 'quote', label: 'Quote', Icon: QuotesIcon },
 ];
 
@@ -28,13 +34,14 @@ export default function Compose() {
   const insets = useSafeAreaInsets();
   const me = useMyId()!;
   const qc = useQueryClient();
-  const [kind, setKind] = useState<Kind>(params.kind ?? 'free');
+  const [kind, setKind] = useState<Kind>(params.kind && params.kind in { review: 1, quote: 1, free: 1 } ? params.kind : params.communityId ? 'free' : 'review');
   const [bookId, setBookId] = useState<string | null>(params.bookId ?? null);
-  const [stars, setStars] = useState(4);
+  // null = use the stars you already gave the chosen book in your library.
+  const [picked, setStars] = useState<number | null>(null);
   const [text, setText] = useState('');
   const [spoiler, setSpoiler] = useState(false);
-  const [audience, setAudience] = useState<'public' | 'followers' | 'community'>(params.communityId ? 'community' : 'public');
-  const [communityId, setCommunityId] = useState<string | null>(params.communityId ?? null);
+  const [tags, setTags] = useState<string[]>([]);
+    const [communityId, setCommunityId] = useState<string | null>(params.communityId ?? null);
   const [picking, setPicking] = useState(false);
   const books = useQuery({
     queryKey: ['compose-books', me],
@@ -43,18 +50,23 @@ export default function Compose() {
   const comms = useQuery({ queryKey: ['my-communities', me], queryFn: () => myCommunities(me) });
   // Free posts are about anything (an author, an idea…); a book is optional and only tagged when chosen.
   const book = (books.data ?? []).find((e) => e.book.id === bookId)?.book ?? (kind === 'free' ? undefined : books.data?.[0]?.book);
-  const entry = (books.data ?? []).find((e) => e.book.id === book?.id);
-  const ok = kind === 'progress' ? !!book : kind === 'review' ? !!book && stars > 0 : text.trim().length > 2 && (kind !== 'quote' || !!book);
+  const entryOf = (books.data ?? []).find((e) => e.book.id === book?.id);
+  const stars = picked ?? Number(entryOf?.rating ?? 0);
+  const ok = kind === 'review' ? !!book && stars > 0 : !!communityId && text.trim().length > 2 && (kind !== 'quote' || !!book);
 
   const publish = useMutation({
     mutationFn: async () => {
-      const aud = audience === 'community' && !communityId ? 'public' : audience;
-      if (kind === 'review') return upsertReview({ userId: me, bookId: book!.id, rating: stars, body: text, hasSpoilers: spoiler });
-      if (kind === 'progress') return logProgress({ bookId: book!.id, page: entry?.current_page ?? 0, note: text, share: true, audience: aud === 'followers' ? 'followers' : 'public' });
-      return createPost({ userId: me, kind: kind === 'quote' ? 'quote' : 'free', bookId: kind === 'quote' || kind === 'free' ? (book?.id ?? null) : null, quote: kind === 'quote' ? text : null, body: kind === 'free' ? text : null, hasSpoilers: spoiler, audience: aud, communityId });
+      if (kind === 'review') {
+        await upsertReview({ userId: me, bookId: book!.id, rating: stars, body: text, hasSpoilers: spoiler, tags });
+        // Same as the review screen: the stars become the book's rating and the book counts as finished.
+        await saveEntry(me, book!.id, { rating: stars, ...(entryOf?.status === 'read' ? {} : statusPatch('read', entryOf ?? null)) });
+        return;
+      }
+      return createPost({ userId: me, kind: kind === 'quote' ? 'quote' : 'free', bookId: book?.id ?? null, quote: kind === 'quote' ? text : null, body: kind === 'free' ? text : null, hasSpoilers: spoiler, audience: 'community', communityId });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['feed'] });
+      if (kind === 'review') void refreshLibrary(qc);
       router.back();
       toast('Published');
     },
@@ -69,7 +81,7 @@ export default function Compose() {
             Cancel
           </Text>
         </Press>
-        <Text variant="bodyStrong">New post</Text>
+        <Text variant="bodyStrong">{kind === 'review' ? 'New review' : 'New community post'}</Text>
         <Btn size="sm" disabled={!ok} loading={publish.isPending} onPress={() => publish.mutate()}>
           Publish
         </Btn>
@@ -114,6 +126,7 @@ export default function Compose() {
                 key={e.id}
                 onPress={() => {
                   setBookId(e.book.id);
+                  setStars(null);
                   setPicking(false);
                 }}
                 style={{ opacity: book?.id === e.book.id ? 1 : 0.6 }}
@@ -126,29 +139,19 @@ export default function Compose() {
 
         {kind === 'review' ? (
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: spacing.lg }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => setStars(i)} style={{ padding: 4 }}>
-                <StarIcon size={34} weight="fill" color={i <= stars ? colors.accent : colors.surface3} />
+            {STAR_STEPS.map((i) => (
+              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => setStars(i)} style={{ padding: 3 }}>
+                <StarIcon size={32} weight="fill" color={i <= stars ? colors.gold : colors.surface3} />
               </Press>
             ))}
           </View>
         ) : null}
-        {kind === 'progress' && book ? (
-          <Text variant="callout" tone="muted" align="center" style={{ marginTop: spacing.lg }}>
-            You are on page{' '}
-            <Text variant="callout" style={{ fontFamily: fonts.semibold }}>
-              {entry?.current_page ?? 0}
-            </Text>
-            {book.page_count_estimate ? ` of ${book.page_count_estimate}` : ''}
-          </Text>
-        ) : null}
-
         <TextInput
           autoFocus
           value={text}
           onChangeText={(v) => setText(v.slice(0, 1000))}
           multiline
-          placeholder={{ review: 'What did you think?', progress: 'How is it going?', quote: 'Type the line, or photograph the page from +', free: 'What are you thinking about?' }[kind]}
+          placeholder={{ review: 'What did you think?', quote: 'Type the line, or photograph the page from +', free: 'What are you thinking about?' }[kind]}
           placeholderTextColor={colors.faint}
           selectionColor={colors.accent}
           style={{ marginTop: spacing.lg, minHeight: kind === 'quote' ? 120 : 180, color: colors.ink, fontFamily: kind === 'quote' ? fonts.medium : fonts.regular, fontSize: kind === 'quote' ? 22 : 17, lineHeight: kind === 'quote' ? 29 : 25, textAlignVertical: 'top' }}
@@ -156,6 +159,11 @@ export default function Compose() {
         <Text variant="caption" tone="faint" align="right">
           {text.length}/1000
         </Text>
+        {kind === 'review' ? (
+          <View style={{ marginTop: spacing.base }}>
+            <ReviewTagPicker value={tags} onChange={setTags} />
+          </View>
+        ) : null}
 
         <View style={{ marginTop: spacing.base, backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>
           <View style={{ height: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.base }}>
@@ -166,26 +174,23 @@ export default function Compose() {
           {kind !== 'review' ? (
             <View style={{ borderTopWidth: 1, borderTopColor: colors.line, padding: spacing.base, gap: spacing.sm }}>
               <Text variant="small" tone="muted">
-                Who can see it
+                Community
               </Text>
-              <Segmented value={audience} onChange={setAudience} options={[{ value: 'public', label: 'Everyone' }, { value: 'followers', label: 'Followers' }, ...(kind !== 'progress' ? [{ value: 'community' as const, label: 'Community' }] : [])]} />
-              {audience === 'community' ? (
-                (comms.data ?? []).length ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.xs }}>
-                    {(comms.data ?? []).map((c) => (
-                      <Press key={c.id} onPress={() => setCommunityId(c.id)} style={{ height: 32, paddingHorizontal: 12, borderRadius: radius.full, justifyContent: 'center', backgroundColor: communityId === c.id ? colors.accent : colors.surface2 }}>
-                        <Text variant="small" color={communityId === c.id ? colors.onAccent : colors.ink}>
-                          {c.name}
-                        </Text>
-                      </Press>
-                    ))}
-                  </ScrollView>
-                ) : (
-                  <Text variant="caption" tone="muted">
-                    Join a community first. Until then it is posted to everyone.
-                  </Text>
-                )
-              ) : null}
+              {(comms.data ?? []).length ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+                  {(comms.data ?? []).map((c) => (
+                    <Press key={c.id} onPress={() => setCommunityId(c.id)} style={{ height: 32, paddingHorizontal: 12, borderRadius: radius.full, justifyContent: 'center', backgroundColor: communityId === c.id ? colors.accent : colors.surface2 }}>
+                      <Text variant="small" color={communityId === c.id ? colors.onAccent : colors.ink}>
+                        {c.name}
+                      </Text>
+                    </Press>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text variant="caption" tone="muted">
+                  Posts live inside communities. Join one first, or write a review.
+                </Text>
+              )}
             </View>
           ) : null}
         </View>

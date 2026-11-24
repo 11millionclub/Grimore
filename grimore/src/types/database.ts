@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      invite_codes: {
+        Row: { user_id: string; code: string; created_at: string }
+        Insert: { user_id: string; code: string; created_at?: string }
+        Update: { user_id?: string; code?: string; created_at?: string }
+        Relationships: []
+      }
+      invite_redemptions: {
+        Row: { invitee_id: string; inviter_id: string; created_at: string }
+        Insert: { invitee_id: string; inviter_id: string; created_at?: string }
+        Update: { invitee_id?: string; inviter_id?: string; created_at?: string }
+        Relationships: []
+      }
+      point_grants: {
+        Row: { id: string; user_id: string; reason: string; points: number; source_id: string; created_at: string }
+        Insert: { id?: string; user_id: string; reason: string; points: number; source_id: string; created_at?: string }
+        Update: { id?: string; user_id?: string; reason?: string; points?: number; source_id?: string; created_at?: string }
+        Relationships: []
+      }
       point_rewards: {
         Row: { active: boolean; cost_points: number; description: string | null; discount_percent: number | null; id: string; item_key: string | null; kind: string; sort_order: number; title: string }
         Insert: { active?: boolean; cost_points: number; description?: string | null; discount_percent?: number | null; id: string; item_key?: string | null; kind: string; sort_order?: number; title: string }
@@ -942,6 +960,7 @@ export type Database = {
         Row: {
           community_banner_id: string | null
           badge_ids: string[]
+          library: string
           frame: string
           name_style: string
           pack: string
@@ -957,6 +976,7 @@ export type Database = {
         Insert: {
           community_banner_id?: string | null
           badge_ids?: string[]
+          library?: string
           frame?: string
           name_style?: string
           pack?: string
@@ -972,6 +992,7 @@ export type Database = {
         Update: {
           community_banner_id?: string | null
           badge_ids?: string[]
+          library?: string
           frame?: string
           name_style?: string
           pack?: string
@@ -2061,6 +2082,8 @@ export type Database = {
       }
       reviews: {
         Row: {
+          tags: string[]
+          spice: number | null
           body: string | null
           book_id: string
           comment_count: number
@@ -2074,6 +2097,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          tags?: string[]
+          spice?: number | null
           body?: string | null
           book_id: string
           comment_count?: number
@@ -2087,6 +2112,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          tags?: string[]
+          spice?: number | null
           body?: string | null
           book_id?: string
           comment_count?: number
@@ -2367,6 +2394,9 @@ export type Database = {
       }
       user_books: {
         Row: {
+          minutes_read: number
+          spice: number | null
+          is_priority: boolean
           added_at: string
           book_id: string
           current_page: number | null
@@ -2384,6 +2414,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          minutes_read?: number
+          spice?: number | null
+          is_priority?: boolean
           added_at?: string
           book_id: string
           current_page?: number | null
@@ -2401,6 +2434,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          minutes_read?: number
+          spice?: number | null
+          is_priority?: boolean
           added_at?: string
           book_id?: string
           current_page?: number | null
@@ -2890,7 +2926,13 @@ export type Database = {
       }
     }
     Functions: {
+      book_tags: { Args: { p_books: string[] }; Returns: { book_id: string; tag: string; n: number }[] }
+      log_reading_session: { Args: { p_book: string | null; p_seconds: number }; Returns: { minutes_today: number; minutes_book: number | null }[] }
+      wheel_spins_left: { Args: Record<PropertyKey, never>; Returns: number }
+      use_wheel_spin: { Args: { p_book: string | null }; Returns: number }
       my_wallet: { Args: Record<PropertyKey, never>; Returns: { earned: number; spent: number; balance: number }[] }
+      my_invite_code: { Args: Record<PropertyKey, never>; Returns: string }
+      redeem_invite: { Args: { p_code: string }; Returns: Json }
       redeem_reward: { Args: { p_reward: string }; Returns: Json }
       join_ritual: { Args: Record<PropertyKey, never>; Returns: string }
       complete_ritual: { Args: Record<PropertyKey, never>; Returns: undefined }

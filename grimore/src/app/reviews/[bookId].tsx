@@ -8,6 +8,7 @@ import { HeartIcon } from '@/components/icons';
 import { Avatar, Chip, EmptyState, Progress, Screen, Stagger, Stars, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { ReportButton, ReportedGate } from '@/components/report-button';
+import { ReviewTags } from '@/components/review-tags';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
@@ -15,11 +16,11 @@ export default function Reviews() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const { colors } = useTheme();
   const me = useMyId()!;
-  const [f, setF] = useState<'all' | 'friends' | 'five' | 'spoilers'>('all');
+  const [f, setF] = useState<'all' | 'friends' | 'six' | 'spoilers'>('all');
   const q = useQuery({ queryKey: ['book', bookId, 'reviews'], queryFn: () => getBookReviews(bookId, me) });
   const d = q.data;
   const max = Math.max(1, ...(d?.dist ?? [1]));
-  const list = (d?.list ?? []).filter((r) => (f === 'friends' ? r.friend : f === 'five' ? r.rating === 5 : f === 'spoilers' ? r.has_spoilers : true));
+  const list = (d?.list ?? []).filter((r) => (f === 'friends' ? r.friend : f === 'six' ? r.rating === 6 : f === 'spoilers' ? r.has_spoilers : true));
   return (
     <Screen title="Reviews" back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
       <View style={{ marginHorizontal: spacing.lg, flexDirection: 'row', gap: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
@@ -31,10 +32,10 @@ export default function Reviews() {
           </Text>
         </View>
         <View style={{ flex: 1, gap: 6, justifyContent: 'center' }}>
-          {(d?.dist ?? [0, 0, 0, 0, 0]).map((n, i) => (
+          {(d?.dist ?? [0, 0, 0, 0, 0, 0]).map((n, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Text variant="micro" tone="muted" style={{ width: 8 }}>
-                {5 - i}
+                {6 - i}
               </Text>
               <Progress value={n / max} height={6} style={{ flex: 1 }} />
               <Text variant="micro" tone="muted" style={{ width: 32, textAlign: 'right' }}>
@@ -51,8 +52,8 @@ export default function Reviews() {
         <Chip active={f === 'friends'} onPress={() => setF('friends')}>
           People you follow
         </Chip>
-        <Chip active={f === 'five'} onPress={() => setF('five')}>
-          5 stars
+        <Chip active={f === 'six'} onPress={() => setF('six')}>
+          6 stars
         </Chip>
         <Chip active={f === 'spoilers'} onPress={() => setF('spoilers')}>
           With spoilers
@@ -78,6 +79,11 @@ export default function Reviews() {
                     <Spoiler hidden={r.has_spoilers}>
                       {r.headline ? <Text variant="bodyStrong">{r.headline}</Text> : null}
                       {r.body ? <Text variant="callout">{r.body}</Text> : null}
+                      {r.tags?.length ? (
+                        <View style={{ marginTop: spacing.sm }}>
+                          <ReviewTags tags={r.tags} />
+                        </View>
+                      ) : null}
                     </Spoiler>
                   </ReportedGate>
                 </View>

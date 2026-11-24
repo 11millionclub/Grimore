@@ -14,11 +14,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { MessageAlerts } from '@/components/app-actions';
-import { Text, ToastHost } from '@/components/ui';
+import { Text, ToastHost, toast } from '@/components/ui';
 import { useMyHouse, useMyProfile } from '@/hooks/queries';
 import { envError } from '@/lib/env';
+import { toAppError } from '@/lib/errors';
 import { queryClient } from '@/lib/query-client';
 import { consumeAuthLink } from '@/services/auth';
+import { pendingInvite, redeemInvite } from '@/services/invites';
 import { startSessionListener, useSessionStore } from '@/stores/session';
 import { ThemeProvider, spacing, useTheme } from '@/theme';
 
@@ -98,6 +100,9 @@ function Navigation() {
           <Stack.Screen name="reset-password" />
         </Stack.Protected>
 
+        {/* Invite links work signed in or out: the code is kept and redeemed after sign-up. */}
+        <Stack.Screen name="invite/[code]" />
+
         <Stack.Protected guard={!signedIn && !recovering}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
@@ -148,13 +153,39 @@ function Navigation() {
           <Stack.Screen name="house" />
           <Stack.Screen name="house-cup" />
           <Stack.Screen name="points" />
+          <Stack.Screen name="reading-session" />
+          <Stack.Screen name="wheel" />
           <Stack.Screen name="common-room/[house]" />
+          <Stack.Screen name="invite" />
         </Stack.Protected>
       </Stack>
       {signedIn && onboarded && !needsHouse ? <MessageAlerts /> : null}
+      {signedIn && onboarded && !needsHouse ? <InviteRedeemer /> : null}
       <ToastHost />
     </>
   );
+}
+
+/** Redeems an invite code saved from a link opened before the reader had an account. */
+function InviteRedeemer() {
+  useEffect(() => {
+    let cancelled = false;
+    void pendingInvite.get().then(async (code) => {
+      if (!code || cancelled) return;
+      await pendingInvite.clear();
+      try {
+        const r = await redeemInvite(code);
+        void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+        toast(`Invite accepted: +${r.points} points`);
+      } catch (e) {
+        toast(toAppError(e).message);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return null;
 }
 
 function ConfigError({ message }: { message: string }) {

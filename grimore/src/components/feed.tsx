@@ -1,18 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Modal, Pressable, TextInput, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, HeartIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
+import { BookmarkSimpleIcon, ChatCircleIcon, CheckCircleIcon, DotsThreeIcon, HeartIcon, PencilSimpleLineIcon, TrashIcon, PaperPlaneRightIcon, QuotesIcon, ShareFatIcon, WarningIcon } from '@/components/icons';
 import { HouseBadge } from '@/components/house-badge';
+import { ReviewTags } from '@/components/review-tags';
 import { ReportButton } from '@/components/report-button';
 import { Avatar, Cover, Press, Progress, Stars, Text, toast, shareText } from '@/components/ui';
 import { useHouseOf } from '@/hooks/use-house-of';
 import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { setLiked, setSaved, type FeedItem } from '@/services/social';
+import { deleteItem, setLiked, setSaved, type FeedItem } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
 
@@ -64,6 +65,62 @@ export function Spoiler({ hidden, label = 'Spoiler. Tap to read', children }: { 
         </Text>
       </View>
     </Press>
+  );
+}
+
+/** "⋯" on your own review or post: edit (reviews) or delete. */
+function OwnItemMenu({ post }: { post: FeedItem }) {
+  const { colors } = useTheme();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const isReview = post.item_type === 'review';
+  const remove = useMutation({
+    mutationFn: () => deleteItem(post.item_type, post.id),
+    onSuccess: () => {
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ['feed'] });
+      void qc.invalidateQueries({ queryKey: ['book'] });
+      void qc.invalidateQueries({ queryKey: ['review'] });
+      toast(isReview ? 'Review deleted' : 'Post deleted');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const close = () => {
+    setOpen(false);
+    setConfirm(false);
+  };
+  return (
+    <>
+      <Press accessibilityRole="button" accessibilityLabel={isReview ? 'Review options' : 'Post options'} onPress={() => setOpen(true)} hitSlop={10} style={{ padding: 4 }}>
+        <DotsThreeIcon size={16} weight="bold" color={colors.muted} />
+      </Press>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
+        <Pressable accessibilityLabel="Close" onPress={close} style={{ flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' }}>
+          <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.xs, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+            {isReview && post.book ? (
+              <Press
+                accessibilityRole="button"
+                onPress={() => {
+                  close();
+                  router.push({ pathname: '/review/[bookId]', params: { bookId: post.book!.id } });
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 }}
+              >
+                <PencilSimpleLineIcon size={20} color={colors.ink} />
+                <Text variant="body">Edit review</Text>
+              </Press>
+            ) : null}
+            <Press accessibilityRole="button" disabled={remove.isPending} onPress={() => (confirm ? remove.mutate() : setConfirm(true))} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 }}>
+              <TrashIcon size={20} color={colors.danger} />
+              <Text variant="body" tone="danger">
+                {confirm ? 'Tap again to delete' : isReview ? 'Delete review' : 'Delete post'}
+              </Text>
+            </Press>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -120,6 +177,7 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
             {relativeTime(post.created_at)}
           </Text>
           <ReportButton target={post.item_type === 'review' ? { reviewId: post.id } : { postId: post.id }} authorId={post.author?.id} size={16} />
+          {post.author?.id === me ? <OwnItemMenu post={post} /> : null}
         </View>
       </View>
 
@@ -137,6 +195,11 @@ export function PostCard({ post, full = false, onComment }: { post: FeedItem; fu
                 <Text variant="body" style={{ marginTop: 6 }} numberOfLines={full ? undefined : 6}>
                   {post.body}
                 </Text>
+              ) : null}
+              {post.tags?.length ? (
+                <View style={{ marginTop: spacing.sm }}>
+                  <ReviewTags tags={post.tags} />
+                </View>
               ) : null}
             </View>
           ) : post.kind === 'progress' ? (

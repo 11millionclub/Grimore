@@ -1,5 +1,6 @@
 import { unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
+import { STAR_STEPS } from '@/utils/ratings';
 import type { Database } from '@/types/database';
 
 import { authorLine } from './catalogue';
@@ -31,6 +32,7 @@ export type FeedItem = {
   book: FeedBook | null;
   liked: boolean;
   saved: boolean;
+  tags?: string[];
 };
 
 export const FEED_PAGE = 20;
@@ -44,7 +46,7 @@ async function hydrate(rows: FeedRow[], viewerId: string): Promise<FeedItem[]> {
   const postIds = rows.filter((r) => r.item_type === 'post').map((r) => r.id!) ;
   const reviewIds = rows.filter((r) => r.item_type === 'review').map((r) => r.id!);
 
-  const [authors, books, postLikes, reviewLikes, ratings, saves] = await Promise.all([
+  const [authors, books, postLikes, reviewLikes, ratings, saves, reviewTags] = await Promise.all([
     userIds.length ? supabase.from('profiles').select('id, username, display_name, avatar_url').in('id', userIds) : Promise.resolve({ data: [], error: null }),
     bookIds.length
       ? supabase.from('books').select('id, title, cover_url, page_count_estimate, book_authors(position, role, authors(name))').in('id', bookIds)
@@ -53,7 +55,9 @@ async function hydrate(rows: FeedRow[], viewerId: string): Promise<FeedItem[]> {
     reviewIds.length ? supabase.from('review_reactions').select('review_id').eq('user_id', viewerId).in('review_id', reviewIds) : Promise.resolve({ data: [], error: null }),
     bookIds.length ? supabase.from('reviews').select('book_id, rating').in('book_id', bookIds).limit(2000) : Promise.resolve({ data: [], error: null }),
     rows.length ? supabase.from('saved_items').select('post_id, review_id').eq('user_id', viewerId) : Promise.resolve({ data: [], error: null }),
+    reviewIds.length ? supabase.from('reviews').select('id, tags').in('id', reviewIds) : Promise.resolve({ data: [], error: null }),
   ]);
+  const tagMap = new Map((unwrap(reviewTags) as { id: string; tags: string[] | null }[]).map((r) => [r.id, r.tags ?? []]));
   const sums = new Map<string, { n: number; t: number }>();
   (unwrap(ratings) as { book_id: string; rating: number }[]).forEach((r) => {
     const x = sums.get(r.book_id) ?? { n: 0, t: 0 };
@@ -94,6 +98,7 @@ async function hydrate(rows: FeedRow[], viewerId: string): Promise<FeedItem[]> {
     book: r.book_id ? bookMap.get(r.book_id) ?? null : null,
     liked: liked.has(`${r.item_type}:${r.id}`),
     saved: savedSet.has(`${r.item_type}:${r.id}`),
+    tags: r.item_type === 'review' ? tagMap.get(r.id!) : undefined,
   }));
 }
 
@@ -110,8 +115,9 @@ export async function getFeed(opts: {
   communityId?: string;
 }): Promise<{ items: FeedItem[]; nextCursor: string | null }> {
   let q = supabase.from('feed_items').select('*').order('created_at', { ascending: false }).limit(FEED_PAGE);
+  // Outside communities the feed is reviews only; posts live inside communities.
   if (opts.communityId) q = q.eq('community_id', opts.communityId);
-  else if (!opts.userId) q = q.neq('audience', 'community');
+  else q = q.eq('item_type', 'review');
   if (opts.cursor) q = q.lt('created_at', opts.cursor);
   if (opts.userId) q = q.eq('user_id', opts.userId);
   if (opts.bookId) q = q.eq('book_id', opts.bookId);
@@ -165,14 +171,14 @@ export async function createPost(input: {
   );
 }
 
-export type BookReview = { id: string; rating: number; body: string | null; headline: string | null; has_spoilers: boolean; like_count: number; created_at: string; author: FeedAuthor | null; friend: boolean };
+export type BookReview = { id: string; rating: number; spice: number | null; tags: string[]; body: string | null; headline: string | null; has_spoilers: boolean; like_count: number; created_at: string; author: FeedAuthor | null; friend: boolean };
 
-/** All reviews of a book plus the rating distribution (5 to 1). */
+/** All reviews of a book plus the rating distribution (6 to 1). */
 export async function getBookReviews(bookId: string, viewerId: string) {
   const [rows, follows] = await Promise.all([
     supabase
       .from('reviews')
-      .select('id, rating, body, headline, has_spoilers, like_count, created_at, author:profiles!reviews_user_id_fkey(id, username, display_name, avatar_url)')
+      .select('id, rating, spice, tags, body, headline, has_spoilers, like_count, created_at, author:profiles!reviews_user_id_fkey(id, username, display_name, avatar_url)')
       .eq('book_id', bookId)
       .order('like_count', { ascending: false })
       .limit(200),
@@ -180,9 +186,11 @@ export async function getBookReviews(bookId: string, viewerId: string) {
   ]);
   const friends = new Set((unwrap(follows) ?? []).map((f) => f.followee_id));
   const list = (unwrap(rows) as unknown as Omit<BookReview, 'friend'>[]).map((r) => ({ ...r, rating: Number(r.rating), friend: !!r.author && friends.has(r.author.id) }));
-  const dist = [5, 4, 3, 2, 1].map((star) => list.filter((r) => Math.round(r.rating) === star).length);
+  const dist = [...STAR_STEPS].reverse().map((star) => list.filter((r) => Math.round(r.rating) === star).length);
   const avg = list.length ? list.reduce((a, r) => a + r.rating, 0) / list.length : null;
-  return { list, dist, avg, count: list.length };
+  const spiced = list.filter((r) => r.spice != null);
+  const spiceAvg = spiced.length ? spiced.reduce((a, r) => a + (r.spice ?? 0), 0) / spiced.length : null;
+  return { list, dist, avg, spiceAvg, count: list.length };
 }
 
 /**
@@ -190,9 +198,11 @@ export async function getBookReviews(bookId: string, viewerId: string) {
  * text, rating and spoiler flag change after it exists (author and book are
  * fixed), so an existing review is updated rather than upserted.
  */
-export async function upsertReview(input: { userId: string; bookId: string; rating: number; headline?: string; body?: string; hasSpoilers?: boolean }) {
+export async function upsertReview(input: { userId: string; bookId: string; rating: number; spice?: number | null; headline?: string; body?: string; hasSpoilers?: boolean; tags?: string[] }) {
   const fields = {
     rating: input.rating,
+    ...(input.spice !== undefined ? { spice: input.spice } : {}),
+    ...(input.tags !== undefined ? { tags: input.tags } : {}),
     headline: input.headline?.trim() || null,
     body: input.body?.trim() || null,
     has_spoilers: !!input.hasSpoilers,
@@ -203,7 +213,7 @@ export async function upsertReview(input: { userId: string; bookId: string; rati
 }
 
 export async function getMyReview(userId: string, bookId: string) {
-  return unwrap(await supabase.from('reviews').select('id, rating, headline, body, has_spoilers').eq('user_id', userId).eq('book_id', bookId).maybeSingle());
+  return unwrap(await supabase.from('reviews').select('id, rating, spice, headline, body, has_spoilers, tags').eq('user_id', userId).eq('book_id', bookId).maybeSingle());
 }
 
 export async function deleteItem(type: 'post' | 'review', id: string) {
@@ -335,4 +345,10 @@ export async function getActivityFromFollowed(viewerId: string) {
       .limit(8),
   );
   return rows;
+}
+
+/** Who I follow (or have asked to follow), keyed by their id. */
+export async function myFollowStatuses(viewerId: string): Promise<Record<string, 'accepted' | 'pending'>> {
+  const rows = unwrap(await supabase.from('follows').select('followee_id, status').eq('follower_id', viewerId).limit(2000)) as { followee_id: string; status: string }[];
+  return Object.fromEntries(rows.map((r) => [r.followee_id, r.status === 'accepted' ? 'accepted' : 'pending']));
 }

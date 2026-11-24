@@ -13,8 +13,7 @@ import {
   GlobeIcon,
   SignOutIcon,
   TrophyIcon,
-  UsersThreeIcon,
-} from '@/components/icons';
+  UsersThreeIcon, GiftIcon } from '@/components/icons';
 import { Avatar, Group, Press, Row, Screen, Text, toast } from '@/components/ui';
 import { Sigil } from '@/components/sigil';
 import { useMyHouse, useMyId, useMyProfile, usePreferences, useReadingGoal } from '@/hooks/queries';
@@ -129,6 +128,10 @@ export default function Settings() {
         </Group>
       ) : null}
 
+      <Group title="Friends">
+        <Row icon={icon(GiftIcon)} label="Invite friends" value="Points for both of you" onPress={() => router.push('/invite')} right={chevron} last />
+      </Group>
+
       <Group title="Reading">
         <Row icon={icon(TrophyIcon)} label="Yearly goal" value={goal.data?.target ? `${goal.data.target} books` : 'Not set'} onPress={() => router.push('/goals')} right={chevron} />
         <Row icon={icon(BooksIcon)} label="Shelves" onPress={() => router.push('/me')} right={chevron} />
@@ -150,7 +153,7 @@ export default function Settings() {
       <Group title="Payments">
         <Row icon={icon(CreditCardIcon)} label="Payment methods" value="Coming soon" onPress={soon} />
         <Row icon={icon(UsersThreeIcon)} label="Community memberships" value="Coming soon" onPress={soon} />
-        <Row icon={icon(CrownSimpleIcon)} label="Corner purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
+        <Row icon={icon(CrownSimpleIcon)} label="Grimore purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
       </Group>
 
       <Group>

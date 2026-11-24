@@ -3,15 +3,18 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
+import { ReviewTagPicker } from '@/components/review-tags';
 import { Toggle } from '@/components/switch';
-import { StarIcon } from '@/components/icons';
+import { PepperIcon, StarIcon, TrashIcon } from '@/components/icons';
 import { Btn, Cover, Press, Screen, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { getBook } from '@/services/catalogue';
-import { saveEntry } from '@/services/library';
-import { getMyReview, upsertReview } from '@/services/social';
+import { getEntry, saveEntry, statusPatch } from '@/services/library';
+import { deleteItem, getMyReview, upsertReview } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
+import { SPICE_LABELS, SPICE_STEPS, STAR_STEPS } from '@/utils/ratings';
 
 export default function WriteReview() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -20,44 +23,72 @@ export default function WriteReview() {
   const qc = useQueryClient();
   const book = useQuery({ queryKey: ['book', bookId], queryFn: () => getBook(bookId) });
   const mine = useQuery({ queryKey: ['review', 'mine', bookId], queryFn: () => getMyReview(me, bookId) });
+  const entry = useQuery({ queryKey: ['entry', me, bookId], queryFn: () => getEntry(me, bookId) });
   const [stars, setStars] = useState(0);
+  const [spice, setSpice] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
   const [spoiler, setSpoiler] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  useEffect(() => {
+    // No review yet: carry the stars and spice you already gave the book in your library.
+    if (mine.isLoading || mine.data || !entry.data) return;
+    const t = setTimeout(() => {
+      setStars((s) => s || Number(entry.data?.rating ?? 0));
+      setSpice((s) => s || (entry.data?.spice ?? 0));
+    }, 0);
+    return () => clearTimeout(t);
+  }, [mine.isLoading, mine.data, entry.data]);
   useEffect(() => {
     // Prefill once the existing review loads (editing).
     if (!mine.data) return;
     const t = setTimeout(() => {
       setStars(Number(mine.data!.rating));
+      setSpice(mine.data!.spice ?? 0);
       setHeadline(mine.data!.headline ?? '');
       setBody(mine.data!.body ?? '');
       setSpoiler(mine.data!.has_spoilers);
+      setTags(mine.data!.tags ?? []);
     }, 0);
     return () => clearTimeout(t);
   }, [mine.data]);
   const save = useMutation({
     mutationFn: async () => {
-      await upsertReview({ userId: me, bookId, rating: stars, headline, body, hasSpoilers: spoiler });
-      await saveEntry(me, bookId, { rating: stars });
+      await upsertReview({ userId: me, bookId, rating: stars, spice, headline, body, hasSpoilers: spoiler, tags });
+      // The review's rating is the book's rating in your library, and a reviewed book counts as read.
+      const entry = await getEntry(me, bookId);
+      await saveEntry(me, bookId, { rating: stars, spice, ...(entry?.status === 'read' ? {} : statusPatch('read', entry)) });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['book', bookId] });
       void qc.invalidateQueries({ queryKey: ['feed'] });
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       router.back();
-      toast('Review published');
+      toast(mine.data ? 'Review updated' : 'Review published');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const remove = useMutation({
+    mutationFn: () => deleteItem('review', mine.data!.id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['book', bookId] });
+      void qc.invalidateQueries({ queryKey: ['review', 'mine', bookId] });
+      void qc.invalidateQueries({ queryKey: ['feed'] });
+      router.back();
+      toast('Review deleted');
     },
     onError: (e) => toast(toAppError(e).message),
   });
   return (
     <Screen
-      title="Your review"
+      title={mine.data ? 'Edit review' : 'Your review'}
       large={false}
       back
       keyboard
       actions={
         <Btn size="sm" disabled={!stars} loading={save.isPending} onPress={() => save.mutate()}>
-          Publish
+          {mine.data ? 'Save' : 'Publish'}
         </Btn>
       }
     >
@@ -74,11 +105,23 @@ export default function WriteReview() {
           </View>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: spacing.xl }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => setStars(i)} style={{ padding: 4 }}>
-              <StarIcon size={34} weight="fill" color={i <= stars ? colors.gold : colors.surface3} />
+          {STAR_STEPS.map((i) => (
+            <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => setStars(i)} style={{ padding: 3 }}>
+              <StarIcon size={32} weight="fill" color={i <= stars ? colors.gold : colors.surface3} />
             </Press>
           ))}
+        </View>
+        <View style={{ alignItems: 'center', marginTop: spacing.md, gap: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            {SPICE_STEPS.map((i) => (
+              <Press key={i} accessibilityLabel={`Spice ${i}`} onPress={() => setSpice(spice === i ? 0 : i)} style={{ padding: 3 }}>
+                <PepperIcon size={24} weight={i <= spice ? 'fill' : 'regular'} color={i <= spice ? colors.danger : colors.surface3} />
+              </Press>
+            ))}
+          </View>
+          <Text variant="caption" tone="muted">
+            {SPICE_LABELS[spice]}
+          </Text>
         </View>
         <TextInput
           value={headline}
@@ -99,10 +142,25 @@ export default function WriteReview() {
           selectionColor={colors.accent}
           style={{ marginTop: spacing.md, minHeight: 180, color: colors.ink, fontFamily: fonts.regular, fontSize: 17, lineHeight: 25, textAlignVertical: 'top' }}
         />
+        <View style={{ marginTop: spacing.base }}>
+          <ReviewTagPicker value={tags} onChange={setTags} />
+        </View>
         <View style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, height: 56 }}>
           <Text style={{ flex: 1 }}>Contains spoilers</Text>
           <Toggle value={spoiler} onChange={setSpoiler} label="Contains spoilers" />
         </View>
+        {mine.data ? (
+          <Btn
+            variant="ghost"
+            full
+            loading={remove.isPending}
+            icon={<TrashIcon size={16} color={colors.danger} />}
+            onPress={() => (confirmDelete ? remove.mutate() : setConfirmDelete(true))}
+            style={{ marginTop: spacing.xl, borderColor: colors.danger }}
+          >
+            {confirmDelete ? 'Tap again to delete' : 'Delete review'}
+          </Btn>
+        ) : null}
       </View>
     </Screen>
   );

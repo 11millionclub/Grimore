@@ -37,7 +37,7 @@ export function MoreStats({ s }: { s: ReadingStats }) {
     [m.avgLength ? fmt(m.avgLength) : '—', 'average book length'],
     [fmt(m.readingDays), 'days you logged pages'],
     [String(m.reading), 'reading now'],
-    [fmt(m.wantToRead), 'on your want to read'],
+    [fmt(m.wantToRead), 'on your wishlist'],
   ];
   const rmax = Math.max(1, ...m.ratings);
   const book = (label: string, b: { id: string; title: string; pages?: number | null } | null, extra: string) =>
@@ -101,7 +101,7 @@ export function MoreStats({ s }: { s: ReadingStats }) {
       {m.ratings.some((n) => n) ? (
         <View style={card}>
           <Text variant="bodyStrong">How you rate</Text>
-          {[5, 4, 3, 2, 1].map((star) => (
+          {[6, 5, 4, 3, 2, 1].map((star) => (
             <View key={star} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 6 }}>
               <Text variant="small" style={{ width: 28 }}>
                 {star}★

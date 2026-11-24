@@ -3,11 +3,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { openBook } from '@/components/books';
+import { PriorityMark, openBook } from '@/components/books';
 import { XIcon } from '@/components/icons';
 import { useMyId } from '@/hooks/queries';
 import { Btn, Cover, EmptyState, Press, Screen, SectionHead, Stagger, Text, toast } from '@/components/ui';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
 import { importBook, type ExternalBook } from '@/services/books';
 import { booksByGenreId, GENRE_SUBJECTS, worldGenreBooks } from '@/services/discover';
@@ -19,7 +20,7 @@ async function load(id: string) {
   if (id.startsWith('genre:')) return (await booksByGenreId(Number(id.slice(6)))).map((b) => ({ id: b.id, title: b.title, cover_url: b.cover_url, authors: b.authors }));
   if (id.includes(':')) {
     const [user, status] = id.split(':');
-    return (await listByStatus(user, status as ReadingStatus | 'owned', 500)).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors }));
+    return (await listByStatus(user, status as ReadingStatus | 'owned' | 'priority', 500)).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
   }
   return getShelfBooks(id);
 }
@@ -68,7 +69,7 @@ export default function ShelfScreen() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['shelf', id] });
       void qc.invalidateQueries({ queryKey: ['shelves'] });
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       toast(statusShelf ? 'Removed from your library' : 'Removed from this shelf');
     },
     onError: (e) => toast(toAppError(e).message),
@@ -100,6 +101,7 @@ export default function ShelfScreen() {
           <Stagger key={b.id} i={i} style={{ width: '30.6%' }}>
             <Press onPress={() => (editing ? undefined : openBook(b.id))} disabled={editing}>
               <Cover uri={b.cover_url} title={b.title} author={b.authors} width={100} style={{ width: '100%', height: undefined, aspectRatio: 2 / 3 }} />
+              {'priority' in b && b.priority ? <PriorityMark /> : null}
               <Text variant="caption" numberOfLines={1} style={{ fontFamily: fonts.medium, marginTop: 6 }}>
                 {b.title}
               </Text>

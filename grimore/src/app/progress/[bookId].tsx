@@ -3,11 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Toggle } from '@/components/switch';
 import { MinusIcon, PlusIcon } from '@/components/icons';
 import { Btn, Cover, IconBtn, Press, Sheet, Slider, Text, TextField, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { getBook } from '@/services/catalogue';
 import { getEntry, logProgress, saveEntry, statusPatch } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -23,19 +23,18 @@ export default function ProgressSheet() {
   const start = entry.data?.current_page ?? 0;
   const [page, setPage] = useState<number | null>(null);
   const [note, setNote] = useState('');
-  const [share, setShare] = useState(false);
   const current = page ?? start;
   const set = (p: number) => setPage(Math.max(0, Math.min(total, Math.round(p))));
   const delta = current - start;
 
   const save = useMutation({
     mutationFn: async () => {
-      const r = await logProgress({ bookId, page: current, note, share });
+      const r = await logProgress({ bookId, page: current, note });
       if (r.total && current >= r.total) await saveEntry(me, bookId, statusPatch('read', entry.data));
       return r;
     },
     onSuccess: (r) => {
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       void qc.invalidateQueries({ queryKey: ['streak'] });
       void qc.invalidateQueries({ queryKey: ['readingStats'] });
       void qc.invalidateQueries({ queryKey: ['feed'] });
@@ -99,12 +98,6 @@ export default function ProgressSheet() {
 
         <View style={{ marginTop: spacing.lg }}>
           <TextField label="Session note (optional)" value={note} onChangeText={setNote} placeholder="What stayed with you from this chapter?" multiline maxLength={2000} />
-        </View>
-        <View style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <Text variant="body" style={{ flex: 1 }}>
-            Share to my feed
-          </Text>
-          <Toggle value={share} onChange={setShare} label="Share to my feed" />
         </View>
 
         <Btn size="lg" full disabled={delta === 0 && !note.trim()} loading={save.isPending} onPress={() => save.mutate()} style={{ marginTop: spacing.base }}>

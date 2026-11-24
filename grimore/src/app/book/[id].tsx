@@ -8,17 +8,20 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, openCommunity } from '@/components/books';
+import { ReadingTimeCard } from '@/components/reading-time';
 import { ShelfPicker } from '@/components/shelf-picker';
-import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon } from '@/components/icons';
+import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, PepperIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
+import { refreshLibrary } from '@/lib/query-client';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
 import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
 import { money } from '@/utils/money';
 import { getBookReviews } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
+import { MAX_SPICE, SPICE_LABELS, SPICE_STEPS, STAR_STEPS } from '@/utils/ratings';
 
 export default function BookScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +42,7 @@ export default function BookScreen() {
       else await removeEntry(me, id);
     },
     onSuccess: (_d, { done }) => {
-      void qc.invalidateQueries({ queryKey: ['library'] });
+      void refreshLibrary(qc);
       void qc.invalidateQueries({ queryKey: ['readingStats'] });
       void qc.invalidateQueries({ queryKey: ['streak'] });
       if (done) toast(done);
@@ -61,9 +64,11 @@ export default function BookScreen() {
   const reading = e?.status === 'reading';
   const want = e?.status === 'want_to_read';
   const myStars = e?.rating ?? 0;
+  const mySpice = e?.spice ?? 0;
   const genres = [b?.primary_genre?.name, ...(b?.book_genres ?? []).map((g) => g.genres?.name)].filter((g, i, a): g is string => !!g && a.indexOf(g) === i);
   const myReview = reviews.data?.list.find((r) => r.author?.id === me);
-  const topReview = reviews.data?.list.find((r) => r.author?.id !== me);
+  // Someone else's review first; your own when it is the only one (the count includes it).
+  const topReview = reviews.data?.list.find((r) => r.author?.id !== me) ?? reviews.data?.list[0];
 
   const hero = (
     <View style={{ overflow: 'hidden', paddingTop: insets.top + 56 }}>
@@ -137,15 +142,15 @@ export default function BookScreen() {
             <Btn
               style={{ flex: 1 }}
               loading={save.isPending}
-              onPress={() => save.mutate({ patch: statusPatch('reading', e), done: `${b?.title ?? 'Book'} is now in Reading` })}
+              onPress={() => save.mutate({ patch: statusPatch('reading', e), done: `${b?.title ?? 'Book'} is back in Reading` })}
             >
-              {e?.status === 'read' ? 'Read it again' : 'Start reading'}
+              {e?.status === 'read' ? 'Read it again' : e?.status === 'dnf' || e?.status === 'on_hold' || (e?.current_page ?? 0) > 0 ? 'Continue reading' : 'Start reading'}
             </Btn>
             <Btn
               variant="secondary"
-              accessibilityLabel={want ? 'Remove from Want to read' : 'Add to Want to read'}
+              accessibilityLabel={want ? 'Remove from Wishlist' : 'Add to Wishlist'}
               style={{ width: 48, paddingHorizontal: 0 }}
-              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from Want to read' : 'Added to Want to read' })}
+              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from Wishlist' : 'Added to Wishlist' })}
             >
               {want ? <CheckIcon size={18} weight="bold" color={colors.ink} /> : <BookmarkSimpleIcon size={18} color={colors.ink} />}
             </Btn>
@@ -213,18 +218,72 @@ export default function BookScreen() {
           }}
         />
 
-        <View style={{ marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, paddingVertical: spacing.md }}>
-          <Text variant="callout" style={{ fontFamily: fonts.medium }}>
-            Your rating
-          </Text>
-          <View style={{ flexDirection: 'row' }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Press key={i} accessibilityLabel={`${i} stars`} onPress={() => save.mutate({ patch: { rating: i, ...(e ? {} : statusPatch('read')) } })} style={{ padding: 4 }}>
-                <StarIcon size={24} weight="fill" color={i <= myStars ? colors.gold : colors.surface3} />
-              </Press>
-            ))}
+        {want ? (
+          <Press
+            accessibilityRole="switch"
+            accessibilityState={{ checked: !!e?.is_priority }}
+            accessibilityLabel="Priority"
+            onPress={() => save.mutate({ patch: { is_priority: !e?.is_priority }, done: e?.is_priority ? 'Removed from your priorities' : 'Marked as a priority' })}
+            style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: e?.is_priority ? colors.goldSoft : colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: e?.is_priority ? colors.gold : colors.line, paddingHorizontal: spacing.base, minHeight: 52 }}
+          >
+            <StarIcon size={20} weight={e?.is_priority ? 'fill' : 'regular'} color={colors.gold} />
+            <View style={{ flex: 1 }}>
+              <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+                {e?.is_priority ? 'Priority' : 'Make it a priority'}
+              </Text>
+              <Text variant="caption" tone="muted">
+                Priority books stay at the top of your wishlist
+              </Text>
+            </View>
+          </Press>
+        ) : null}
+
+        <View style={{ marginTop: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.base, paddingVertical: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
+            <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+              Your rating
+            </Text>
+            <View style={{ flexDirection: 'row' }}>
+              {STAR_STEPS.map((i) => (
+                <Press
+                  key={i}
+                  accessibilityLabel={`${i} stars`}
+                  // Rating a book you have not finished files it under Read.
+                  onPress={() => save.mutate({ patch: { rating: i, ...(e?.status === 'read' ? {} : statusPatch('read', e)) }, done: e?.status === 'read' ? undefined : 'Rated and moved to Finished' })}
+                  style={{ padding: 3 }}
+                >
+                  <StarIcon size={22} weight="fill" color={i <= myStars ? colors.gold : colors.surface3} />
+                </Press>
+              ))}
+            </View>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.line }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
+            <View>
+              <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+                Spice
+              </Text>
+              <Text variant="caption" tone="muted">
+                {SPICE_LABELS[mySpice]}
+                {reviews.data?.spiceAvg != null ? ` · readers say ${reviews.data.spiceAvg.toFixed(1)}` : ''}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row' }}>
+              {SPICE_STEPS.map((i) => (
+                <Press
+                  key={i}
+                  accessibilityLabel={`Spice ${i} of ${MAX_SPICE}`}
+                  // Tapping the current level again clears it.
+                  onPress={() => save.mutate({ patch: { spice: mySpice === i ? 0 : i, ...(e ? {} : statusPatch('read')) } })}
+                  style={{ padding: 3 }}
+                >
+                  <PepperIcon size={22} weight={i <= mySpice ? 'fill' : 'regular'} color={i <= mySpice ? colors.danger : colors.surface3} />
+                </Press>
+              ))}
+            </View>
           </View>
         </View>
+        {e?.status === 'read' ? <ReadingTimeCard entry={e} onSave={(patch) => save.mutate({ patch, done: 'Reading time saved' })} /> : null}
         <Press onPress={() => router.push({ pathname: '/review/[bookId]', params: { bookId: id } })} style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start', paddingVertical: spacing.xs }}>
           <PencilSimpleLineIcon size={16} color={colors.accent} />
           <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
@@ -293,13 +352,13 @@ export default function BookScreen() {
       ) : null}
 
       <View style={{ marginTop: spacing.xxl }}>
-        <SectionHead title="Reviews" action={reviews.data?.count ? `See ${reviews.data.count}` : undefined} onAction={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} />
+        <SectionHead title="Reviews" action={reviews.data?.count ? (reviews.data.count === 1 ? 'See review' : `See all ${reviews.data.count}`) : undefined} onAction={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} />
         {topReview ? (
           <Press onPress={() => router.push({ pathname: '/reviews/[bookId]', params: { bookId: id } })} style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Avatar uri={topReview.author?.avatar_url} name={topReview.author?.display_name} size={28} />
               <Text variant="callout" style={{ fontFamily: fonts.semibold, flex: 1 }} numberOfLines={1}>
-                {topReview.author?.display_name ?? topReview.author?.username}
+                {topReview.author?.id === me ? 'Your review' : (topReview.author?.display_name ?? topReview.author?.username)}
               </Text>
               <Stars value={topReview.rating} size={12} />
             </View>

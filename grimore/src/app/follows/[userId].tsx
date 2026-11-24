@@ -23,7 +23,12 @@ export default function Follows() {
   const mine = useQuery({ queryKey: ['myFollowing', me], queryFn: () => getMyFollowingIds(me) });
   const toggle = useMutation({
     mutationFn: ({ id, on }: { id: string; on: boolean }) => (on ? follow(me, id) : unfollow(me, id)),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['myFollowing', me] }),
+    // Flip the button at once instead of waiting for the refetch.
+    onMutate: ({ id, on }) => qc.setQueryData<string[]>(['myFollowing', me], (old) => (on ? [...(old ?? []), id] : (old ?? []).filter((x) => x !== id))),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['myFollowing', me] });
+      void qc.invalidateQueries({ queryKey: ['followStatuses', me] });
+    },
     onError: (e) => toast(toAppError(e).message),
   });
   const houses = useReaderHouses((list.data ?? []).map((u) => u.id));

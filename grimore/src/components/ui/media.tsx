@@ -4,6 +4,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { StarIcon } from '@/components/icons';
 import { fonts, radius, useTheme } from '@/theme';
+import { MAX_STARS, STAR_STEPS } from '@/utils/ratings';
 
 import { Text } from './text';
 
@@ -90,8 +91,8 @@ export function Avatar({ uri, name, size = 36, ring }: { uri?: string | null; na
 export function Stars({ value, size = 12 }: { value: number; size?: number }) {
   const { colors } = useTheme();
   return (
-    <View accessible accessibilityLabel={`${value} out of 5 stars`} style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
+    <View accessible accessibilityLabel={`${value} out of ${MAX_STARS} stars`} style={{ flexDirection: 'row', gap: 2 }}>
+      {STAR_STEPS.map((i) => (
         <StarIcon key={i} size={size} weight="fill" color={i <= Math.round(value) ? colors.gold : colors.surface3} />
       ))}
     </View>
