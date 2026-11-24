@@ -381,6 +381,11 @@ const en = {
   },
   errors: {
     writes_paused: 'Posting is paused for a moment. Please try again later.',
+    rate_limited: 'You are doing that too often. Please wait a moment and try again.',
+    feature_paused: 'This is paused for a moment. Please try again later.',
+    scanner_paused: 'The scanner is paused for a moment. Please try again later.',
+    scanner_busy: 'The scanner is very busy today. Please try again tomorrow.',
+    scan_daily_limit: 'You have used all your scans for today. More tomorrow!',
     birth_date_locked: 'Your date of birth cannot be changed in the app. Contact support to correct it.',
     invite_not_found: 'That invite code does not exist. Check the letters and try again.',
     invite_own_code: 'That is your own invite code.',

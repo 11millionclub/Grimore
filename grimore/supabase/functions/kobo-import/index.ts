@@ -30,6 +30,16 @@ Deno.serve(async (req) => {
   const { data: user, error: userError } = await userClient.auth.getUser();
   if (userError || !user.user) return json({ error: "not_authenticated" }, 401);
 
+  // Kill switch (app_config.kobo_import_enabled / writes_paused) and 10 imports per hour per reader.
+  const { error: guard } = await userClient.rpc("begin_edge_call", { p_fn: "kobo_import" });
+  if (guard) {
+    const msg = guard.message ?? "";
+    for (const code of ["feature_paused", "writes_paused", "rate_limited"]) {
+      if (msg.includes(code)) return json({ error: code }, code === "rate_limited" ? 429 : 503);
+    }
+    return json({ error: "could_not_start" }, 400);
+  }
+
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > MAX_BYTES) return json({ error: "too_large" }, 413);
   const bytes = new Uint8Array(await req.arrayBuffer());
