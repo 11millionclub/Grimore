@@ -30,12 +30,37 @@ const map = (r: Raw): Community => ({
   reading: r.reading ? { id: r.reading.id, title: r.reading.title, cover_url: r.reading.cover_url, page_count_estimate: r.reading.page_count_estimate, authors: authorLine(r.reading.book_authors) } : null,
 });
 
-export async function listCommunities(filter: 'all' | 'free' | 'paid' = 'all'): Promise<Community[]> {
+export type CommunitySort = 'popular' | 'new' | 'name';
+export type CommunityQuery = { filter?: 'all' | 'free' | 'paid'; search?: string; sort?: CommunitySort; reading?: boolean; open?: boolean };
+
+export async function listCommunities(opts: CommunityQuery | 'all' | 'free' | 'paid' = 'all'): Promise<Community[]> {
+  const o: CommunityQuery = typeof opts === 'string' ? { filter: opts } : opts;
   // House Common Rooms live on their own screen, not in the community directory.
-  let q = supabase.from('communities').select(select).is('house_id', null).order('member_count', { ascending: false }).limit(100);
-  if (filter === 'free') q = q.is('price_cents', null);
-  if (filter === 'paid') q = q.not('price_cents', 'is', null);
-  return (unwrap(await q) as unknown as Raw[]).map(map);
+  let q = supabase.from('communities').select(select).is('house_id', null);
+  if (o.filter === 'free') q = q.is('price_cents', null);
+  if (o.filter === 'paid') q = q.not('price_cents', 'is', null);
+  if (o.reading) q = q.not('reading_book_id', 'is', null);
+  const term = (o.search ?? '').trim().replace(/[%_,()]/g, '');
+  if (term.length >= 2) q = q.or(`name.ilike.%${term}%,tagline.ilike.%${term}%,description.ilike.%${term}%`);
+  q = o.sort === 'new' ? q.order('created_at', { ascending: false }) : o.sort === 'name' ? q.order('name', { ascending: true }) : q.order('member_count', { ascending: false });
+  let rows = (unwrap(await q.limit(100)) as unknown as Raw[]).map(map);
+  if (o.open) rows = rows.filter((c) => c.max_members == null || c.member_count < c.max_members);
+  return rows;
+}
+
+export type CommunityMember = { user_id: string; role: string; tier: string; joined_at: string; profile: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
+
+/** Everyone in a community, hosts first, newest members next. */
+export async function listMembers(communityId: string): Promise<CommunityMember[]> {
+  const rows = unwrap(
+    await supabase
+      .from('community_members')
+      .select('user_id, role, tier, joined_at, profile:profiles!community_members_user_id_fkey(id, username, display_name, avatar_url)')
+      .eq('community_id', communityId)
+      .order('joined_at', { ascending: false })
+      .limit(500),
+  ) as unknown as CommunityMember[];
+  return rows.sort((a, b) => (a.role === 'host' ? -1 : 0) - (b.role === 'host' ? -1 : 0));
 }
 
 /** Communities ranked by how well they match the reader's library. */
@@ -115,7 +140,7 @@ export async function createCommunity(input: {
   );
 }
 
-export async function updateCommunity(id: string, patch: Partial<Pick<Row, 'reading_book_id' | 'reading_note' | 'tagline' | 'description'>>) {
+export async function updateCommunity(id: string, patch: Partial<Pick<Row, 'reading_book_id' | 'reading_note' | 'tagline' | 'description' | 'name' | 'price_cents' | 'max_members' | 'cover_scene' | 'rules'>>) {
   unwrap(await supabase.from('communities').update(patch).eq('id', id));
 }
 

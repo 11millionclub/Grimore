@@ -48,7 +48,7 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
 
   test('the wheel spins once, then offers to spin again', async ({ page }) => {
     await page.goto('/wheel');
-    await page.getByRole('tab', { name: 'Owned' }).or(page.getByText('Owned', { exact: true })).first().click();
+    await page.getByRole('tab', { name: 'TBR' }).or(page.getByText('TBR', { exact: true })).first().click();
     const spin = page.getByRole('button', { name: 'Spin the wheel' });
     await expect(spin).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/g-wheel.png`, fullPage: true });

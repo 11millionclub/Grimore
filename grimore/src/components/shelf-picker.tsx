@@ -4,23 +4,25 @@ import { router } from 'expo-router';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, PauseCircleIcon, PlusIcon, XIcon, type IconProps } from '@/components/icons';
+import { BookOpenIcon, BookmarkSimpleIcon, CheckCircleIcon, CheckIcon, HandPalmIcon, HeartIcon, PauseCircleIcon, PlusIcon, XIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { listShelves, shelvesWithBook, STATUS_META, type ReadingStatus } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 /** `remove` takes the book off one of the reader's own shelves (it stays in the library). */
-export type ShelfChoice = { kind: 'status'; status: ReadingStatus } | { kind: 'shelf'; shelfId: string; title: string; remove?: boolean };
+export type ShelfChoice = { kind: 'status'; status: ReadingStatus; owned?: boolean } | { kind: 'shelf'; shelfId: string; title: string; remove?: boolean };
 
-const STATUS_ICONS: Record<ReadingStatus, React.ComponentType<IconProps>> = {
-  want_to_read: BookmarkSimpleIcon,
-  reading: BookOpenIcon,
-  read: CheckCircleIcon,
-  on_hold: PauseCircleIcon,
-  dnf: HandPalmIcon,
-};
-const ORDER: ReadingStatus[] = ['want_to_read', 'reading', 'read', 'on_hold', 'dnf'];
+type Row = { key: string; status: ReadingStatus; owned?: boolean; label: string; hint?: string; Icon: React.ComponentType<IconProps> };
+/** TBR and Wishlist are both "want to read": TBR for books you own, Wishlist for the ones you don't yet. */
+const ROWS: Row[] = [
+  { key: 'tbr', status: 'want_to_read', owned: true, label: 'TBR', hint: 'You own it', Icon: BookmarkSimpleIcon },
+  { key: 'wishlist', status: 'want_to_read', owned: false, label: 'Wishlist', hint: "You don't own it yet", Icon: HeartIcon },
+  { key: 'reading', status: 'reading', label: STATUS_META.reading.label, Icon: BookOpenIcon },
+  { key: 'read', status: 'read', label: STATUS_META.read.label, Icon: CheckCircleIcon },
+  { key: 'on_hold', status: 'on_hold', label: STATUS_META.on_hold.label, Icon: PauseCircleIcon },
+  { key: 'dnf', status: 'dnf', label: STATUS_META.dnf.label, Icon: HandPalmIcon },
+];
 
 /**
  * "Which shelf?" bottom panel. Reading statuses first (a book has exactly
@@ -30,6 +32,7 @@ export function ShelfPicker({
   visible,
   title,
   current,
+  currentOwned,
   onPick,
   onClose,
   onRemove,
@@ -39,6 +42,7 @@ export function ShelfPicker({
   visible: boolean;
   title?: string;
   current?: ReadingStatus | null;
+  currentOwned?: boolean;
   onPick: (c: ShelfChoice) => void;
   onClose: () => void;
   onRemove?: () => void;
@@ -86,21 +90,28 @@ export function ShelfPicker({
           </Press>
         </View>
         <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
-          {ORDER.map((s) => {
-            const Icon = STATUS_ICONS[s];
-            const on = current === s;
+          {ROWS.map(({ key, status, owned, label, hint, Icon }) => {
+            const on = current === status && (owned === undefined || !!currentOwned === owned);
             return (
               <Press
-                key={s}
+                key={key}
                 accessibilityRole="button"
+                accessibilityLabel={label}
                 accessibilityState={{ selected: on }}
-                onPress={() => choose({ kind: 'status', status: s })}
+                onPress={() => choose({ kind: 'status', status, owned })}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52, borderBottomWidth: 1, borderBottomColor: colors.line }}
               >
                 <Icon size={22} weight={on ? 'fill' : 'regular'} color={on ? colors.accent : colors.ink} />
-                <Text variant="body" style={{ flex: 1, fontFamily: on ? fonts.semibold : fonts.regular }} tone={on ? 'accent' : 'ink'}>
-                  {STATUS_META[s].label}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text variant="body" style={{ fontFamily: on ? fonts.semibold : fonts.regular }} tone={on ? 'accent' : 'ink'}>
+                    {label}
+                  </Text>
+                  {hint ? (
+                    <Text variant="caption" tone="muted">
+                      {hint}
+                    </Text>
+                  ) : null}
+                </View>
                 {on ? <CheckIcon size={18} weight="bold" color={colors.accent} /> : null}
               </Press>
             );

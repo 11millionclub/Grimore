@@ -39,8 +39,10 @@ export function useAddToLibrary() {
         if (!(await getEntry(me!, id))) await saveEntry(me!, id, { status: 'want_to_read', ...(owned ? { is_owned: true } : {}) });
         return { id, title: book.title, label: pick.title };
       }
-      await setStatus(me!, id, pick.status, owned ? { is_owned: true } : {});
-      return { id, title: book.title, label: STATUS_META[pick.status].label };
+      const own = pick.owned ?? (owned ? true : undefined);
+      await setStatus(me!, id, pick.status, own === undefined ? {} : { is_owned: own });
+      const label = pick.status === 'want_to_read' && own === false ? 'Wishlist' : STATUS_META[pick.status].label;
+      return { id, title: book.title, label };
     },
     onSuccess: (r) => {
       toast('removed' in r ? `${r.title} removed from ${r.label}` : `${r.title} added to ${r.label}`);

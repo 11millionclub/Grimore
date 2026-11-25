@@ -114,8 +114,9 @@ function SpineView({ s, scale, legible, left, top, row, onHold }: { s: Spine; sc
       {cover ? (
         <>
           {/* The cover's left edge stretched along the spine gives each book its own colours and art. */}
-          <Image source={{ uri: cover }} style={{ position: 'absolute', top: 0, left: -h * 0.04, width: h * 0.66, height: h }} contentFit="cover" recyclingKey={s.book.id} />
-          <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(16,13,11,0.28)' }} />
+          {/* Blurred, so the cover's own printed words don't show through behind the spine title. */}
+          <Image source={{ uri: cover }} blurRadius={Math.max(4, w * 0.35)} style={{ position: 'absolute', top: 0, left: -h * 0.04, width: h * 0.66, height: h }} contentFit="cover" recyclingKey={s.book.id} />
+          <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(16,13,11,0.34)' }} />
         </>
       ) : null}
       <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(255,255,255,0.14)', 'rgba(255,255,255,0.02)', 'rgba(0,0,0,0.6)']} locations={[0, 0.3, 0.6, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ position: 'absolute', inset: 0 }} />

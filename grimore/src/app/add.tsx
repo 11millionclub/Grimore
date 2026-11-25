@@ -26,7 +26,7 @@ export default function AddSheet() {
     setTimeout(() => router.push(href), 60);
   };
   return (
-    <Sheet title="Inscribe" subtitle="Add to your grimoire.">
+    <Sheet title="Add to your grimoire">
       <View style={{ paddingHorizontal: spacing.lg, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
         <Press
           accessibilityRole="button"

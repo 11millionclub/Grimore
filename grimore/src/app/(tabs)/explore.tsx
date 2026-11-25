@@ -2,19 +2,20 @@ import { AppActions } from '@/components/app-actions';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from '@/components/icons';
+import { CaretRightIcon, MagnifyingGlassIcon, PlusIcon, XIcon } from '@/components/icons';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
 import { HouseBadge } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
 import { useMyHouse, useMyId, useReaderHouses } from '@/hooks/queries';
+import { useDebounced } from '@/hooks/use-debounced';
 import { useTranslation } from '@/i18n';
 import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
-import { listCommunities, suggestedCommunities, type Community } from '@/services/communities';
+import { listCommunities, suggestedCommunities, type Community, type CommunitySort } from '@/services/communities';
 import { becauseYouRead, booksByGenreSlug, classics, genreTiles, trendingBooks } from '@/services/discover';
 import { money } from '@/utils/money';
 import { suggestReaders } from '@/services/profile';
@@ -190,10 +191,34 @@ function ForYou() {
 function Communities() {
   const { colors } = useTheme();
   const [f, setF] = useState<'all' | 'free' | 'paid'>('all');
-  const list = useQuery({ queryKey: ['communities', f], queryFn: () => listCommunities(f) });
+  const [sort, setSort] = useState<CommunitySort>('popular');
+  const [reading, setReading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const term = useDebounced(search.trim(), 300);
+  const list = useQuery({ queryKey: ['communities', f, sort, reading, open, term], queryFn: () => listCommunities({ filter: f, sort, reading, open, search: term }), placeholderData: (prev) => prev });
+  const filtered = f !== 'all' || reading || open || term.length >= 2;
   return (
     <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, gap: spacing.sm }}>
+      <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, height: 44, borderRadius: radius.full, backgroundColor: colors.surface2, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.base }}>
+        <MagnifyingGlassIcon size={19} color={colors.muted} />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search communities"
+          placeholderTextColor={colors.faint}
+          accessibilityLabel="Search communities"
+          autoCapitalize="none"
+          returnKeyType="search"
+          style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as object}
+        />
+        {search ? (
+          <Press accessibilityLabel="Clear search" onPress={() => setSearch('')} hitSlop={8}>
+            <XIcon size={16} color={colors.muted} />
+          </Press>
+        ) : null}
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm }}>
         <Chip active={f === 'all'} onPress={() => setF('all')}>
           All
         </Chip>
@@ -203,12 +228,38 @@ function Communities() {
         <Chip active={f === 'paid'} onPress={() => setF('paid')}>
           With membership
         </Chip>
+        <Chip active={reading} onPress={() => setReading((x) => !x)}>
+          Reading a book now
+        </Chip>
+        <Chip active={open} onPress={() => setOpen((x) => !x)}>
+          Has space
+        </Chip>
+      </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.base, gap: spacing.sm, alignItems: 'center' }}>
+        <Text variant="caption" tone="muted">
+          Sort
+        </Text>
+        {(
+          [
+            ['popular', 'Most members'],
+            ['new', 'Newest'],
+            ['name', 'A–Z'],
+          ] as const
+        ).map(([k, label]) => (
+          <Chip key={k} active={sort === k} onPress={() => setSort(k)}>
+            {label}
+          </Chip>
+        ))}
       </ScrollView>
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
         {list.isLoading ? (
           [0, 1, 2].map((k) => <Skeleton key={k} height={108} rounded={radius.card} />)
         ) : (list.data ?? []).length === 0 ? (
-          <EmptyState title="No communities yet" body="Be the first: start a book club for the people who read like you." />
+          filtered ? (
+            <EmptyState title="Nothing matches" body="Try other words or fewer filters." />
+          ) : (
+            <EmptyState title="No communities yet" body="Be the first: start a book club for the people who read like you." />
+          )
         ) : (
           (list.data ?? []).map((c: Community, i) => (
             <Stagger key={c.id} i={i}>
@@ -254,4 +305,5 @@ function Communities() {
     </View>
   );
 }
+
 

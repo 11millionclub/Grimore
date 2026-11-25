@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
@@ -6,8 +6,9 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { MagnifyingGlassIcon, PaperPlaneTiltIcon } from '@/components/icons';
 import { Avatar, EmptyState, Press, Screen, Skeleton, Text, toast } from '@/components/ui';
 import { useConversations, useMyId } from '@/hooks/queries';
+import { confirmAction } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
-import { openConversation } from '@/services/messages';
+import { clearConversation, openConversation } from '@/services/messages';
 import { listFollows } from '@/services/profile';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
@@ -19,6 +20,18 @@ export default function Messages() {
   const [q, setQ] = useState('');
   const list = (convs.data ?? []).filter((c) => `${c.other_display_name ?? ''} ${c.other_username}`.toLowerCase().includes(q.toLowerCase()));
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
+  const qc = useQueryClient();
+  // Touch and hold a conversation to delete it (for you only).
+  const remove = async (id: string, who: string) => {
+    if (!(await confirmAction(`Delete your conversation with ${who}?`, 'Its messages disappear from your side. If they write again, the conversation comes back.'))) return;
+    try {
+      await clearConversation(id);
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+      toast('Conversation deleted');
+    } catch (e) {
+      toast(toAppError(e).message);
+    }
+  };
   const following = useQuery({ queryKey: ['follows', me, 'following'], queryFn: () => listFollows(me, 'following') });
   const term = q.trim().toLowerCase();
   const talked = new Set((convs.data ?? []).map((c) => c.other_username));
@@ -62,7 +75,7 @@ export default function Messages() {
         <EmptyState title={term ? 'No one found' : 'No conversations yet'} body={term ? 'Search finds your conversations and the people you follow.' : 'Search for someone you follow above, or open a reader’s profile and tap Message.'} />
       ) : (
         list.map((c) => (
-          <Press key={c.id} onPress={() => open(c.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 10 }}>
+          <Press key={c.id} onPress={() => open(c.id)} onLongPress={() => void remove(c.id, c.other_display_name ?? c.other_username)} accessibilityHint="Touch and hold to delete" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 10 }}>
             <Avatar uri={c.other_avatar_url} name={c.other_display_name ?? c.other_username} size={50} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>

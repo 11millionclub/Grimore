@@ -14,15 +14,9 @@ import { getPurchases, saveCorner } from '@/services/corner';
 import { myItems } from '@/services/houses';
 import { listWholeLibrary, type LibraryEntry } from '@/services/library';
 import { fonts, GILT, radius, spacing, useTheme } from '@/theme';
+import { inFilter, LIBRARY_FILTERS, type LibraryFilter } from '@/utils/library-filter';
 
-export type LibraryFilter = 'all' | 'read' | 'reading' | 'owned' | 'want';
-export const LIBRARY_FILTERS: { id: LibraryFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'read', label: 'Finished' },
-  { id: 'reading', label: 'Reading' },
-  { id: 'owned', label: 'Owned' },
-  { id: 'want', label: 'TBR' },
-];
+export { inFilter, LIBRARY_FILTERS, type LibraryFilter } from '@/utils/library-filter';
 
 const toShelf = (e: LibraryEntry): ShelfBook => ({ id: e.book.id, title: e.book.title, authors: e.book.authors, year: e.book.first_published_year, pages: e.book.page_count_estimate, cover_url: e.book.cover_url, featured: e.status === 'reading' });
 
@@ -45,9 +39,7 @@ export function useLibrary(userId: string, isMe: boolean, saved?: string | null)
   const ownsScene = (s: LibraryScene) => !paywalls || s === 'classic' || (items.data ?? []).some((x) => x.item_key === `library:${s}`) || (bought.data ?? []).includes(`library:${s}`);
 
   const books = useMemo(() => {
-    const keep = (e: LibraryEntry) =>
-      filter === 'read' ? e.status === 'read' : filter === 'reading' ? e.status === 'reading' : filter === 'owned' ? e.is_owned : filter === 'want' ? e.status === 'want_to_read' : e.status !== 'want_to_read' || e.is_owned;
-    return (lib.data ?? []).filter(keep).map(toShelf);
+    return (lib.data ?? []).filter((e) => inFilter(e, filter)).map(toShelf);
   }, [filter, lib.data]);
 
   const choose = useMutation({

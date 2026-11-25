@@ -17,7 +17,7 @@ test.describe('@mock library', () => {
 
   test('every reading status can be picked from the shelf panel', async ({ page }) => {
     await page.goto('/book/b4');
-    for (const s of ['Reading', 'Finished', 'Paused', 'DNF', 'TBR (To be read)']) {
+    for (const s of ['Reading', 'Finished', 'Paused', 'DNF', 'TBR', 'Wishlist']) {
       await page.getByRole('button', { name: /^Shelf: / }).click();
       await page.getByRole('button', { name: s, exact: true }).click();
       await expect(page.getByText(`Moved to ${s}`).last()).toBeVisible();

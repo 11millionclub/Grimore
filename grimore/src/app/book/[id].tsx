@@ -11,14 +11,14 @@ import { CommunityCover, openCommunity } from '@/components/books';
 import { ReadingTimeCard } from '@/components/reading-time';
 import { tagLabel } from '@/utils/review-tags';
 import { ShelfPicker } from '@/components/shelf-picker';
-import { BookOpenTextIcon, BookmarkSimpleIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, PepperIcon } from '@/components/icons';
+import { BookOpenTextIcon, BookmarkSimpleIcon, BooksIcon, CaretDownIcon, CaretRightIcon, StackIcon, CheckIcon, PencilSimpleLineIcon, ShareNetworkIcon, StarIcon, PepperIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, ErrorState, IconBtn, Press, Progress, Screen, SectionHead, Skeleton, Stars, Text, toast, shareText } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { refreshLibrary } from '@/lib/query-client';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
-import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
+import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, entryLabel, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
 import { money } from '@/utils/money';
 import { getBookReviews, getBookTags } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -169,9 +169,23 @@ export default function BookScreen() {
             </Btn>
             <Btn
               variant="secondary"
-              accessibilityLabel={want ? 'Remove from TBR' : 'Add to TBR (To be read)'}
+              accessibilityLabel={e?.is_priority ? 'Remove priority' : 'Make it a priority'}
+              style={{ width: 48, paddingHorizontal: 0, backgroundColor: e?.is_priority ? colors.gold : undefined }}
+              onPress={() =>
+                save.mutate(
+                  e?.is_priority
+                    ? { patch: { is_priority: false }, done: 'Removed from your priorities' }
+                    : { patch: { ...(want ? {} : statusPatch('want_to_read', e)), is_priority: true }, done: want ? 'Marked as a priority' : `Added to your ${e?.is_owned ? 'TBR' : 'Wishlist'} as a priority` },
+                )
+              }
+            >
+              <StarIcon size={20} weight={e?.is_priority ? 'fill' : 'bold'} color={e?.is_priority ? '#fff' : colors.gold} />
+            </Btn>
+            <Btn
+              variant="secondary"
+              accessibilityLabel={want ? `Remove from ${e?.is_owned ? 'TBR' : 'Wishlist'}` : 'Add to TBR or Wishlist'}
               style={{ width: 48, paddingHorizontal: 0 }}
-              onPress={() => save.mutate({ patch: want ? null : statusPatch('want_to_read', e), done: want ? 'Removed from your TBR' : 'Added to your TBR' })}
+              onPress={() => (want ? save.mutate({ patch: null, done: `Removed from your ${e?.is_owned ? 'TBR' : 'Wishlist'}` }) : setPicking(true))}
             >
               {want ? <CheckIcon size={18} weight="bold" color={colors.ink} /> : <BookmarkSimpleIcon size={18} color={colors.ink} />}
             </Btn>
@@ -180,7 +194,7 @@ export default function BookScreen() {
 
         <Press
           accessibilityRole="button"
-          accessibilityLabel={e ? `Shelf: ${STATUS_META[e.status].label}. Change shelf` : 'Add to a shelf'}
+          accessibilityLabel={e ? `Shelf: ${entryLabel(e)}. Change shelf` : 'Add to a shelf'}
           onPress={() => setPicking(true)}
           style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.base, minHeight: 52 }}
         >
@@ -190,11 +204,28 @@ export default function BookScreen() {
           </Text>
           {e ? (
             <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
-              {STATUS_META[e.status].label}
+              {entryLabel(e)}
             </Text>
           ) : null}
           <CaretDownIcon size={16} color={colors.muted} />
         </Press>
+        {e ? (
+          <Press
+            accessibilityRole="switch"
+            accessibilityLabel="I own this book"
+            accessibilityState={{ checked: e.is_owned }}
+            onPress={() => save.mutate({ patch: { is_owned: !e.is_owned }, done: e.is_owned ? (want ? 'Moved to your Wishlist' : 'No longer marked as owned') : want ? 'Moved to your TBR' : 'Marked as owned' })}
+            style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.base, minHeight: 52 }}
+          >
+            <BooksIcon size={20} color={colors.accent} />
+            <Text variant="callout" style={{ flex: 1, fontFamily: fonts.medium }}>
+              I own this book
+            </Text>
+            <View style={{ width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: e.is_owned ? colors.accent : colors.lineStrong, backgroundColor: e.is_owned ? colors.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+              {e.is_owned ? <CheckIcon size={14} weight="bold" color={colors.onAccent} /> : null}
+            </View>
+          </Press>
+        ) : null}
         {e && !reading ? (
           <Press
             accessibilityRole="button"
@@ -213,11 +244,15 @@ export default function BookScreen() {
           bookId={id}
           title={b?.title}
           current={e?.status ?? null}
+          currentOwned={e?.is_owned}
           onClose={() => setPicking(false)}
           onRemove={() => save.mutate({ patch: null, done: 'Removed from your library' })}
           onPick={(choice) => {
             if (choice.kind === 'status') {
-              if (choice.status !== e?.status) save.mutate({ patch: statusPatch(choice.status, e), done: `Moved to ${STATUS_META[choice.status].label}` });
+              const ownChange = choice.owned !== undefined && choice.owned !== !!e?.is_owned;
+              const label = choice.status === 'want_to_read' && choice.owned === false ? 'Wishlist' : STATUS_META[choice.status].label;
+              if (choice.status !== e?.status || ownChange)
+                save.mutate({ patch: { ...(choice.status !== e?.status ? statusPatch(choice.status, e) : {}), ...(choice.owned !== undefined ? { is_owned: choice.owned } : {}) }, done: `Moved to ${label}` });
             } else if (choice.remove)
               void removeFromShelf(choice.shelfId, id).then(
                 () => {
@@ -253,7 +288,7 @@ export default function BookScreen() {
                 {e?.is_priority ? 'Priority' : 'Make it a priority'}
               </Text>
               <Text variant="caption" tone="muted">
-                Priority books stay at the top of your TBR
+                Priority books stay at the top of your TBR and Wishlist
               </Text>
             </View>
           </Press>

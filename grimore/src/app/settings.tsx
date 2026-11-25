@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Toggle } from '@/components/switch';
 import {
@@ -13,7 +13,7 @@ import {
   GlobeIcon,
   SignOutIcon,
   TrophyIcon,
-  UsersThreeIcon, GiftIcon } from '@/components/icons';
+  UsersThreeIcon, GiftIcon, EnvelopeSimpleIcon, PaletteIcon, TrashIcon } from '@/components/icons';
 import { Avatar, Group, Press, Row, Screen, Text, toast } from '@/components/ui';
 import { Sigil } from '@/components/sigil';
 import { useMyHouse, useMyId, useMyProfile, usePreferences, useReadingGoal } from '@/hooks/queries';
@@ -25,8 +25,9 @@ import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { signOut } from '@/services/auth';
-import { updatePreferences, updateProfile } from '@/services/profile';
-import { radius, spacing, useTheme } from '@/theme';
+import { confirmAction } from '@/lib/confirm';
+import { deleteMyAccount, updatePreferences, updateProfile } from '@/services/profile';
+import { appTheme, radius, spacing, useTheme } from '@/theme';
 
 const NOTIFS: [string, string][] = [
   ['games', 'Daily games'],
@@ -59,6 +60,24 @@ export default function Settings() {
     mutationFn: (v: boolean) => updatePreferences(me, { show_spoilers: v }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.preferences }),
   });
+  const setNewsletter = useMutation({
+    mutationFn: (v: boolean) => updatePreferences(me, { newsletter_opt_in: v }),
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: qk.preferences });
+      toast(v ? 'Subscribed to the newsletter' : 'Unsubscribed from the newsletter');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const deleteAccount = async () => {
+    if (!(await confirmAction('Delete your account?', 'Your library, reviews, posts, messages, points, Grimore items and communities you host are deleted for good. This cannot be undone.', 'Continue'))) return;
+    if (!(await confirmAction('Are you absolutely sure?', 'Your account and everything in it will be gone forever.', 'Delete forever'))) return;
+    try {
+      await deleteMyAccount(me);
+      qc.clear();
+    } catch (e) {
+      toast(toAppError(e).message);
+    }
+  };
   const icon = (I: typeof BooksIcon) => <I size={20} color={colors.muted} />;
   const chevron = <CaretRightIcon size={15} color={colors.faint} />;
   const soon = () => toast('Payments are coming soon');
@@ -150,6 +169,14 @@ export default function Settings() {
         <Row icon={icon(EyeSlashIcon)} label="Show spoilers without asking" right={<Toggle value={!!prefs.data?.show_spoilers} onChange={(v) => setSpoilers.mutate(v)} label="Show spoilers" />} last />
       </Group>
 
+      <Group title="Appearance">
+        <Row icon={icon(PaletteIcon)} label="App theme" value={appTheme(prefs.data?.app_theme).name} onPress={() => router.push('/app-theme')} right={chevron} last />
+      </Group>
+
+      <Group title="Newsletter">
+        <Row icon={icon(EnvelopeSimpleIcon)} label="Grimore newsletter" value="News, reading picks and events by email" right={<Toggle value={!!prefs.data?.newsletter_opt_in} onChange={(v) => setNewsletter.mutate(v)} label="Grimore newsletter" />} last />
+      </Group>
+
       <Group title="Payments">
         <Row icon={icon(CreditCardIcon)} label="Payment methods" value="Coming soon" onPress={soon} />
         <Row icon={icon(UsersThreeIcon)} label="Community memberships" value="Coming soon" onPress={soon} />
@@ -163,12 +190,14 @@ export default function Settings() {
           danger
           last
           onPress={() =>
-            Alert.alert('Sign out?', undefined, [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Sign out', style: 'destructive', onPress: () => signOut().then(() => qc.clear(), (e) => toast(toAppError(e).message)) },
-            ])
+            void confirmAction('Sign out?', 'You can sign back in any time.', 'Sign out').then((ok) => {
+              if (ok) signOut().then(() => qc.clear(), (e) => toast(toAppError(e).message));
+            })
           }
         />
+      </Group>
+      <Group>
+        <Row icon={<TrashIcon size={20} color={colors.danger} />} label="Delete account" danger last onPress={() => void deleteAccount()} />
       </Group>
       <Text variant="caption" tone="faint" align="center" style={{ marginTop: spacing.xl }}>
         Grimore

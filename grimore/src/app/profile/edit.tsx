@@ -72,6 +72,11 @@ export default function EditProfile() {
             Change photo
           </Text>
         </Press>
+        <Press onPress={() => router.push('/avatar')} style={{ marginTop: spacing.sm }}>
+          <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
+            Create an avatar
+          </Text>
+        </Press>
       </View>
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.base }}>
         <TextField label="Name" value={v.name} onChangeText={setName} maxLength={60} autoCapitalize="words" />

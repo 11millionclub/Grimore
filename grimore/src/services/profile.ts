@@ -155,3 +155,22 @@ export async function getMyFollowingIds(userId: string): Promise<string[]> {
   const rows = unwrap(await supabase.from('follows').select('followee_id').eq('follower_id', userId).limit(2000));
   return rows.map((r) => r.followee_id);
 }
+
+/** Remove every file in one storage folder (best effort; files are public images). */
+async function emptyFolder(bucket: string, folder: string) {
+  const { data } = await supabase.storage.from(bucket).list(folder, { limit: 1000 });
+  const paths = (data ?? []).filter((f) => f.name).map((f) => `${folder}/${f.name}`);
+  if (paths.length) await supabase.storage.from(bucket).remove(paths);
+}
+
+/**
+ * Deletes the reader's account for good: their uploaded images first (avatar,
+ * backgrounds, the logos and banners of communities they host), then the
+ * account itself, which removes everything else they made.
+ */
+export async function deleteMyAccount(userId: string) {
+  const hosted = unwrap(await supabase.from('communities').select('id').eq('host_id', userId)) as { id: string }[];
+  await Promise.allSettled([emptyFolder('avatars', userId), emptyFolder('nook-backgrounds', userId), ...hosted.map((c) => emptyFolder('community-media', c.id))]);
+  unwrap(await supabase.rpc('delete_my_account'));
+  await supabase.auth.signOut({ scope: 'local' });
+}

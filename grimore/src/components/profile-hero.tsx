@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FramedAvatar, StyledName, type CornerLook } from '@/components/corner';
 import { ReaderMarks } from '@/components/house-badge';
@@ -14,7 +15,7 @@ import { SocialLinks } from '@/components/social-links';
 import { Press, Text } from '@/components/ui';
 import type { Profile } from '@/services/profile';
 import { readerMarks } from '@/services/houses';
-import { fonts, GILT, spacing, useTheme } from '@/theme';
+import { fonts, GILT, layout, spacing, useTheme } from '@/theme';
 import { fmt } from '@/utils/dates';
 
 const BANNER = 210;
@@ -56,6 +57,7 @@ export function ProfileHero({
   scene?: LibraryScene;
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const marks = useQuery({ queryKey: ['marks', profile.id], queryFn: () => readerMarks(profile.id), staleTime: 10 * 60_000 });
   const name = profile.display_name ?? profile.username;
   return (
@@ -63,7 +65,8 @@ export function ProfileHero({
       <View style={{ height: BANNER, overflow: 'hidden' }}>
         <Image source={look.banner_url ? { uri: look.banner_url } : SCENES[scene].image} style={{ position: 'absolute', inset: 0 }} contentFit="cover" contentPosition={look.banner_url ? 'center' : 'top'} accessibilityIgnoresInvertColors />
         <LinearGradient colors={['rgba(16,13,11,0.15)', 'rgba(16,13,11,0.35)', colors.bg]} locations={[0, 0.55, 1]} style={{ position: 'absolute', inset: 0 }} />
-        <View style={{ position: 'absolute', right: spacing.lg, bottom: 58, flexDirection: 'row', gap: spacing.sm }}>{actions}</View>
+        {/* Top-right corner of the banner, just under the transparent app bar. */}
+        <View style={{ position: 'absolute', right: spacing.md, top: insets.top + layout.navBarHeight + spacing.xs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>{actions}</View>
       </View>
       <View style={{ marginTop: -78, alignItems: 'center', paddingHorizontal: spacing.lg }}>
         <View style={{ padding: 4, borderRadius: 999, borderWidth: 2, borderColor: GILT.gold, backgroundColor: colors.bg }}>

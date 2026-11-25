@@ -15,7 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { MessageAlerts } from '@/components/app-actions';
 import { Text, ToastHost, toast } from '@/components/ui';
-import { useMyHouse, useMyProfile } from '@/hooks/queries';
+import { useMyHouse, useMyProfile, usePreferences } from '@/hooks/queries';
 import { envError } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
 import { queryClient } from '@/lib/query-client';
@@ -23,7 +23,7 @@ import { getMaintenance } from '@/services/app-config';
 import { consumeAuthLink } from '@/services/auth';
 import { pendingInvite, redeemInvite } from '@/services/invites';
 import { startSessionListener, useSessionStore } from '@/stores/session';
-import { ThemeProvider, spacing, useTheme } from '@/theme';
+import { ThemeProvider, appTheme, spacing, useAppTheme, useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
 startSessionListener();
@@ -63,6 +63,13 @@ function Navigation() {
   // Kill switch: checked on launch, every minute and when the app comes back to the front.
   const maintenance = useQuery({ queryKey: ['maintenance'], queryFn: getMaintenance, refetchInterval: 60_000, staleTime: 30_000 });
   const myHouse = useMyHouse();
+  // The account's app theme wins when it loads (e.g. on a new device).
+  const prefs = usePreferences();
+  const setAppTheme = useAppTheme((s) => s.set);
+  const savedTheme = prefs.data?.app_theme;
+  useEffect(() => {
+    if (savedTheme) setAppTheme(appTheme(savedTheme).id);
+  }, [savedTheme, setAppTheme]);
 
   const signedIn = !!session;
   const profileReady = !signedIn || profile.isSuccess || profile.isError;
@@ -147,6 +154,8 @@ function Navigation() {
           <Stack.Screen name="user/[username]" />
           <Stack.Screen name="follows/[userId]" />
           <Stack.Screen name="community/[id]" />
+          <Stack.Screen name="community/manage/[id]" />
+          <Stack.Screen name="community/members/[id]" />
           <Stack.Screen name="thread/[id]" />
           <Stack.Screen name="leaderboard" />
           <Stack.Screen name="dna" />
@@ -157,6 +166,8 @@ function Navigation() {
           <Stack.Screen name="house" />
           <Stack.Screen name="house-cup" />
           <Stack.Screen name="points" />
+          <Stack.Screen name="app-theme" />
+          <Stack.Screen name="avatar" />
           <Stack.Screen name="reading-session" />
           <Stack.Screen name="wheel" />
           <Stack.Screen name="common-room/[house]" />
