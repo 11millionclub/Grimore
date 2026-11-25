@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -9,7 +8,7 @@ import { useMyId, useMyProfile } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { asSocials, cleanHandle, SOCIALS, type Socials } from '@/components/social-links';
-import { isUsernameAvailable, updateProfile, uploadAvatar } from '@/services/profile';
+import { isUsernameAvailable, updateProfile } from '@/services/profile';
 import { fonts, spacing, useTheme } from '@/theme';
 import { usernameSchema } from '@/validation/schemas';
 
@@ -23,27 +22,15 @@ export default function EditProfile() {
   const [bio, setBio] = useState<string | null>(null);
   const [city, setCity] = useState<string | null>(null);
   const { colors } = useTheme();
-  const [avatar, setAvatar] = useState<string | null>(null);
   const [socials, setSocials] = useState<Socials | null>(null);
   const v = { name: name ?? p?.display_name ?? '', handle: handle ?? p?.username ?? '', bio: bio ?? p?.bio ?? '', city: city ?? p?.city ?? '', socials: socials ?? asSocials(p?.socials) };
-
-  const pickPhoto = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true });
-    const a = res.assets?.[0];
-    if (res.canceled || !a?.base64) return;
-    try {
-      setAvatar(await uploadAvatar(me, a.base64, a.mimeType ?? 'image/jpeg'));
-    } catch (e) {
-      toast(toAppError(e).message);
-    }
-  };
 
   const save = useMutation({
     mutationFn: async () => {
       const u = usernameSchema.safeParse(v.handle);
       if (!u.success) throw new Error(u.error.issues[0]?.message ?? 'Check your username');
       if (u.data.toLowerCase() !== p?.username.toLowerCase() && !(await isUsernameAvailable(u.data))) throw new Error('That username is taken');
-      await updateProfile(me, { display_name: v.name.trim() || null, username: u.data.toLowerCase(), bio: v.bio.trim() || null, city: v.city.trim() || null, socials: Object.fromEntries(Object.entries(v.socials).map(([k, h]) => [k, cleanHandle(h ?? '')]).filter(([, h]) => h)), ...(avatar ? { avatar_url: avatar } : {}) });
+      await updateProfile(me, { display_name: v.name.trim() || null, username: u.data.toLowerCase(), bio: v.bio.trim() || null, city: v.city.trim() || null, socials: Object.fromEntries(Object.entries(v.socials).map(([k, h]) => [k, cleanHandle(h ?? '')]).filter(([, h]) => h)) });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.profile(me) });
@@ -66,15 +53,12 @@ export default function EditProfile() {
       }
     >
       <View style={{ alignItems: 'center', paddingBottom: spacing.xl, paddingTop: spacing.sm }}>
-        <Avatar uri={avatar ?? p?.avatar_url} name={v.name} size={96} />
-        <Press onPress={pickPhoto} style={{ marginTop: spacing.md }}>
-          <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
-            Change photo
-          </Text>
+        <Press accessibilityLabel="Change avatar" onPress={() => router.push('/avatar')}>
+          <Avatar uri={p?.avatar_url} name={v.name} size={96} />
         </Press>
-        <Press onPress={() => router.push('/avatar')} style={{ marginTop: spacing.sm }}>
+        <Press onPress={() => router.push('/avatar')} style={{ marginTop: spacing.md }}>
           <Text variant="callout" tone="accent" style={{ fontFamily: fonts.semibold }}>
-            Create an avatar
+            {p?.avatar_url ? 'Change avatar' : 'Create your avatar'}
           </Text>
         </Press>
       </View>

@@ -236,11 +236,13 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       ];
     case 'rpc/house_duels':
       return [
-        { house_id: 'lantern', rival_id: 'hourglass', wins_per_member: 5.8, players: 20 },
-        { house_id: 'hourglass', rival_id: 'lantern', wins_per_member: 4.2, players: 18 },
-        { house_id: 'quill', rival_id: 'thorn', wins_per_member: 3.1, players: 12 },
-        { house_id: 'thorn', rival_id: 'quill', wins_per_member: 3.9, players: 22 },
+        { house_id: 'lantern', rival_id: 'hourglass', points: 1160, contributors: 20, points_per_member: 58 },
+        { house_id: 'hourglass', rival_id: 'lantern', points: 756, contributors: 18, points_per_member: 42 },
+        { house_id: 'quill', rival_id: 'thorn', points: 372, contributors: 12, points_per_member: 31 },
+        { house_id: 'thorn', rival_id: 'quill', points: 858, contributors: 22, points_per_member: 39 },
       ];
+    case 'rpc/house_contributors':
+      return { total: 3, hidden: 1, members: [{ user_id: ME, username: 'test.reader', display_name: 'Test Reader', avatar_url: null, points: 246 }, { user_id: FRIEND, username: friend.username, display_name: friend.display_name, avatar_url: null, points: null }] };
     case 'rpc/my_house_points':
       return [{ action: 'play', points: 120 }, { action: 'solve', points: 90 }, { action: 'streak', points: 36 }];
     case 'rpc/my_ritual':

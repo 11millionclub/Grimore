@@ -33,6 +33,8 @@ export default function CreateCommunity() {
   const [price, setPrice] = useState(4);
   const [members, setMembers] = useState(100);
   const [rules, setRules] = useState({ spoiler_tags: true, approve_members: false, live_sessions: true });
+  const [isPrivate, setPrivate] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
   const canNext = step === 0 ? name.trim().length >= 3 : true;
   const gross = price * members;
   const fee = gross * 0.15;
@@ -41,7 +43,7 @@ export default function CreateCommunity() {
   const [banner, setBanner] = useState<PickedImage | null>(null);
   const create = useMutation({
     mutationFn: async () => {
-      const r = await createCommunity({ hostId: me, name, tagline, description: desc, scene, priceCents: paid ? price * 100 : null, rules });
+      const r = await createCommunity({ hostId: me, name, tagline, description: desc, scene, priceCents: paid ? price * 100 : null, rules, isPrivate, isAnonymous: anonymous });
       // Images upload after the community exists (they live in its folder). A failed upload can be retried from the community page.
       const uploads = await Promise.allSettled([
         logo ? uploadCommunityImage(r.id, 'logo', logo.base64, logo.mimeType) : Promise.resolve(),
@@ -187,6 +189,24 @@ export default function CreateCommunity() {
                       </Text>
                     </View>
                     <Toggle value={rules[k]} onChange={(v) => setRules({ ...rules, [k]: v })} label={t} />
+                  </View>
+                ))}
+              </View>
+              <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, overflow: 'hidden' }}>
+                {(
+                  [
+                    ['Private', 'Invite only, hidden from search. Free or paid.', isPrivate, setPrivate],
+                    ['Anonymous discussions', 'No one sees who wrote what, not even you. Posts can still be reported.', anonymous, setAnonymous],
+                  ] as const
+                ).map(([t, sub, v, set], i) => (
+                  <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.base, paddingVertical: 14, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
+                    <View style={{ flex: 1 }}>
+                      <Text>{t}</Text>
+                      <Text variant="caption" tone="muted">
+                        {sub}
+                      </Text>
+                    </View>
+                    <Toggle value={v} onChange={set} label={t} />
                   </View>
                 ))}
               </View>

@@ -119,6 +119,8 @@ export async function createCommunity(input: {
   maxMembers?: number | null;
   rules: { spoiler_tags: boolean; approve_members: boolean; live_sessions: boolean };
   readingBookId?: string | null;
+  isPrivate?: boolean;
+  isAnonymous?: boolean;
 }) {
   return unwrap(
     await supabase
@@ -134,21 +136,31 @@ export async function createCommunity(input: {
         max_members: input.maxMembers ?? null,
         rules: input.rules,
         reading_book_id: input.readingBookId ?? null,
+        is_private: !!input.isPrivate,
+        is_anonymous: !!input.isAnonymous,
       })
       .select('id')
       .single(),
   );
 }
 
-export async function updateCommunity(id: string, patch: Partial<Pick<Row, 'reading_book_id' | 'reading_note' | 'tagline' | 'description' | 'name' | 'price_cents' | 'max_members' | 'cover_scene' | 'rules'>>) {
+export async function updateCommunity(id: string, patch: Partial<Pick<Row, 'reading_book_id' | 'reading_note' | 'tagline' | 'description' | 'name' | 'price_cents' | 'max_members' | 'cover_scene' | 'rules' | 'is_private' | 'is_anonymous'>>) {
   unwrap(await supabase.from('communities').update(patch).eq('id', id));
 }
 
 export type Thread = Database['public']['Tables']['community_threads']['Row'] & {
   author: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null;
+  /** In anonymous communities: the writer's alias ("Reader 4F2A" or "Host"), and whether it is you. */
+  alias?: string;
+  mine?: boolean;
 };
 
-export async function listThreads(communityId: string): Promise<Thread[]> {
+type AnonThread = Omit<Thread, 'author' | 'user_id'> & { alias: string; mine: boolean };
+const fromAnon = (t: AnonThread): Thread => ({ ...t, user_id: '', author: null });
+
+export async function listThreads(communityId: string, anonymous = false): Promise<Thread[]> {
+  // Anonymous communities are read through the server, which never sends who wrote what.
+  if (anonymous) return ((unwrap(await supabase.rpc('community_feed', { p_community: communityId })) ?? []) as unknown as AnonThread[]).map(fromAnon);
   return unwrap(
     await supabase
       .from('community_threads')
@@ -183,7 +195,22 @@ export async function createThread(input: { communityId: string; userId: string;
   );
 }
 
-export type Reply = { id: string; body: string; has_spoilers: boolean; created_at: string; author: Thread['author'] };
+export type Reply = { id: string; body: string; has_spoilers: boolean; created_at: string; author: Thread['author']; alias?: string; mine?: boolean };
+
+/** A discussion with its replies; in anonymous communities with aliases instead of names. */
+export async function loadThread(id: string): Promise<{ thread: Thread; replies: Reply[]; anonymous: boolean }> {
+  const anon = unwrap(await supabase.rpc('community_thread', { p_thread: id })) as unknown as { thread: AnonThread; replies: (Omit<Reply, 'author'> & { alias: string; mine: boolean })[] } | null;
+  if (!anon) throw Object.assign(new Error('This discussion is gone or private.'), { code: 'not_found' });
+  const c = unwrap(await supabase.from('communities').select('is_anonymous').eq('id', anon.thread.community_id).single());
+  if (c.is_anonymous) return { thread: fromAnon(anon.thread), replies: anon.replies.map((r) => ({ ...r, author: null })), anonymous: true };
+  const [thread, replies] = await Promise.all([getThread(id), listReplies(id)]);
+  return { thread, replies, anonymous: false };
+}
+
+/** Host or moderator removes a discussion or reply (works in anonymous communities too). */
+export async function removePost(kind: 'thread' | 'reply', id: string) {
+  unwrap(await supabase.rpc('community_remove_post', { p_kind: kind, p_id: id }));
+}
 
 export async function listReplies(threadId: string): Promise<Reply[]> {
   return unwrap(
@@ -263,3 +290,45 @@ export async function bannersIcanWear(userId: string) {
     .filter((r) => r.community?.price_cents != null && r.community.banner_url && (r.tier !== 'visitor' || r.community.host_id === userId))
     .map((r) => ({ id: r.community!.id, name: r.community!.name, banner_url: r.community!.banner_url! }));
 }
+
+/* ---------- Invites (private communities) ---------- */
+
+export type Invite = Database['public']['Tables']['community_invites']['Row'];
+
+export async function listInvites(communityId: string): Promise<Invite[]> {
+  return unwrap(await supabase.from('community_invites').select('*').eq('community_id', communityId).is('revoked_at', null).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(50));
+}
+
+export async function createInvite(communityId: string, maxUses: number | null = null, days = 30) {
+  return unwrap(await supabase.rpc('create_community_invite', { p_community: communityId, p_max_uses: maxUses, p_days: days }));
+}
+
+export async function revokeInvite(code: string) {
+  unwrap(await supabase.rpc('revoke_community_invite', { p_code: code }));
+}
+
+export type InvitePreview = {
+  community_id: string;
+  name: string;
+  tagline: string | null;
+  cover_scene: string;
+  logo_url: string | null;
+  banner_url: string | null;
+  price_cents: number | null;
+  member_count: number;
+  is_private: boolean;
+  is_anonymous: boolean;
+  host: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  already_member: boolean;
+};
+
+export async function previewInvite(code: string): Promise<InvitePreview | null> {
+  return unwrap(await supabase.rpc('community_invite_preview', { p_code: code })) as unknown as InvitePreview | null;
+}
+
+export async function joinByInvite(code: string): Promise<string> {
+  return unwrap(await supabase.rpc('join_community_by_invite', { p_code: code }));
+}
+
+/** The link to share for an invite. */
+export const inviteLink = (code: string) => `https://grimore.expo.app/community/invite/${code}`;

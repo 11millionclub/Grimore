@@ -42,6 +42,25 @@ function build(b: Base): Palette {
 export type AppThemeId = 'ivory' | 'midnight' | 'parchment' | 'forest' | 'rose' | 'velvet' | 'academia' | 'celestial' | 'emerald';
 export type AppTheme = { id: AppThemeId; name: string; paid: boolean; scheme: 'light' | 'dark'; colors: Palette };
 
+/** Colours of the floating tab bar for a theme. Ivory keeps the original walnut and gold. */
+export type BarColors = { bg: string; edge: string; active: string; idle: string; seal: string; sealEdge: string; sealIcon: string; dot: string };
+const WALNUT: BarColors = { bg: 'rgba(28,19,13,0.97)', edge: 'rgba(198,154,67,0.65)', active: '#E8D19B', idle: 'rgba(242,233,216,0.55)', seal: '#54202A', sealEdge: '#C69A43', sealIcon: '#E8D19B', dot: '#C69A43' };
+export function barColors(t: AppTheme): BarColors {
+  if (t.id === 'ivory') return WALNUT;
+  const c = t.colors;
+  const dark = t.scheme === 'dark';
+  return {
+    bg: rgba(c.surface, 0.97),
+    edge: rgba(c.gold, 0.65),
+    active: dark ? c.gold : c.accent,
+    idle: rgba(c.ink, 0.55),
+    seal: c.accent,
+    sealEdge: c.gold,
+    sealIcon: c.onAccent,
+    dot: c.gold,
+  };
+}
+
 /** Four free themes and five paid ones (open to everyone while paywalls are off). */
 export const APP_THEMES: AppTheme[] = [
   { id: 'ivory', name: 'Ivory', paid: false, scheme: 'light', colors: palettes.light },

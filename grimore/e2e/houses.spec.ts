@@ -31,8 +31,13 @@ test.describe('@mock Houses', () => {
     await page.goto('/house-cup');
     await expect(page.getByText(en.cup.fairness)).toBeVisible();
     await expect(page.getByRole('button', { name: /^1\. Thorn/ })).toBeVisible();
-    await expect(page.getByText(/Lantern 58 %/)).toBeVisible();
+    await expect(page.getByText(/Lantern 58 · Hourglass 42 per active member this week/)).toBeVisible();
     await expect(page.getByText(/246 points for Lantern/)).toBeVisible();
+    // "N active" lists the House members who earned points this season.
+    await page.getByRole('link', { name: /active, Lantern$/ }).click();
+    await expect(page.getByText('Active in Lantern').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Test Reader, 246 points' })).toBeVisible();
+    await expect(page.getByText('1 more keep their House private.')).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-cup.png`, fullPage: true });
   });
 

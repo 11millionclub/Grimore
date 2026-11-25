@@ -128,3 +128,23 @@ export function avatarSvg(c: AvatarConfig, size = 120): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 120 120">${parts.join('')}</svg>`;
 }
+
+const ORDER: AvatarPart[] = ['bg', 'skin', 'face', 'hair', 'hairColor', 'eyes', 'mouth', 'accessory'];
+const PREFIX = 'avatar:v1:';
+
+/** The avatar as the short code saved on the profile, e.g. "avatar:v1:0.1.0.1.1.2.0.0". */
+export function encodeAvatar(c: AvatarConfig): string {
+  return PREFIX + ORDER.map((k) => c[k]).join('.');
+}
+
+/** The avatar a saved code describes, or null when it isn't one. */
+export function decodeAvatar(value: string | null | undefined): AvatarConfig | null {
+  if (!value?.startsWith(PREFIX)) return null;
+  const n = value.slice(PREFIX.length).split('.').map(Number);
+  if (n.length !== ORDER.length || n.some((x) => !Number.isInteger(x) || x < 0)) return null;
+  const out = {} as AvatarConfig;
+  ORDER.forEach((k, i) => {
+    out[k] = Math.min(n[i], AVATAR_OPTIONS[k].length - 1);
+  });
+  return out;
+}

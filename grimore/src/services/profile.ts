@@ -1,5 +1,3 @@
-import { decode } from 'base64-arraybuffer';
-
 import { unwrap } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database';
@@ -83,13 +81,6 @@ export async function getAchievements(userId: string) {
 }
 
 /** Upload a square avatar (base64 from the image picker) under <uid>/avatar-<ts>.jpg. */
-export async function uploadAvatar(userId: string, base64: string, mimeType = 'image/jpeg'): Promise<string> {
-  const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
-  const path = `${userId}/avatar-${Date.now()}.${ext}`;
-  unwrap(await supabase.storage.from('avatars').upload(path, decode(base64), { contentType: mimeType, upsert: true }));
-  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
-}
-
 export async function searchReaders(query: string) {
   const term = query.trim().replace(/[%_]/g, '');
   if (term.length < 2) return [];

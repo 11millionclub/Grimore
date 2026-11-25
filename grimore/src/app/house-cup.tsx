@@ -100,9 +100,16 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
                     <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surface2, marginTop: 4, overflow: 'hidden' }}>
                       <View style={{ width: `${top ? Math.max(4, (r.perMember / top) * 100) : 4}%`, height: '100%', backgroundColor: tk.primary }} />
                     </View>
-                    <Text variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                      {t('cup.perMember', { n: r.perMember })} · {t('cup.active', { n: r.activeMembers })}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                      <Text variant="caption" tone="muted">
+                        {t('cup.perMember', { n: r.perMember })} ·{' '}
+                      </Text>
+                      <Press accessibilityRole="link" accessibilityLabel={`${t('cup.active', { n: r.activeMembers })}, ${HOUSE_NAMES[r.house]}`} hitSlop={8} onPress={() => router.push({ pathname: '/cup-active/[house]', params: { house: r.house } })}>
+                        <Text variant="caption" style={{ fontFamily: fonts.semibold, textDecorationLine: 'underline' }} color={tk.ink}>
+                          {t('cup.active', { n: r.activeMembers })}
+                        </Text>
+                      </Press>
+                    </View>
                   </View>
                   <CaretRightIcon size={14} color={colors.muted} />
                 </Press>
@@ -137,7 +144,7 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
                   <View style={{ flex: 1 - share, backgroundColor: houseTokens[b].primary }} />
                 </View>
                 <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
-                  {t('cup.duelLine', { a: HOUSE_NAMES[a], pa: `${Math.round(share * 100)} %`, b: HOUSE_NAMES[b], pb: `${100 - Math.round(share * 100)} %` })}
+                  {t('cup.duelLine', { a: HOUSE_NAMES[a], pa: da, b: HOUSE_NAMES[b], pb: db })}
                 </Text>
               </View>
             );

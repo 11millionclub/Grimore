@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 
 import { StarIcon } from '@/components/icons';
 import { fonts, radius, useTheme } from '@/theme';
+import { avatarSvg, decodeAvatar } from '@/utils/avatar';
 import { MAX_STARS, STAR_STEPS } from '@/utils/ratings';
 
 import { Text } from './text';
@@ -69,9 +71,16 @@ export function Avatar({ uri, name, size = 36, ring }: { uri?: string | null; na
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join('');
+  // Profile pictures are illustrated avatars saved as a short code; older links still show as images.
+  const art = useMemo(() => {
+    const c = decodeAvatar(uri);
+    return c ? avatarSvg(c, size) : null;
+  }, [uri, size]);
   const inner = (
     <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' }}>
-      {uri ? (
+      {art ? (
+        <SvgXml xml={art} width={size} height={size} />
+      ) : uri ? (
         <Image source={{ uri }} style={{ width: size, height: size }} contentFit="cover" transition={200} />
       ) : (
         <Text style={{ fontFamily: fonts.semibold, fontSize: size * 0.38 }} tone="muted">
