@@ -132,6 +132,7 @@ function Navigation() {
           <Stack.Screen name="search" options={sheet} />
           <Stack.Screen name="progress/[bookId]" options={sheet} />
           <Stack.Screen name="community/join/[id]" options={sheet} />
+          <Stack.Screen name="community/invite/[code]" />
           <Stack.Screen name="shelves/new" options={sheet} />
           <Stack.Screen name="scan" options={fullscreen} />
           <Stack.Screen name="game/[id]" options={{ ...fullscreen, gestureEnabled: false }} />
@@ -165,6 +166,7 @@ function Navigation() {
           <Stack.Screen name="settings" />
           <Stack.Screen name="house" />
           <Stack.Screen name="house-cup" />
+          <Stack.Screen name="cup-active/[house]" />
           <Stack.Screen name="points" />
           <Stack.Screen name="app-theme" />
           <Stack.Screen name="avatar" />

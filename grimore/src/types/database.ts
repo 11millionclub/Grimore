@@ -417,6 +417,12 @@ export type Database = {
           },
         ]
       }
+      community_invites: {
+        Row: { code: string; community_id: string; created_by: string; created_at: string; expires_at: string; max_uses: number | null; uses: number; revoked_at: string | null }
+        Insert: { code?: string; community_id: string; created_by: string; created_at?: string; expires_at?: string; max_uses?: number | null; uses?: number; revoked_at?: string | null }
+        Update: { code?: string; community_id?: string; created_by?: string; created_at?: string; expires_at?: string; max_uses?: number | null; uses?: number; revoked_at?: string | null }
+        Relationships: []
+      }
       communities: {
         Row: {
           logo_url: string | null
@@ -427,6 +433,8 @@ export type Database = {
           description: string | null
           host_id: string | null
           id: string
+          is_anonymous: boolean
+          is_private: boolean
           max_members: number | null
           member_count: number
           name: string
@@ -447,6 +455,8 @@ export type Database = {
           description?: string | null
           host_id: string
           id?: string
+          is_anonymous?: boolean
+          is_private?: boolean
           max_members?: number | null
           member_count?: number
           name: string
@@ -467,6 +477,8 @@ export type Database = {
           description?: string | null
           host_id?: string
           id?: string
+          is_anonymous?: boolean
+          is_private?: boolean
           max_members?: number | null
           member_count?: number
           name?: string
@@ -2956,7 +2968,15 @@ export type Database = {
       complete_ritual: { Args: Record<PropertyKey, never>; Returns: undefined }
       my_ritual: { Args: Record<PropertyKey, never>; Returns: { period: string; status: string }[] }
       house_top_contributors: { Args: { p_house: string; p_limit?: number }; Returns: { user_id: string; username: string; display_name: string | null; avatar_url: string | null; points: number }[] }
-      house_duels: { Args: Record<PropertyKey, never>; Returns: { house_id: string; rival_id: string; wins_per_member: number; players: number }[] }
+      house_duels: { Args: Record<PropertyKey, never>; Returns: { house_id: string; rival_id: string; points: number; contributors: number; points_per_member: number }[] }
+      house_contributors: { Args: { p_house: string; p_season?: number | null }; Returns: Json }
+      community_feed: { Args: { p_community: string }; Returns: Json }
+      community_thread: { Args: { p_thread: string }; Returns: Json }
+      community_remove_post: { Args: { p_kind: string; p_id: string }; Returns: undefined }
+      create_community_invite: { Args: { p_community: string; p_max_uses?: number | null; p_days?: number }; Returns: string }
+      revoke_community_invite: { Args: { p_code: string }; Returns: undefined }
+      community_invite_preview: { Args: { p_code: string }; Returns: Json }
+      join_community_by_invite: { Args: { p_code: string }; Returns: string }
       my_week_games: { Args: Record<PropertyKey, never>; Returns: { game: string; played: number; solved: number; days: number }[] }
       reader_marks: { Args: { p_user: string }; Returns: { item_key: string; season_id: number | null }[] }
       submit_sorting: { Args: { p_answers: Json; p_tie_break?: string | null; p_choice?: string | null }; Returns: Json }

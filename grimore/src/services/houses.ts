@@ -83,13 +83,24 @@ export async function myPoints(seasonId?: number | null): Promise<Record<string,
   return Object.fromEntries(rows.map((r) => [r.action, Number(r.points)]));
 }
 
-export async function getDuels(): Promise<Record<HouseId, { perMember: number; players: number }>> {
+export type Duel = { perMember: number; contributors: number; points: number };
+
+/** This week's duel: points earned this week per contributing member (the standings' scoring, over the week). */
+export async function getDuels(): Promise<Record<HouseId, Duel>> {
   const rows = unwrap(await supabase.rpc('house_duels')) ?? [];
-  const out = { lantern: { perMember: 0, players: 0 }, quill: { perMember: 0, players: 0 }, thorn: { perMember: 0, players: 0 }, hourglass: { perMember: 0, players: 0 } };
+  const zero = { perMember: 0, contributors: 0, points: 0 };
+  const out: Record<HouseId, Duel> = { lantern: { ...zero }, quill: { ...zero }, thorn: { ...zero }, hourglass: { ...zero } };
   rows.forEach((r) => {
-    if (isHouseId(r.house_id)) out[r.house_id] = { perMember: Number(r.wins_per_member), players: r.players };
+    if (isHouseId(r.house_id)) out[r.house_id] = { perMember: Number(r.points_per_member), contributors: r.contributors, points: Number(r.points) };
   });
   return out;
+}
+
+export type Contributor = { user_id: string; username: string; display_name: string | null; avatar_url: string | null; points: number | null };
+
+/** Everyone in the House who earned it points this season (hidden readers are only counted). */
+export async function houseContributors(house: HouseId, seasonId?: number | null) {
+  return unwrap(await supabase.rpc('house_contributors', { p_house: house, p_season: seasonId ?? null })) as unknown as { total: number; hidden: number; members: Contributor[] };
 }
 
 export async function myWeekGames() {

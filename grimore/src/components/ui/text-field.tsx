@@ -1,14 +1,18 @@
 import { forwardRef, useState, type ElementRef, type ReactNode } from 'react';
-import { Platform, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, Pressable, TextInput, View, type TextInputProps } from 'react-native';
+
+import { EyeIcon, EyeSlashIcon } from '@/components/icons';
 
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 import { Text } from './text';
 
 export const TextField = forwardRef<ElementRef<typeof TextInput>, TextInputProps & { label?: string; helper?: string; error?: string; prefix?: string; left?: ReactNode; right?: ReactNode }>(
-  function TextField({ label, helper, error, prefix, left, right, multiline, style, onFocus, onBlur, ...props }, ref) {
+  function TextField({ label, helper, error, prefix, left, right, multiline, style, onFocus, onBlur, secureTextEntry, ...props }, ref) {
     const { colors } = useTheme();
     const [focused, setFocused] = useState(false);
+    // Password fields get an eye to show what was typed.
+    const [reveal, setReveal] = useState(false);
     return (
       <View style={{ gap: 6 }}>
         {label ? (
@@ -46,9 +50,15 @@ export const TextField = forwardRef<ElementRef<typeof TextInput>, TextInputProps
               onBlur?.(e);
             }}
             {...props}
+            secureTextEntry={!!secureTextEntry && !reveal}
             // minWidth 0 lets the input shrink inside narrow rows (browsers give inputs an intrinsic width).
             style={[{ flex: 1, minWidth: 0, width: '100%', color: colors.ink, fontFamily: fonts.regular, fontSize: 16, paddingVertical: multiline ? 12 : 0, minHeight: multiline ? 96 : 48, textAlignVertical: multiline ? 'top' : 'center' }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
           />
+          {secureTextEntry ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={reveal ? 'Hide password' : 'Show password'} hitSlop={10} onPress={() => setReveal((r) => !r)} style={{ padding: 4 }}>
+              {reveal ? <EyeSlashIcon size={20} color={colors.muted} /> : <EyeIcon size={20} color={colors.muted} />}
+            </Pressable>
+          ) : null}
           {right}
         </View>
         {error ? (

@@ -3,13 +3,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { CaretRightIcon, MinusIcon, PlusIcon, UsersIcon } from '@/components/icons';
+import { CaretRightIcon, LinkIcon, LockSimpleIcon, MaskHappyIcon, MinusIcon, PlusIcon, ShareNetworkIcon, UsersIcon, XIcon } from '@/components/icons';
 import { ImageField } from '@/components/image-field';
 import { Toggle } from '@/components/switch';
-import { Btn, IconBtn, Press, Screen, Skeleton, Text, TextField, toast } from '@/components/ui';
+import { Btn, IconBtn, Press, Screen, shareText, Skeleton, Text, TextField, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { getCommunity, type Community, updateCommunity, uploadCommunityImage } from '@/services/communities';
+import { createInvite, getCommunity, inviteLink, listInvites, revokeInvite, type Community, updateCommunity, uploadCommunityImage } from '@/services/communities';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { money } from '@/utils/money';
 
@@ -33,12 +33,32 @@ function ManageForm({ d }: { d: Community }) {
   const [desc, setDesc] = useState(d.description ?? '');
   const [paid, setPaid] = useState(d.price_cents != null);
   const [price, setPrice] = useState(d.price_cents ? Math.round(d.price_cents / 100) : 4);
+  const [isPrivate, setPrivate] = useState(d.is_private);
+  const [anonymous, setAnonymous] = useState(d.is_anonymous);
+  const invites = useQuery({ queryKey: ['community', id, 'invites'], queryFn: () => listInvites(id), enabled: isPrivate });
+  const share = (code: string) => void shareText(`Join ${d.name} on Grimore: ${inviteLink(code)}\nInvite code: ${code}`);
+  const newInvite = useMutation({
+    mutationFn: () => createInvite(id),
+    onSuccess: (code) => {
+      void qc.invalidateQueries({ queryKey: ['community', id, 'invites'] });
+      share(code);
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const revoke = useMutation({
+    mutationFn: (code: string) => revokeInvite(code),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['community', id, 'invites'] });
+      toast('Invite withdrawn');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
 
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['community', id] }), qc.invalidateQueries({ queryKey: ['communities'] })]);
   const save = useMutation({
     mutationFn: () => {
       if (name.trim().length < 3) throw new Error('Give it a name of at least 3 letters');
-      return updateCommunity(id, { name: name.trim(), tagline: tagline.trim() || null, description: desc.trim() || null, price_cents: paid ? price * 100 : null });
+      return updateCommunity(id, { name: name.trim(), tagline: tagline.trim() || null, description: desc.trim() || null, price_cents: paid ? price * 100 : null, is_private: isPrivate, is_anonymous: anonymous });
     },
     onSuccess: async () => {
       await refresh();
@@ -78,6 +98,67 @@ function ManageForm({ d }: { d: Community }) {
           <TextField label="Tagline" value={tagline} onChangeText={setTagline} maxLength={160} />
           <TextField label="Description" value={desc} onChangeText={setDesc} multiline maxLength={4000} />
         </View>
+
+        <View style={card}>
+          <Text variant="bodyStrong">Privacy</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <LockSimpleIcon size={20} color={colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+                Private
+              </Text>
+              <Text variant="small" tone="muted">
+                Hidden from search. People join only with your invite.
+              </Text>
+            </View>
+            <Toggle label="Private community" value={isPrivate} onChange={setPrivate} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <MaskHappyIcon size={20} color={colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text variant="callout" style={{ fontFamily: fonts.medium }}>
+                Anonymous discussions
+              </Text>
+              <Text variant="small" tone="muted">
+                {d.is_anonymous ? 'No one sees who wrote what. Once there are posts this stays on, so no one is ever revealed.' : 'No one sees who wrote what, not even you. Posts can still be reported and removed.'}
+              </Text>
+            </View>
+            <Toggle label="Anonymous discussions" value={anonymous} onChange={setAnonymous} />
+          </View>
+        </View>
+
+        {isPrivate ? (
+          <View style={card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text variant="bodyStrong" style={{ flex: 1 }}>
+                Invites
+              </Text>
+              <Btn size="sm" icon={<LinkIcon size={14} color={colors.onAccent} />} loading={newInvite.isPending} onPress={() => (d.is_private ? newInvite.mutate() : toast('Save first to make the community private'))}>
+                New invite
+              </Btn>
+            </View>
+            <Text variant="small" tone="muted">
+              Each invite is a link and a code, valid for 30 days. Withdraw one at any time.
+            </Text>
+            {(invites.data ?? []).map((inv) => (
+              <View key={inv.code} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface2, borderRadius: radius.tile, padding: spacing.md }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.monoBold, fontSize: 16, letterSpacing: 1 }}>{inv.code}</Text>
+                  <Text variant="caption" tone="muted">
+                    Used {inv.uses}
+                    {inv.max_uses ? ` of ${inv.max_uses}` : ''} · until {new Date(inv.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </Text>
+                </View>
+                <IconBtn label={`Share invite ${inv.code}`} size={34} filled onPress={() => share(inv.code)}>
+                  <ShareNetworkIcon size={16} color={colors.ink} />
+                </IconBtn>
+                <IconBtn label={`Withdraw invite ${inv.code}`} size={34} filled onPress={() => revoke.mutate(inv.code)}>
+                  <XIcon size={16} color={colors.ink} />
+                </IconBtn>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <View style={card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>

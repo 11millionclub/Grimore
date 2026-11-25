@@ -90,3 +90,16 @@ test.describe('@mock signed out', () => {
     await expect(page.getByRole('button', { name: 'Send sign-in link' })).toBeDisabled();
   });
 });
+
+test.describe('@mock sign-in details', () => {
+  test('the password field has an eye to show what was typed', async ({ page }) => {
+    await page.route(/\.supabase\.co\//, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.goto('/sign-in');
+    await page.getByText('Password', { exact: true }).first().click();
+    const pw = page.getByLabel('Password', { exact: true }).last();
+    await pw.fill('secret123');
+    await expect(pw).toHaveAttribute('type', 'password');
+    await page.getByRole('button', { name: 'Show password' }).click();
+    await expect(pw).not.toHaveAttribute('type', 'password');
+  });
+});

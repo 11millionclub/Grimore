@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookBookmarkIcon, BooksIcon, CompassIcon, ShieldIcon, FeatherIcon, PuzzlePieceIcon, UserCircleIcon, type IconProps } from '@/components/icons';
 import { Press, Text } from '@/components/ui';
-import { fonts, GILT, layout, spacing } from '@/theme';
+import { appTheme, barColors, fonts, layout, spacing, useAppTheme } from '@/theme';
 
 const TABS: Record<string, { label: string; Icon: ComponentType<IconProps> }> = {
   index: { label: 'Home', Icon: BooksIcon },
@@ -28,6 +28,9 @@ const SEAL = 52;
  */
 export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  // The bar takes the colours of the chosen app theme.
+  const themeId = useAppTheme((x) => x.id);
+  const bar = barColors(appTheme(themeId));
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: Math.max(insets.bottom, spacing.md), paddingHorizontal: spacing.md }}>
       <View
@@ -41,10 +44,10 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           alignItems: 'center',
           justifyContent: 'space-around',
           paddingHorizontal: spacing.xs,
-          backgroundColor: 'rgba(28,19,13,0.97)',
+          backgroundColor: bar.bg,
           borderRadius: layout.tabBarHeight / 2,
           borderWidth: 1.5,
-          borderColor: 'rgba(198,154,67,0.65)',
+          borderColor: bar.edge,
           shadowColor: '#000',
           shadowOpacity: 0.35,
           shadowRadius: 22,
@@ -69,20 +72,20 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                     width: SEAL,
                     height: SEAL,
                     borderRadius: SEAL / 2,
-                    backgroundColor: GILT.burgundy,
+                    backgroundColor: bar.seal,
                     borderWidth: 2,
-                    borderColor: GILT.gold,
+                    borderColor: bar.sealEdge,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    shadowColor: GILT.gold,
+                    shadowColor: bar.sealEdge,
                     shadowOpacity: 0.35,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: 4 },
                     elevation: 6,
                   }}
                 >
-                  <View style={{ position: 'absolute', top: 3, left: 3, right: 3, bottom: 3, borderRadius: SEAL / 2, borderWidth: 1, borderColor: GILT.champagne, opacity: 0.55 }} />
-                  <FeatherIcon size={23} weight="fill" color={GILT.champagne} />
+                  <View style={{ position: 'absolute', top: 3, left: 3, right: 3, bottom: 3, borderRadius: SEAL / 2, borderWidth: 1, borderColor: bar.sealIcon, opacity: 0.55 }} />
+                  <FeatherIcon size={23} weight="fill" color={bar.sealIcon} />
                 </View>
               </Press>
             );
@@ -96,11 +99,11 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
               accessibilityLabel={meta.label}
               style={{ flex: 1, maxWidth: 64, height: layout.tabBarHeight - 8, alignItems: 'center', justifyContent: 'center', gap: 2 }}
             >
-              <Icon size={23} weight={focused ? 'fill' : 'regular'} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'} />
-              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10, lineHeight: 13 }} numberOfLines={1} color={focused ? GILT.champagne : 'rgba(242,233,216,0.55)'}>
+              <Icon size={23} weight={focused ? 'fill' : 'regular'} color={focused ? bar.active : bar.idle} />
+              <Text style={{ fontFamily: focused ? fonts.semibold : fonts.medium, fontSize: 10, lineHeight: 13 }} numberOfLines={1} color={focused ? bar.active : bar.idle}>
                 {meta.label}
               </Text>
-              <View style={{ position: 'absolute', bottom: 2, width: 5, height: 5, transform: [{ rotate: '45deg' }], backgroundColor: focused ? GILT.gold : 'transparent' }} />
+              <View style={{ position: 'absolute', bottom: 2, width: 5, height: 5, transform: [{ rotate: '45deg' }], backgroundColor: focused ? bar.dot : 'transparent' }} />
             </Pressable>
           );
         })}

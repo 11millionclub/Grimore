@@ -5,7 +5,7 @@ import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, CommunityLogo, openBook } from '@/components/books';
-import { CalendarBlankIcon, CheckIcon, GearSixIcon, LockSimpleIcon, PlusIcon, UsersIcon } from '@/components/icons';
+import { CalendarBlankIcon, CheckIcon, GearSixIcon, LockSimpleIcon, MaskHappyIcon, PlusIcon, UsersIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, EmptyState, Press, Progress, Screen, SectionHead, Skeleton, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
@@ -22,7 +22,7 @@ export default function CommunityScreen() {
   const qc = useQueryClient();
   const c = useQuery({ queryKey: ['community', id], queryFn: () => getCommunity(id) });
   const member = useQuery({ queryKey: ['community', id, 'me'], queryFn: () => myMembership(id, me) });
-  const threads = useQuery({ queryKey: ['community', id, 'threads'], queryFn: () => listThreads(id) });
+  const threads = useQuery({ queryKey: ['community', id, 'threads'], queryFn: () => listThreads(id, !!c.data?.is_anonymous), enabled: !!c.data });
   const event = useQuery({ queryKey: ['community', id, 'event'], queryFn: () => nextEvent(id) });
   const avg = useQuery({ queryKey: ['community', id, 'progress'], queryFn: () => membersProgress(id, c.data!.reading_book_id!), enabled: !!c.data?.reading_book_id });
   const leave = useMutation({
@@ -35,6 +35,13 @@ export default function CommunityScreen() {
     onError: (e) => toast(toAppError(e).message),
   });
   const d = c.data;
+  if (c.isError)
+    // Private communities are invisible to anyone who is not in them.
+    return (
+      <Screen title="Community" back>
+        <EmptyState title="This community is private" body="You can only join it with an invite from its host." action="Enter an invite code" onAction={() => router.push('/community/invite/enter')} />
+      </Screen>
+    );
   if (c.isLoading || !d) return <Screen title="" back large={false}><Skeleton height={300} rounded={0} /></Screen>;
   const paid = !!d.price_cents;
   const m = member.data;
@@ -65,13 +72,29 @@ export default function CommunityScreen() {
               {d.host?.display_name ?? d.host?.username}
             </Text>
           </Text>
-          <Press accessibilityLabel="See members" onPress={() => router.push({ pathname: '/community/members/[id]', params: { id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Press accessibilityLabel="See members" onPress={() => (d.is_anonymous && !isHost ? toast('Members stay hidden in an anonymous community') : router.push({ pathname: '/community/members/[id]', params: { id } }))} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <UsersIcon size={13} color={colors.muted} />
             <Text variant="small" tone="muted">
               {d.member_count} members
             </Text>
           </Press>
         </View>
+        {d.is_private || d.is_anonymous ? (
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+            {d.is_private ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: colors.surface2 }}>
+                <LockSimpleIcon size={12} color={colors.ink} />
+                <Text variant="caption">Private · invite only</Text>
+              </View>
+            ) : null}
+            {d.is_anonymous ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: colors.surface2 }}>
+                <MaskHappyIcon size={12} color={colors.ink} />
+                <Text variant="caption">Anonymous discussions</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -194,9 +217,15 @@ export default function CommunityScreen() {
           {(threads.data ?? []).map((t) => (
             <Press key={t.id} onPress={() => router.push({ pathname: '/thread/[id]', params: { id: t.id } })} style={{ backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <Avatar uri={t.author?.avatar_url} name={t.author?.display_name} size={22} />
+                {d.is_anonymous ? (
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' }}>
+                    <MaskHappyIcon size={13} color={colors.muted} />
+                  </View>
+                ) : (
+                  <Avatar uri={t.author?.avatar_url} name={t.author?.display_name} size={22} />
+                )}
                 <Text variant="small" style={{ fontFamily: fonts.semibold, flex: 1 }} numberOfLines={1}>
-                  {t.author?.display_name ?? t.author?.username}
+                  {d.is_anonymous ? `${t.alias ?? 'Reader'}${t.mine ? ' (you)' : ''}` : (t.author?.display_name ?? t.author?.username)}
                 </Text>
                 {t.is_pinned ? (
                   <Text variant="micro" tone="accent">

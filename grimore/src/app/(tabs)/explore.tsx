@@ -6,7 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { CaretRightIcon, MagnifyingGlassIcon, PlusIcon, XIcon } from '@/components/icons';
+import { CaretRightIcon, KeyIcon, MagnifyingGlassIcon, PlusIcon, XIcon } from '@/components/icons';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
 import { HouseBadge } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
@@ -301,6 +301,12 @@ function Communities() {
         <Btn variant="secondary" size="sm" icon={<PlusIcon size={14} weight="bold" color={colors.ink} />} onPress={() => router.push('/community/new')} style={{ marginTop: spacing.md, alignSelf: 'center' }}>
           Create a community
         </Btn>
+        <Press accessibilityRole="link" onPress={() => router.push('/community/invite/enter')} style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <KeyIcon size={14} color={colors.accent} />
+          <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
+            Have an invite code?
+          </Text>
+        </Press>
       </View>
     </View>
   );
