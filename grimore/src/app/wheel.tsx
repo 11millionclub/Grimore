@@ -133,8 +133,8 @@ function Wheel() {
             setGenre(null);
           }}
           options={[
-            { value: 'tbr', label: 'To be read' },
-            { value: 'owned', label: 'Owned' },
+            { value: 'tbr', label: 'TBR' },
+            { value: 'wishlist', label: 'Wishlist' },
             { value: 'rec', label: 'For you' },
           ]}
         />
@@ -201,7 +201,7 @@ function Wheel() {
           ) : slots.length === 0 ? (
             <View style={{ paddingHorizontal: spacing.lg }}>
               <EmptyState
-                title={(pool.data ?? []).length ? 'Nothing matches these filters' : source === 'tbr' ? 'Your TBR is empty' : source === 'owned' ? 'No unread books you own' : 'No recommendations yet'}
+                title={(pool.data ?? []).length ? 'Nothing matches these filters' : source === 'tbr' ? 'Your TBR is empty' : source === 'wishlist' ? 'Your Wishlist is empty' : 'No recommendations yet'}
                 body={(pool.data ?? []).length ? 'Loosen a filter to fill the wheel.' : 'Add books to your library and the wheel fills up.'}
               />
             </View>

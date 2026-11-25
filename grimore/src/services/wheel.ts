@@ -6,7 +6,7 @@ import { TROPES } from '@/utils/review-tags';
 import { getSuggestions } from './catalogue';
 import { listAllByStatus, listByStatus } from './library';
 
-export type WheelSource = 'tbr' | 'owned' | 'rec';
+export type WheelSource = 'tbr' | 'wishlist' | 'rec';
 export type WheelBook = {
   id: string;
   title: string;
@@ -22,8 +22,8 @@ export type WheelBook = {
 const TROPE_KEYS = new Set<string>(TROPES.map((t) => t.key));
 
 /**
- * Books the wheel can land on: your TBR (to be read), books you own
- * and have not finished, or recommendations from your favourite genres and
+ * Books the wheel can land on: your TBR (books you own and want to read),
+ * your Wishlist (want to read, not owned yet), or recommendations from your favourite genres and
  * the genres you read most. Each comes with its genres, the tropes readers
  * tagged and the average spice, for the filters.
  */
@@ -31,8 +31,8 @@ export async function wheelPool(userId: string, source: WheelSource): Promise<Wh
   let base: Omit<WheelBook, 'genreIds' | 'tropes' | 'spice' | 'pages'>[] = [];
   const pagesOf = new Map<string, number | null>();
   const own = new Map<string, number | null>();
-  if (source === 'tbr' || source === 'owned') {
-    const rows = source === 'tbr' ? await listAllByStatus(userId, 'want_to_read') : (await listAllByStatus(userId, 'owned')).filter((e) => e.status !== 'read' && e.status !== 'dnf');
+  if (source === 'tbr' || source === 'wishlist') {
+    const rows = await listAllByStatus(userId, source);
     rows.forEach((e) => {
       own.set(e.book.id, e.spice);
       pagesOf.set(e.book.id, e.book.page_count_estimate);

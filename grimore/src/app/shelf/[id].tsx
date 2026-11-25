@@ -12,7 +12,7 @@ import { refreshLibrary } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
 import { importBook, type ExternalBook } from '@/services/books';
 import { booksByGenreId, GENRE_SUBJECTS, worldGenreBooks } from '@/services/discover';
-import { getShelfBooks, isMyShelf, listAllByStatus, removeEntry, removeFromShelf, type ReadingStatus } from '@/services/library';
+import { getShelfBooks, isMyShelf, listAllByStatus, removeEntry, removeFromShelf, type ShelfStatus } from '@/services/library';
 import { fonts, spacing, useTheme } from '@/theme';
 
 /** id is "genre:<id>", "<userId>:<status|owned>" or a custom shelf id. */
@@ -20,7 +20,7 @@ async function load(id: string) {
   if (id.startsWith('genre:')) return (await booksByGenreId(Number(id.slice(6)))).map((b) => ({ id: b.id, title: b.title, cover_url: b.cover_url, authors: b.authors }));
   if (id.includes(':')) {
     const [user, status] = id.split(':');
-    return (await listAllByStatus(user, status as ReadingStatus | 'owned' | 'priority')).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
+    return (await listAllByStatus(user, status as ShelfStatus)).map((e) => ({ id: e.book.id, title: e.book.title, cover_url: e.book.cover_url, authors: e.book.authors, priority: e.is_priority }));
   }
   return getShelfBooks(id);
 }

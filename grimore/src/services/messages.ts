@@ -80,3 +80,13 @@ export function subscribeToConversation(conversationId: string, onMessage: (m: M
     void supabase.removeChannel(channel);
   };
 }
+
+/** Delete one of your own messages (for both of you). */
+export async function deleteMessage(id: string) {
+  unwrap(await supabase.from('messages').delete().eq('id', id));
+}
+
+/** Delete a conversation for you: its messages disappear from your side only. */
+export async function clearConversation(conversationId: string) {
+  unwrap(await supabase.rpc('clear_conversation', { p_conversation: conversationId }));
+}

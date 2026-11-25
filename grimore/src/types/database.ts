@@ -2639,6 +2639,9 @@ export type Database = {
           intents: string[]
           reading_formats: string[]
           reading_languages: string[]
+          app_theme: string
+          newsletter_opt_in: boolean
+          newsletter_updated_at: string | null
           app_language: string
           appearance: string
           corner_book_arrangement: string
@@ -2666,6 +2669,9 @@ export type Database = {
           intents?: string[]
           reading_formats?: string[]
           reading_languages?: string[]
+          app_theme?: string
+          newsletter_opt_in?: boolean
+          newsletter_updated_at?: string | null
           app_language?: string
           appearance?: string
           corner_book_arrangement?: string
@@ -2693,6 +2699,9 @@ export type Database = {
           intents?: string[]
           reading_formats?: string[]
           reading_languages?: string[]
+          app_theme?: string
+          newsletter_opt_in?: boolean
+          newsletter_updated_at?: string | null
           app_language?: string
           appearance?: string
           corner_book_arrangement?: string
@@ -2932,6 +2941,9 @@ export type Database = {
       }
     }
     Functions: {
+      clear_conversation: { Args: { p_conversation: string }; Returns: undefined }
+      delete_my_account: { Args: Record<PropertyKey, never>; Returns: undefined }
+      begin_edge_call: { Args: { p_fn: string }; Returns: undefined }
       book_tags: { Args: { p_books: string[] }; Returns: { book_id: string; tag: string; n: number }[] }
       log_reading_session: { Args: { p_book: string | null; p_seconds: number }; Returns: { minutes_today: number; minutes_book: number | null }[] }
       wheel_spins_left: { Args: Record<PropertyKey, never>; Returns: number }

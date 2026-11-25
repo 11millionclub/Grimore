@@ -26,7 +26,8 @@ export function CoverGame({ state, onPick, onHint, busy }: { state: GameState; o
     <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
       <View style={{ alignSelf: 'center', width: '54%', aspectRatio: 2 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface2, marginTop: spacing.base, borderWidth: won ? 4 : 0, borderColor: colors.good }}>
         <Animated.View style={[{ width: '100%', height: '100%', transformOrigin: '40% 35%' }, zoomStyle]}>
-          <Image source={{ uri: state.payload.cover_url }} blurRadius={blur} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityLabel="Hidden cover" />
+          {/* Keyed by level: some platforms keep the first blur unless the image is redrawn. */}
+          <Image key={`lvl-${state.view.level ?? 0}`} source={{ uri: state.payload.cover_url }} blurRadius={blur} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityLabel="Hidden cover" />
         </Animated.View>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: spacing.md }}>

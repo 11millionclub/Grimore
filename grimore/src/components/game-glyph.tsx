@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui';
 import type { GameId } from '@/services/games';
 import { fonts, useTheme } from '@/theme';
+import { COVER_BLUR, COVER_ZOOM } from '@/utils/game-ui';
 
 /** Small illustration for each daily game card. */
 export function GameGlyph({ id, onAccent, cover }: { id: GameId; onAccent?: boolean; cover?: string | null }) {
@@ -23,7 +24,8 @@ export function GameGlyph({ id, onAccent, cover }: { id: GameId; onAccent?: bool
   if (id === 'cover')
     return (
       <View style={{ width: 44, height: 64, borderRadius: 4, overflow: 'hidden', backgroundColor: colors.surface3 }}>
-        {cover ? <Image source={{ uri: cover }} blurRadius={6} style={{ width: '100%', height: '100%', transform: [{ scale: 1.5 }] }} /> : null}
+        {/* As hidden as the game's first frame, so the card never gives the answer away. */}
+        {cover ? <Image source={{ uri: cover }} blurRadius={COVER_BLUR[0]} style={{ width: '100%', height: '100%', transform: [{ scale: COVER_ZOOM[0] }] }} /> : null}
       </View>
     );
   if (id === 'clues')

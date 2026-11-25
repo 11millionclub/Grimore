@@ -7,12 +7,27 @@ import { authorLine } from './catalogue';
 export type ReadingStatus = Database['public']['Enums']['reading_status'];
 
 export const STATUS_META: Record<ReadingStatus, { label: string; short: string }> = {
-  want_to_read: { label: 'TBR (To be read)', short: 'TBR' },
+  want_to_read: { label: 'TBR', short: 'TBR' },
   reading: { label: 'Reading', short: 'Reading' },
   read: { label: 'Finished', short: 'Finished' },
   on_hold: { label: 'Paused', short: 'Paused' },
   dnf: { label: 'DNF', short: 'DNF' },
 };
+/** Want-to-read books you own are your TBR; the ones you don't (yet) are your Wishlist. */
+export const entryLabel = (e: Pick<LibraryEntry, 'status' | 'is_owned'>) => (e.status === 'want_to_read' && !e.is_owned ? 'Wishlist' : STATUS_META[e.status].label);
+
+/** Status shelves plus the virtual ones: owned, priority, TBR (owned) and Wishlist (not owned). */
+export type ShelfStatus = ReadingStatus | 'owned' | 'priority' | 'tbr' | 'wishlist';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onShelf<Q extends { eq: (c: string, v: any) => Q; in: (c: string, v: any[]) => Q }>(q: Q, status: ShelfStatus): Q {
+  if (status === 'owned') return q.eq('is_owned', true).in('status', ['want_to_read', 'reading', 'read']);
+  if (status === 'priority') return q.eq('status', 'want_to_read').eq('is_priority', true);
+  if (status === 'tbr') return q.eq('status', 'want_to_read').eq('is_owned', true);
+  if (status === 'wishlist') return q.eq('status', 'want_to_read').eq('is_owned', false);
+  return q.eq('status', status);
+}
+
 export const STATUS_ORDER: ReadingStatus[] = ['reading', 'want_to_read', 'read', 'on_hold', 'dnf'];
 
 export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
@@ -219,12 +234,12 @@ export async function getNextReads(userId: string, favouriteGenreIds: number[], 
 }
 
 /** A whole status shelf, fetched 1000 at a time (the API returns at most 1000 rows per request). */
-export async function listAllByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority', max = 10_000): Promise<LibraryEntry[]> {
+export async function listAllByStatus(userId: string, status: ShelfStatus, max = 10_000): Promise<LibraryEntry[]> {
   const out: LibraryEntry[] = [];
   for (let from = 0; from < max; from += 1000) {
     let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);
-    q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
-    if (status === 'want_to_read') q = q.order('is_priority', { ascending: false });
+    q = onShelf(q, status);
+    if (status === 'want_to_read' || status === 'tbr' || status === 'wishlist') q = q.order('is_priority', { ascending: false });
     const rows = unwrap(await q.order('updated_at', { ascending: false }).order('id').range(from, from + 999)) as unknown as RawEntry[];
     out.push(...rows.map(mapEntry));
     if (rows.length < 1000) break;
@@ -233,9 +248,9 @@ export async function listAllByStatus(userId: string, status: ReadingStatus | 'o
 }
 
 /** Exact number of entries on a status shelf (lists are capped; counts are not). */
-export async function countByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority'): Promise<number> {
+export async function countByStatus(userId: string, status: ShelfStatus): Promise<number> {
   let q = supabase.from('user_books').select('id', { count: 'exact', head: true }).eq('user_id', userId);
-  q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
+  q = onShelf(q, status);
   const { count, error } = await q;
   if (error) throw error;
   return count ?? 0;
@@ -245,10 +260,10 @@ export async function countByStatus(userId: string, status: ReadingStatus | 'own
  * All entries of one status (for shelves and pickers), newest first. In the
  * TBR, priority books come first; 'priority' lists only those.
  */
-export async function listByStatus(userId: string, status: ReadingStatus | 'owned' | 'priority', limit = 200): Promise<LibraryEntry[]> {
+export async function listByStatus(userId: string, status: ShelfStatus, limit = 200): Promise<LibraryEntry[]> {
   let q = supabase.from('user_books').select(entrySelect).eq('user_id', userId);
-  q = status === 'owned' ? q.eq('is_owned', true) : status === 'priority' ? q.eq('status', 'want_to_read').eq('is_priority', true) : q.eq('status', status);
-  if (status === 'want_to_read') q = q.order('is_priority', { ascending: false });
+  q = onShelf(q, status);
+  if (status === 'want_to_read' || status === 'tbr' || status === 'wishlist') q = q.order('is_priority', { ascending: false });
   const rows = unwrap(await q.order('updated_at', { ascending: false }).limit(limit)) as unknown as RawEntry[];
   return rows.map(mapEntry);
 }

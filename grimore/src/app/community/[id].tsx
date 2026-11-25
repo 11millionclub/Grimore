@@ -5,12 +5,11 @@ import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommunityCover, CommunityLogo, openBook } from '@/components/books';
-import { CalendarBlankIcon, CheckIcon, LockSimpleIcon, PlusIcon } from '@/components/icons';
+import { CalendarBlankIcon, CheckIcon, GearSixIcon, LockSimpleIcon, PlusIcon, UsersIcon } from '@/components/icons';
 import { Avatar, Btn, Cover, EmptyState, Press, Progress, Screen, SectionHead, Skeleton, Text, toast } from '@/components/ui';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { ImageField } from '@/components/image-field';
-import { getCommunity, uploadCommunityImage, leaveCommunity, listThreads, membersProgress, myMembership, nextEvent } from '@/services/communities';
+import { getCommunity, leaveCommunity, listThreads, membersProgress, myMembership, nextEvent } from '@/services/communities';
 import { money } from '@/utils/money';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
@@ -66,9 +65,12 @@ export default function CommunityScreen() {
               {d.host?.display_name ?? d.host?.username}
             </Text>
           </Text>
-          <Text variant="small" tone="muted">
-            · {d.member_count} members
-          </Text>
+          <Press accessibilityLabel="See members" onPress={() => router.push({ pathname: '/community/members/[id]', params: { id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <UsersIcon size={13} color={colors.muted} />
+            <Text variant="small" tone="muted">
+              {d.member_count} members
+            </Text>
+          </Press>
         </View>
       </View>
     </View>
@@ -80,6 +82,11 @@ export default function CommunityScreen() {
           <Btn size="lg" style={{ flex: 1 }} icon={<PlusIcon size={18} weight="bold" color={colors.onAccent} />} onPress={() => router.push({ pathname: '/thread/new/[communityId]', params: { communityId: id } })}>
             New discussion
           </Btn>
+          {isHost ? (
+            <Btn size="lg" variant="secondary" icon={<GearSixIcon size={18} color={colors.ink} />} onPress={() => router.push({ pathname: '/community/manage/[id]', params: { id } })}>
+              Manage
+            </Btn>
+          ) : null}
           {!isHost ? (
             <Btn
               size="lg"
@@ -224,21 +231,6 @@ export default function CommunityScreen() {
         </View>
       </View>
       <View style={{ height: insets.bottom }} />
-      {isHost && paid ? (
-        <View style={{ marginTop: spacing.xxl, paddingHorizontal: spacing.lg }}>
-          <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.base, gap: spacing.md }}>
-            <Text variant="bodyStrong">Logo and banner</Text>
-            <ImageField kind="logo" label="Logo" value={d.logo_url} onUpload={(img) => uploadCommunityImage(id, 'logo', img.base64, img.mimeType).then(() => qc.invalidateQueries({ queryKey: ['community', id] }))} />
-            <ImageField
-              kind="banner"
-              label="Banner"
-              hint="Paying members can wear it on their My Grimore page while their membership is active."
-              value={d.banner_url}
-              onUpload={(img) => uploadCommunityImage(id, 'banner', img.base64, img.mimeType).then(() => qc.invalidateQueries({ queryKey: ['community', id] }))}
-            />
-          </View>
-        </View>
-      ) : null}
     </Screen>
   );
 }

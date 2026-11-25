@@ -4,11 +4,14 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { Composer } from '@/components/feed';
-import { Avatar, Cover, Press, Screen, Text } from '@/components/ui';
+import { TrashIcon } from '@/components/icons';
+import { Avatar, Cover, IconBtn, Press, Screen, Text, toast } from '@/components/ui';
 import { HouseBadge } from '@/components/house-badge';
 import { useMyId, useProfile, useReaderHouses } from '@/hooks/queries';
+import { confirmAction } from '@/lib/confirm';
+import { toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
-import { getConversation, listMessages, markRead, sendMessage, subscribeToConversation, type Message } from '@/services/messages';
+import { clearConversation, deleteMessage, getConversation, listMessages, markRead, sendMessage, subscribeToConversation, type Message } from '@/services/messages';
 import { fonts, spacing, useTheme } from '@/theme';
 
 function BookBubble({ id }: { id: string }) {
@@ -52,10 +55,41 @@ export default function Chat() {
     mutationFn: (body: string) => sendMessage({ conversationId: id, senderId: me, body }),
     onSuccess: (m) => qc.setQueryData<Message[]>(['messages', id], (old) => (old?.some((x) => x.id === m.id) ? old : [...(old ?? []), m])),
   });
+  const removeMsg = useMutation({
+    mutationFn: deleteMessage,
+    onMutate: (mid) => qc.setQueryData<Message[]>(['messages', id], (old) => (old ?? []).filter((x) => x.id !== mid)),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['messages', id] }),
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const clear = useMutation({
+    mutationFn: () => clearConversation(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+      router.back();
+      toast('Conversation deleted');
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const askDeleteMessage = async (m: Message) => {
+    if (await confirmAction('Delete message?', 'It will be removed for both of you.')) removeMsg.mutate(m.id);
+  };
+  const askClear = async () => {
+    if (await confirmAction('Delete this conversation?', 'Its messages disappear from your side. If they write again, the conversation comes back.')) clear.mutate();
+  };
   const houses = useReaderHouses(other.data ? [other.data.id] : []);
   const name = other.data?.display_name ?? other.data?.username ?? ' ';
   return (
-    <Screen title={name} large={false} back keyboard footer={<Composer placeholder="Message" busy={send.isPending} onSend={(t) => send.mutateAsync(t)} />}>
+    <Screen
+      title={name}
+      large={false}
+      back
+      keyboard
+      actions={
+        <IconBtn label="Delete conversation" onPress={() => void askClear()}>
+          <TrashIcon size={20} color={colors.ink} />
+        </IconBtn>
+      }
+      footer={<Composer placeholder="Message" busy={send.isPending} onSend={(t) => send.mutateAsync(t)} />}>
       <Press onPress={() => other.data && router.push({ pathname: '/user/[username]', params: { username: other.data.username } })} style={{ alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, paddingTop: spacing.sm }}>
         <Avatar uri={other.data?.avatar_url} name={name} size={72} />
         <Text variant="title" style={{ marginTop: spacing.sm }}>
@@ -77,7 +111,10 @@ export default function Chat() {
                 <BookBubble id={m.book_id} />
               ) : null}
               {m.body ? (
-                <View
+                <Press
+                  accessibilityHint={mine ? 'Touch and hold to delete' : undefined}
+                  onLongPress={mine ? () => void askDeleteMessage(m) : undefined}
+                  delayLongPress={350}
                   style={{
                     maxWidth: '78%',
                     borderRadius: 20,
@@ -91,7 +128,7 @@ export default function Chat() {
                   <Text variant="body" tone={mine ? 'onAccent' : 'ink'}>
                     {m.body}
                   </Text>
-                </View>
+                </Press>
               ) : null}
             </View>
           );
