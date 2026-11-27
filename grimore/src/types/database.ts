@@ -81,7 +81,7 @@ export type Database = {
         Relationships: []
       }
       sorting_results: {
-        Row: { answers: Json; chosen_from_top_two: boolean; created_at: string; house_id: string; id: string; scores: Json; skipped: boolean; tie_break_used: boolean; user_id: string }
+        Row: { answers: Json; chosen_from_top_two: boolean; created_at: string; house_id: string; id: string; scores: Json; skipped: boolean; tie_break_used: boolean; user_id: string; quiz_version: number; tie_break_answer: string | null; multi_tie: boolean }
         Insert: { answers: Json; chosen_from_top_two?: boolean; created_at?: string; house_id: string; id?: string; scores: Json; skipped?: boolean; tie_break_used?: boolean; user_id: string }
         Update: { answers?: Json; chosen_from_top_two?: boolean; created_at?: string; house_id?: string; id?: string; scores?: Json; skipped?: boolean; tie_break_used?: boolean; user_id?: string }
         Relationships: []
@@ -2980,6 +2980,7 @@ export type Database = {
       my_week_games: { Args: Record<PropertyKey, never>; Returns: { game: string; played: number; solved: number; days: number }[] }
       reader_marks: { Args: { p_user: string }; Returns: { item_key: string; season_id: number | null }[] }
       submit_sorting: { Args: { p_answers: Json; p_tie_break?: string | null; p_choice?: string | null }; Returns: Json }
+      can_take_sorting: { Args: Record<PropertyKey, never>; Returns: boolean }
       change_house: { Args: { p_house: string }; Returns: string }
       my_house: { Args: Record<PropertyKey, never>; Returns: { house_id: string | null; house_hidden: boolean; house_assigned_at: string | null }[] }
       reader_houses: { Args: { p_ids: string[] }; Returns: { user_id: string; house_id: string }[] }

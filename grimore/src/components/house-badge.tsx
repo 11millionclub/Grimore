@@ -54,10 +54,10 @@ const MARKS: Record<string, { color: string; Icon: 'ribbon' | 'laurel' | 'star' 
   'ribbon:season-gold': { color: '#a3803c', Icon: 'ribbon' },
   'laurel:cup-winner': { color: '#4e5e45', Icon: 'laurel' },
   'badge:founding': { color: '#9a7330', Icon: 'star' },
-  'badge:ritual-uncharted': { color: houseTokens.lantern.ink, Icon: 'ritual' },
-  'badge:ritual-debate': { color: houseTokens.quill.ink, Icon: 'ritual' },
-  'badge:ritual-heartbreak': { color: houseTokens.thorn.ink, Icon: 'ritual' },
-  'badge:ritual-marathon': { color: houseTokens.hourglass.ink, Icon: 'ritual' },
+  'badge:ritual-uncharted': { color: houseTokens.wanderers.ink, Icon: 'ritual' },
+  'badge:ritual-return': { color: houseTokens.weavers.ink, Icon: 'ritual' },
+  'badge:ritual-question': { color: houseTokens.luminaries.ink, Icon: 'ritual' },
+  'badge:ritual-cipher': { color: houseTokens.seekers.ink, Icon: 'ritual' },
 };
 
 /** Earned marks (ribbons, laurels, founding, ritual badges) as small labelled seals. */

@@ -11,7 +11,7 @@ import { useMyHouse } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { getDuels, getStandings, listSeasons, myPoints } from '@/services/houses';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
+import { DUEL_PAIRS, HOUSE_NAMES, houseInk, houseTokens, themedHouse } from '@/theme/houses';
 
 const ROWS: [string, string][] = [
   ['play', '10'],
@@ -24,7 +24,8 @@ const ROWS: [string, string][] = [
 
 /** The House Cup: season standings by points per active member, this week's duels and your contribution. */
 export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const { t } = useTranslation();
   const mine = useMyHouse();
   const h = mine.data?.house ?? null;
@@ -47,10 +48,7 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
   const rows = standings.data ?? [];
   const top = rows[0]?.perMember ?? 0;
   const total = Object.values(points.data ?? {}).reduce((a, b) => a + b, 0);
-  const duelPairs: [HouseId, HouseId][] = [
-    ['lantern', 'hourglass'],
-    ['quill', 'thorn'],
-  ];
+  const duelPairs = DUEL_PAIRS;
 
   const body = (
     <>
@@ -77,7 +75,7 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
         {standings.isLoading
           ? [0, 1, 2, 3].map((k) => <Skeleton key={k} height={64} rounded={radius.card} />)
           : rows.map((r, i) => {
-              const tk = houseTokens[r.house];
+              const tk = themedHouse(r.house, dark);
               const me = r.house === h;
               return (
                 <Press
@@ -131,12 +129,12 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
               <View key={a} style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.md }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Sigil house={a} size={18} color={houseTokens[a].ink} label={false} />
+                    <Sigil house={a} size={18} color={houseInk(a, dark)} label={false} />
                     <Text variant="bodyStrong">{HOUSE_NAMES[a]}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text variant="bodyStrong">{HOUSE_NAMES[b]}</Text>
-                    <Sigil house={b} size={18} color={houseTokens[b].ink} label={false} />
+                    <Sigil house={b} size={18} color={houseInk(b, dark)} label={false} />
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', marginTop: spacing.sm }}>
@@ -158,8 +156,8 @@ export function HouseCupView({ embedded = false }: { embedded?: boolean }) {
       {h ? (
         <View style={{ marginTop: spacing.xxl }}>
           <SectionHead title={t('cup.you')} />
-          <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: houseTokens[h].ink, padding: spacing.base }}>
-            <Text style={{ fontFamily: fonts.display, fontSize: 20 }} color={houseTokens[h].ink}>
+          <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: houseInk(h, dark), padding: spacing.base }}>
+            <Text style={{ fontFamily: fonts.display, fontSize: 20 }} color={houseInk(h, dark)}>
               {t('cup.yourPoints', { n: total, house: HOUSE_NAMES[h] })}
             </Text>
             {ROWS.filter(([k]) => k !== 'duel' && points.data?.[k]).map(([k]) => (

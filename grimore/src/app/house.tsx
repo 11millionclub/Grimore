@@ -13,22 +13,25 @@ import { clearHouseCache } from '@/hooks/use-house-of';
 import { useTranslation } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { toAppError } from '@/lib/errors';
-import { changeHouse, completeRitual, joinRitual, latestSorting, listSeasons, myItems, myRitual, setHouseHidden } from '@/services/houses';
+import { canTakeSorting, changeHouse, completeRitual, joinRitual, latestSorting, listSeasons, myItems, myRitual, setHouseHidden } from '@/services/houses';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_IDS, HOUSE_NAMES, HOUSE_RIVALS, houseTokens, type HouseId } from '@/theme/houses';
+import { HOUSE_IDS, HOUSE_NAMES, HOUSE_RIVALS, type HouseId, houseInk, themedHouse } from '@/theme/houses';
+import { Percentages } from '@/components/onboarding/sorting';
 import { breakdown } from '@/utils/sorting';
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
 
 /** Your House: who you are, why you were sorted here, the ritual, your marks, and the change rules. */
 export function HouseView({ embedded = false }: { embedded?: boolean }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const { t } = useTranslation();
   const me = useMyId()!;
   const qc = useQueryClient();
   const mine = useMyHouse();
   const h = mine.data?.house ?? null;
   const sorting = useQuery({ queryKey: ['sorting', me], queryFn: () => latestSorting(me) });
+  const canResort = useQuery({ queryKey: ['canTakeSorting', me], queryFn: canTakeSorting });
   const ritual = useQuery({ queryKey: ['ritual', me], queryFn: myRitual, enabled: !!h });
   const items = useQuery({ queryKey: ['myItems', me], queryFn: () => myItems(me) });
   const seasons = useQuery({ queryKey: ['seasons'], queryFn: listSeasons });
@@ -66,9 +69,9 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
   });
 
   if (!h) return embedded ? <View /> : <Screen title={t('house.title')} back><View /></Screen>;
-  const tk = houseTokens[h];
-  const rows = sorting.data && !Object.values(sorting.data.scores ?? {}).every((v) => !v) ? breakdown(sorting.data.scores) : [];
-  const about = t(`houses.${h}.about`, { returnObjects: true }) as unknown as string[];
+  const tk = themedHouse(h, dark);
+  // Percentages only from the current quiz (results of the earlier quiz used other scales).
+  const rows = sorting.data && sorting.data.quiz_version >= 2 ? breakdown(sorting.data.scores) : [];
   const marks = (items.data ?? []).filter((x) => !x.expires_at || new Date(x.expires_at).getTime() > openedAt).map((x) => x.item_key);
 
   const list = seasons.data ?? [];
@@ -83,7 +86,7 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
     }
     Alert.alert(t('house.change'), msg, [
       { text: t('common.back'), style: 'cancel' },
-      { text: t('sorting.choose.join', { house: HOUSE_NAMES[to] }), onPress: () => change.mutate(to) },
+      { text: t('sorting.multi.join', { house: HOUSE_NAMES[to] }), onPress: () => change.mutate(to) },
     ]);
   };
 
@@ -94,9 +97,6 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
         <Text accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 40, marginTop: spacing.md }} color={tk.onPrimary}>
           {HOUSE_NAMES[h]}
         </Text>
-        <Text variant="title" color={tk.onPrimary}>
-          {t(`houses.${h}.members`)}
-        </Text>
         <Text variant="quote" align="center" color={tk.onPrimary} style={{ marginTop: spacing.sm }}>
           “{t(`houses.${h}.motto`)}”
         </Text>
@@ -106,11 +106,7 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
       </View>
 
       <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.sm }}>
-        {about.map((line) => (
-          <Text key={line} variant="body">
-            {line}
-          </Text>
-        ))}
+        <Text variant="body">{t(`houses.${h}.description`)}</Text>
         <Text variant="small" tone="muted">
           <Text variant="small" style={{ fontFamily: fonts.semibold }}>
             {t('house.strength')}:
@@ -122,6 +118,19 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
           {t(`houses.${h}.shadow`)}
         </Text>
       </View>
+
+      {canResort.data ? (
+        <Press
+          accessibilityRole="button"
+          onPress={() => router.push('/resort')}
+          style={{ marginHorizontal: spacing.lg, marginTop: spacing.lg, borderRadius: radius.card, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.goldSoft, padding: spacing.base, gap: 4 }}
+        >
+          <Text variant="bodyStrong">{t('house.resortTitle')}</Text>
+          <Text variant="small" tone="muted">
+            {t('house.resortBody')}
+          </Text>
+        </Press>
+      ) : null}
 
       <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, flexDirection: 'row', gap: spacing.sm }}>
         <Press onPress={() => router.push({ pathname: '/common-room/[house]', params: { house: h } })} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, padding: spacing.base }}>
@@ -147,7 +156,7 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
       </View>
 
       <View style={{ marginTop: spacing.xxl }}>
-        <SectionHead title={h === 'quill' ? t('house.ritualWeek') : t('house.ritualTitle')} />
+        <SectionHead title={h === 'luminaries' ? t('house.ritualWeek') : t('house.ritualTitle')} />
         <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: tk.ink, padding: spacing.base, gap: spacing.sm }}>
           <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.ink}>
             {t(`houses.${h}.ritual`)}
@@ -190,18 +199,10 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
           <View style={{ paddingHorizontal: spacing.lg, gap: 8 }}>
             {rows.length ? (
               <>
-                <Text variant="small">{t('sorting.reveal.breakdown', { list: rows.map((r) => `${r.pct} % ${HOUSE_NAMES[r.house]}`).join(', ') })}</Text>
-                {rows.map((r) => (
-                  <View key={r.house} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <Sigil house={r.house} size={16} color={houseTokens[r.house].ink} label={false} />
-                    <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.surface2, overflow: 'hidden' }}>
-                      <View style={{ width: `${r.pct}%`, height: '100%', backgroundColor: houseTokens[r.house].primary }} />
-                    </View>
-                    <Text variant="caption" style={{ width: 92 }}>
-                      {r.pct} % {HOUSE_NAMES[r.house]}
-                    </Text>
-                  </View>
-                ))}
+                <Text variant="small" tone="muted">
+                  {t('sorting.reveal.percentages')}
+                </Text>
+                <Percentages rows={rows} />
               </>
             ) : (
               <Text variant="callout" tone="muted">
@@ -222,7 +223,7 @@ export function HouseView({ embedded = false }: { embedded?: boolean }) {
       <Group title={t('house.change')}>
         {window ? (
           HOUSE_IDS.filter((x) => x !== h).map((x, i, a) => (
-            <Row key={x} icon={<Sigil house={x} size={20} color={houseTokens[x].ink} label={false} />} label={t('sorting.choose.join', { house: HOUSE_NAMES[x] })} onPress={() => askChange(x)} right={<CaretRightIcon size={14} color={colors.muted} />} last={i === a.length - 1} />
+            <Row key={x} icon={<Sigil house={x} size={20} color={houseInk(x, dark)} label={false} />} label={t('sorting.multi.join', { house: HOUSE_NAMES[x] })} onPress={() => askChange(x)} right={<CaretRightIcon size={14} color={colors.muted} />} last={i === a.length - 1} />
           ))
         ) : (
           <Row label={current ? t('house.changeLocked', { date: day(current.ends_at) }) : t('house.changeUsed')} last />

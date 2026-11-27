@@ -84,7 +84,7 @@ function ForYou() {
               {t('house.title')}
             </Text>
             <Text style={{ fontFamily: fonts.display, fontSize: 22, lineHeight: 28 }} color={h ? houseTokens[h].onPrimary : colors.ink}>
-              {h ? `${HOUSE_NAMES[h]} · ${t(`houses.${h}.members`)}` : '—'}
+              {h ? HOUSE_NAMES[h] : '—'}
             </Text>
             {h ? (
               <Text variant="small" color={houseTokens[h].onPrimary} style={{ fontStyle: 'italic' }}>

@@ -11,11 +11,12 @@ import { track } from '@/lib/analytics';
 import { getStandings } from '@/services/houses';
 import { getWallet } from '@/services/points';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_IDS, HOUSE_NAMES, houseTokens } from '@/theme/houses';
+import { HOUSE_IDS, HOUSE_NAMES, themedHouse } from '@/theme/houses';
 
 /** Compact House Cup standings on the Play tab: the games are where points come from. */
 export function HouseCupCard() {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const { t } = useTranslation();
   const mine = useMyHouse();
   const standings = useQuery({ queryKey: ['standings'], queryFn: () => getStandings(), staleTime: 20_000, refetchInterval: 60_000 });
@@ -43,7 +44,7 @@ export function HouseCupCard() {
       </View>
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         {rows.map((r) => {
-          const tk = houseTokens[r.house];
+          const tk = themedHouse(r.house, dark);
           const me = r.house === mine.data?.house;
           return (
             <View key={r.house} style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderRadius: radius.tile, backgroundColor: me ? tk.primary : colors.surface2 }}>

@@ -10,7 +10,7 @@ import { useMyId, useReaderHouses, useReadingStats } from '@/hooks/queries';
 import { suggestedCommunities } from '@/services/communities';
 import { suggestReaders } from '@/services/profile';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
+import { HOUSE_NAMES, houseInk } from '@/theme/houses';
 import { useTranslation } from '@/i18n';
 
 const TRAITS: { name: string; moods: string[] }[] = [
@@ -22,7 +22,8 @@ const TRAITS: { name: string; moods: string[] }[] = [
 
 export default function ReaderDNA() {
   const params = useLocalSearchParams<{ userId?: string }>();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const me = useMyId()!;
   const uid = params.userId ?? me;
   const isMe = uid === me;
@@ -53,7 +54,7 @@ export default function ReaderDNA() {
         <View style={{ overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.surface, padding: spacing.xl }}>
           <View pointerEvents="none" style={{ position: 'absolute', right: -70, top: -70, width: 230, height: 230, borderRadius: 115, borderWidth: 1, borderColor: colors.gold, opacity: 0.35 }} />
           <View pointerEvents="none" style={{ position: 'absolute', right: -30, top: -30, width: 150, height: 150, borderRadius: 75, borderWidth: 1, borderColor: colors.gold, opacity: 0.25 }} />
-          {house ? <Sigil house={house} size={40} color={houseTokens[house].ink} /> : null}
+          {house ? <Sigil house={house} size={40} color={houseInk(house, dark)} /> : null}
           <Text variant="small" tone="muted" style={{ marginTop: spacing.base }}>
             {house ? `${t(`houses.${house}.member`)} · House ${HOUSE_NAMES[house]}` : ' '}
           </Text>
