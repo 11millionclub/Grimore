@@ -21,7 +21,7 @@ import { clearHouseCache } from '@/hooks/use-house-of';
 import { useTranslation } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { setHouseHidden } from '@/services/houses';
-import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
+import { HOUSE_NAMES, houseInk } from '@/theme/houses';
 import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { signOut } from '@/services/auth';
@@ -38,7 +38,8 @@ const NOTIFS: [string, string][] = [
 ];
 
 export default function Settings() {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const me = useMyId()!;
   const qc = useQueryClient();
   const profile = useMyProfile();
@@ -117,8 +118,8 @@ export default function Settings() {
       {myHouse.data?.house ? (
         <Group title={t('settings.house')}>
           <Row
-            icon={<Sigil house={myHouse.data.house} size={20} color={houseTokens[myHouse.data.house].ink} label={false} />}
-            label={`${HOUSE_NAMES[myHouse.data.house]} · ${t(`houses.${myHouse.data.house}.members`)}`}
+            icon={<Sigil house={myHouse.data.house} size={20} color={houseInk(myHouse.data.house, dark)} label={false} />}
+            label={HOUSE_NAMES[myHouse.data.house]}
             onPress={() => router.push('/house')}
             right={chevron}
           />

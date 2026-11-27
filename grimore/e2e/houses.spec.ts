@@ -13,16 +13,16 @@ test.describe('@mock Houses', () => {
 
   test('profile shows the House badge and founding mark', async ({ page }) => {
     await page.goto('/me');
-    await expect(page.getByRole('link', { name: 'Wayfinder of House Lantern' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'One of the Wanderers' })).toBeVisible();
     await expect(page.getByRole('img', { name: en.marks['badge-founding'] })).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-me.png` });
   });
 
   test('my House page explains the sorting and the ritual', async ({ page }) => {
     await page.goto('/house');
-    await expect(page.getByText('Wayfinders').first()).toBeVisible();
-    await expect(page.getByText(en.houses.lantern.ritual).first()).toBeVisible();
-    await expect(page.getByText(/63 % Lantern/).first()).toBeVisible();
+    await expect(page.getByText('Wanderers').first()).toBeVisible();
+    await expect(page.getByText(en.houses.wanderers.ritual).first()).toBeVisible();
+    await expect(page.getByText('63%').first()).toBeVisible();
     await expect(page.getByRole('switch', { name: en.house.hide }).or(page.getByLabel(en.house.hide)).first()).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-house.png`, fullPage: true });
   });
@@ -30,19 +30,19 @@ test.describe('@mock Houses', () => {
   test('House Cup ranks by points per member and shows the duels', async ({ page }) => {
     await page.goto('/house-cup');
     await expect(page.getByText(en.cup.fairness)).toBeVisible();
-    await expect(page.getByRole('button', { name: /^1\. Thorn/ })).toBeVisible();
-    await expect(page.getByText(/Lantern 58 · Hourglass 42 per active member this week/)).toBeVisible();
-    await expect(page.getByText(/246 points for Lantern/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^1\. Weavers/ })).toBeVisible();
+    await expect(page.getByText(/Wanderers 58 · Weavers 42 per active member this week/)).toBeVisible();
+    await expect(page.getByText(/246 points for Wanderers/)).toBeVisible();
     // "N active" lists the House members who earned points this season.
-    await page.getByRole('link', { name: /active, Lantern$/ }).click();
-    await expect(page.getByText('Active in Lantern').first()).toBeVisible();
+    await page.getByRole('link', { name: /active, Wanderers$/ }).click();
+    await expect(page.getByText('Active in Wanderers').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Test Reader, 246 points' })).toBeVisible();
     await expect(page.getByText('1 more keep their House private.')).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-cup.png`, fullPage: true });
   });
 
   test('Common Room has the quest and opt-in contributors', async ({ page }) => {
-    await page.goto('/common-room/lantern');
+    await page.goto('/common-room/wanderers');
     await expect(page.getByText(en.room.quest)).toBeVisible();
     await expect(page.getByText(en.room.topHint)).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-room.png`, fullPage: true });
@@ -54,7 +54,7 @@ test.describe('@mock Houses', () => {
     await expect(page.getByText(en.shop.starter)).toBeVisible();
     await expect(page.getByText(en.shop.earnedHint)).toBeVisible();
     await expect(page.getByText(en.shop.collection)).toBeVisible();
-    await expect(page.getByText('Thorn collection')).toBeVisible();
+    await expect(page.getByText('Weavers collection')).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/h-shop.png`, fullPage: true });
   });
 

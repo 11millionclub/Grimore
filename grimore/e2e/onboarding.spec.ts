@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import en from '../src/i18n/en';
+import { QUIZ } from '../src/utils/sorting-quiz';
 import { useMockBackend } from './fixtures';
 
 /** A new reader goes from date of birth to the House reveal. */
@@ -40,14 +41,32 @@ test.describe('@mock onboarding and the Sorting', () => {
 
     await expect(page.getByText(en.sorting.intro.title)).toBeVisible();
     await page.getByRole('button', { name: en.sorting.intro.begin }).click();
-    for (const q of ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const) {
-      await expect(page.getByText(en.sorting[q].title)).toBeVisible();
-      await page.getByRole('radio', { name: en.sorting[q].thorn }).click();
+    // Twelve questions; the answers carry no letters or Houses. Pick the most Weaver-like each time.
+    const shots = process.env.E2E_SHOTS;
+    if (shots) await page.screenshot({ path: `${shots}/q-intro.png` });
+    for (const [i, q] of QUIZ.entries()) {
+      await expect(page.getByText(q.title, { exact: true })).toBeVisible();
+      if (shots && i === 5) await page.screenshot({ path: `${shots}/q-6.png` });
+      await expect(page.getByText(`Question ${i + 1} of 12`, { exact: false })).toBeVisible();
+      const pick = [...q.options].sort((a, b) => b.v[1] - a.v[1])[0];
+      await page.getByRole('radio', { name: pick.text }).click();
     }
+    // Review: every answer is listed and can be changed before the reveal.
+    await expect(page.getByText(en.sorting.review.title)).toBeVisible();
+    await page.getByRole('button', { name: 'Change answer to question 3' }).click();
+    await expect(page.getByText(QUIZ[2].title, { exact: true })).toBeVisible();
+    await page.getByRole('radio', { name: QUIZ[2].options.find((o) => o.v[1] === 20)!.text }).click();
+    await expect(page.getByText(en.sorting.review.title)).toBeVisible();
+    if (shots) await page.screenshot({ path: `${shots}/q-review.png` });
+    await page.getByRole('button', { name: en.sorting.review.cta }).click();
 
-    await expect(page.getByRole('heading', { name: 'Thorn' })).toBeVisible();
-    await expect(page.getByText(en.houses.thorn.motto, { exact: false }).first()).toBeVisible();
-    await expect(page.getByText(/88 % Thorn/).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Weavers' })).toBeVisible();
+    await expect(page.getByText(en.houses.weavers.motto, { exact: false }).first()).toBeVisible();
+    await expect(page.getByText(en.houses.weavers.description).first()).toBeVisible();
+    // All four percentages are shown, never raw points.
+    for (const p of ['75%', '12%', '9%', '4%']) await expect(page.getByText(p, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('215')).toHaveCount(0);
+    if (shots) await page.screenshot({ path: `${shots}/q-reveal.png`, fullPage: true });
     await page.getByRole('button', { name: en.common.continue }).click();
     await expect(page.getByText(en.onboarding.notify.title)).toBeVisible();
   });

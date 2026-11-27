@@ -38,11 +38,11 @@ test.describe('@mock My Grimore library, wheel and reading sessions', () => {
 
   test('the Houses tab gathers the Cup, your House and the common rooms', async ({ page }) => {
     await page.goto('/houses');
-    await expect(page.getByRole('button', { name: /^1\. Thorn/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^1\. Weavers/ })).toBeVisible();
     await page.getByText('My House', { exact: true }).click();
-    await expect(page.getByText('Wayfinders').first()).toBeVisible();
+    await expect(page.getByText('Wanderers').first()).toBeVisible();
     await page.getByText('Common rooms', { exact: true }).click();
-    await expect(page.getByRole('button', { name: /Lantern common room, your House/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Wanderers common room, your House/ })).toBeVisible();
     if (shots) await page.screenshot({ path: `${shots}/g-houses.png` });
   });
 

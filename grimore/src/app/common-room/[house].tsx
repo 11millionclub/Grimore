@@ -12,7 +12,7 @@ import { useTranslation } from '@/i18n';
 import { toAppError } from '@/lib/errors';
 import { houseRoom, myWeekGames, setLeaderboardOptIn, topContributors } from '@/services/houses';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_NAMES, houseTokens, isHouseId, type HouseId } from '@/theme/houses';
+import { HOUSE_NAMES, type HouseId, isHouseId, themedHouse } from '@/theme/houses';
 
 type Quest = { key: 'solve5' | 'play8' | 'hangman3' | 'timeline2'; target: number; count: (g: { game: string; played: number; solved: number }[]) => number };
 const QUESTS: Quest[] = [
@@ -26,14 +26,15 @@ const weekIndex = (ms: number) => Math.floor((ms / 86_400_000 + 3) / 7);
 /** A House's Common Room: ritual, weekly quest, opt-in top contributors and the House discussions. */
 export default function CommonRoom() {
   const params = useLocalSearchParams<{ house: string }>();
-  const house: HouseId = isHouseId(params.house) ? params.house : 'lantern';
-  const { colors } = useTheme();
+  const house: HouseId = isHouseId(params.house) ? params.house : 'wanderers';
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const { t } = useTranslation();
   const me = useMyId()!;
   const qc = useQueryClient();
   const mine = useMyHouse();
   const member = mine.data?.house === house;
-  const tk = houseTokens[house];
+  const tk = themedHouse(house, dark);
   const [now] = useState(() => Date.now());
   const quest = QUESTS[weekIndex(now) % QUESTS.length];
   const room = useQuery({ queryKey: ['houseRoom', house], queryFn: () => houseRoom(house) });
@@ -74,7 +75,7 @@ export default function CommonRoom() {
         style={{ marginHorizontal: spacing.lg, marginTop: spacing.md, backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: tk.ink, padding: spacing.base }}
       >
         <Text variant="micro" tone="muted">
-          {(house === 'quill' ? t('house.ritualWeek') : t('house.ritualTitle')).toUpperCase()}
+          {(house === 'luminaries' ? t('house.ritualWeek') : t('house.ritualTitle')).toUpperCase()}
         </Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 21, marginTop: 2 }} color={tk.ink}>
           {t(`houses.${house}.ritual`)}

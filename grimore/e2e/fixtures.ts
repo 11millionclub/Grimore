@@ -215,31 +215,33 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return [];
     case 'rpc/my_house':
       if (opts.newReader) return [{ house_id: null, house_hidden: false, house_assigned_at: null }];
-      return [{ house_id: 'lantern', house_hidden: false, house_assigned_at: new Date(now - 30 * 86400e3).toISOString() }];
+      return [{ house_id: 'wanderers', house_hidden: false, house_assigned_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/reader_houses':
       return [
-        { user_id: FRIEND, house_id: 'thorn' },
-        { user_id: ME, house_id: 'lantern' },
+        { user_id: FRIEND, house_id: 'weavers' },
+        { user_id: ME, house_id: 'wanderers' },
       ];
     case 'rpc/submit_sorting':
-      return { house: 'thorn', scores: { lantern: 0, quill: 2, thorn: 14, hourglass: 0 }, tie_break: false, top_two: false };
+      return { house: 'weavers', scores: { wanderers: 35, weavers: 215, luminaries: 10, seekers: 25 }, tie_break: false, multi: false };
+    case 'rpc/can_take_sorting':
+      return false;
     case 'profile_private':
       return single ? null : [];
     case 'house_seasons':
       return [{ id: 1, name: 'Season 1', starts_at: new Date(now - 10 * 86400e3).toISOString(), ends_at: new Date(now + 74 * 86400e3).toISOString(), winner_house_id: null }];
     case 'rpc/get_house_standings':
       return [
-        { season_id: 1, house_id: 'thorn', points: 4200, active_members: 30, members: 41, points_per_member: 140 },
-        { season_id: 1, house_id: 'lantern', points: 3900, active_members: 30, members: 38, points_per_member: 130 },
-        { season_id: 1, house_id: 'hourglass', points: 3300, active_members: 30, members: 35, points_per_member: 110 },
-        { season_id: 1, house_id: 'quill', points: 2400, active_members: 24, members: 30, points_per_member: 100 },
+        { season_id: 1, house_id: 'weavers', points: 4200, active_members: 30, members: 41, points_per_member: 140 },
+        { season_id: 1, house_id: 'wanderers', points: 3900, active_members: 30, members: 38, points_per_member: 130 },
+        { season_id: 1, house_id: 'seekers', points: 3300, active_members: 30, members: 35, points_per_member: 110 },
+        { season_id: 1, house_id: 'luminaries', points: 2400, active_members: 24, members: 30, points_per_member: 100 },
       ];
     case 'rpc/house_duels':
       return [
-        { house_id: 'lantern', rival_id: 'hourglass', points: 1160, contributors: 20, points_per_member: 58 },
-        { house_id: 'hourglass', rival_id: 'lantern', points: 756, contributors: 18, points_per_member: 42 },
-        { house_id: 'quill', rival_id: 'thorn', points: 372, contributors: 12, points_per_member: 31 },
-        { house_id: 'thorn', rival_id: 'quill', points: 858, contributors: 22, points_per_member: 39 },
+        { house_id: 'wanderers', rival_id: 'weavers', points: 1160, contributors: 20, points_per_member: 58 },
+        { house_id: 'weavers', rival_id: 'wanderers', points: 756, contributors: 18, points_per_member: 42 },
+        { house_id: 'luminaries', rival_id: 'seekers', points: 372, contributors: 12, points_per_member: 31 },
+        { house_id: 'seekers', rival_id: 'luminaries', points: 858, contributors: 22, points_per_member: 39 },
       ];
     case 'rpc/house_contributors':
       return { total: 3, hidden: 1, members: [{ user_id: ME, username: 'test.reader', display_name: 'Test Reader', avatar_url: null, points: 246 }, { user_id: FRIEND, username: friend.username, display_name: friend.display_name, avatar_url: null, points: null }] };
@@ -256,7 +258,7 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'user_items':
       return [{ item_key: 'badge:founding', source: 'earned', season_id: 1, expires_at: null }];
     case 'sorting_results':
-      return [{ scores: { lantern: 10, quill: 2, thorn: 4, hourglass: 0 }, house_id: 'lantern', created_at: new Date(now - 30 * 86400e3).toISOString() }];
+      return [{ scores: { wanderers: 120, weavers: 30, luminaries: 25, seekers: 15 }, house_id: 'wanderers', quiz_version: 2, created_at: new Date(now - 30 * 86400e3).toISOString() }];
     case 'rpc/house_balance':
       return [];
     case 'rpc/wheel_spins_left':
@@ -323,14 +325,14 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
         { key: 'theme:forest', kind: 'theme', name: 'Forest', price_cents: null, sort_order: 1 },
         { key: 'theme:holo', kind: 'theme', name: 'Holographic', price_cents: 199, sort_order: 2 },
         { key: 'frame:gold', kind: 'frame', name: 'Gold', price_cents: 99, sort_order: 1 },
-        { key: 'theme:house-lantern', kind: 'theme', name: 'Lantern banner', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
-        { key: 'frame:house-lantern', kind: 'frame', name: 'Lantern frame', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
-        { key: 'name:house-lantern', kind: 'name', name: 'Lantern name colour', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
-        { key: 'badge:house-lantern', kind: 'badge', name: 'Lantern badge', price_cents: null, sort_order: 100, house_id: 'lantern', source: 'starter' },
+        { key: 'theme:house-wanderers', kind: 'theme', name: 'Wanderers banner', price_cents: null, sort_order: 100, house_id: 'wanderers', source: 'starter' },
+        { key: 'frame:house-wanderers', kind: 'frame', name: 'Wanderers frame', price_cents: null, sort_order: 100, house_id: 'wanderers', source: 'starter' },
+        { key: 'name:house-wanderers', kind: 'name', name: 'Wanderers name colour', price_cents: null, sort_order: 100, house_id: 'wanderers', source: 'starter' },
+        { key: 'badge:house-wanderers', kind: 'badge', name: 'Wanderers badge', price_cents: null, sort_order: 100, house_id: 'wanderers', source: 'starter' },
         { key: 'badge:founding', kind: 'badge', name: 'Founding member', price_cents: null, sort_order: 220, house_id: null, source: 'earned' },
         { key: 'ribbon:season-gold', kind: 'ribbon', name: 'Gold season ribbon', price_cents: null, sort_order: 202, house_id: null, source: 'earned' },
-        { key: 'frame:house-lantern-animated', kind: 'frame', name: 'Animated Lantern frame', price_cents: 299, sort_order: 110, house_id: 'lantern', source: 'paid' },
-        { key: 'theme:house-thorn-premium-a', kind: 'theme', name: 'Thorn: Pressed Roses', price_cents: 199, sort_order: 110, house_id: 'thorn', source: 'paid' },
+        { key: 'frame:house-wanderers-animated', kind: 'frame', name: 'Animated Wanderers frame', price_cents: 299, sort_order: 110, house_id: 'wanderers', source: 'paid' },
+        { key: 'theme:house-weavers-premium-a', kind: 'theme', name: 'Weavers: Woven Hearth', price_cents: 199, sort_order: 110, house_id: 'weavers', source: 'paid' },
       ];
     case 'corner_purchases':
       return [{ item_key: 'frame:gold' }];

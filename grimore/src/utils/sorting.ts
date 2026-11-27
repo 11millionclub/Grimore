@@ -1,78 +1,88 @@
 import { HOUSE_IDS, type HouseId } from '@/theme/houses';
 
-/** The eight Sorting questions. Each answer gives 2 points to one House. */
-export const SORTING_QUESTIONS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const;
-export type QuestionId = (typeof SORTING_QUESTIONS)[number];
-export type Answers = Partial<Record<QuestionId, HouseId>>;
+import { QUIZ, TIE_BREAK_POINTS, VECTOR_ORDER, tieBreakerFor, type QuizOption } from './sorting-quiz';
+
+/** Answers: question id -> option id (never the displayed letter). */
+export type Answers = Partial<Record<string, QuizOption['id']>>;
 export type Scores = Record<HouseId, number>;
 
-export const POINTS_PER_ANSWER = 2;
-/** A gap this small (or smaller) between first and second lets the reader choose. */
-export const TORN_GAP = 2;
-/** A House holding more than this share of recent sortings is "full" for the soft balance. */
-export const BALANCE_LIMIT = 0.35;
+const zero = (): Scores => ({ wanderers: 0, weavers: 0, luminaries: 0, seekers: 0 });
 
+/** Section 5.1: add each chosen answer's four values to the House totals. */
 export function scoreAnswers(answers: Answers): Scores {
-  const s: Scores = { lantern: 0, quill: 0, thorn: 0, hourglass: 0 };
-  for (const q of SORTING_QUESTIONS) {
-    const h = answers[q];
-    if (h) s[h] += POINTS_PER_ANSWER;
+  const s = zero();
+  for (const q of QUIZ) {
+    const opt = q.options.find((o) => o.id === answers[q.id]);
+    if (!opt) continue;
+    VECTOR_ORDER.forEach((h, i) => {
+      s[h] += opt.v[i];
+    });
   }
   return s;
 }
 
-/** Houses ordered by score (highest first), ties broken alphabetically so the order is stable. */
+export const isComplete = (answers: Answers) => QUIZ.every((q) => q.options.some((o) => o.id === answers[q.id]));
+
+/** Houses ordered by score (highest first); equal scores keep the fixed House order. */
 export function rankHouses(scores: Scores): HouseId[] {
-  return [...HOUSE_IDS].sort((a, b) => scores[b] - scores[a] || a.localeCompare(b));
+  return [...HOUSE_IDS].sort((a, b) => scores[b] - scores[a] || HOUSE_IDS.indexOf(a) - HOUSE_IDS.indexOf(b));
 }
 
 export type SortingOutcome =
   | { kind: 'clear'; house: HouseId; scores: Scores }
-  | { kind: 'torn'; top: [HouseId, HouseId]; scores: Scores }
-  | { kind: 'tie'; tied: HouseId[]; scores: Scores };
+  /** Exactly two Houses share the top score: show their pair tie-breaker (section 5.3). */
+  | { kind: 'pair'; pair: [HouseId, HouseId]; scores: Scores }
+  /** Three or four share it: no automatic winner (section 5.4). */
+  | { kind: 'multi'; tied: HouseId[]; scores: Scores };
 
-/**
- * Two or more Houses tied for first -> tie-breaker (pick a sign).
- * Gap to second of 2 or less -> "torn between two".
- * Otherwise the top House.
- */
 export function decide(answers: Answers): SortingOutcome {
   const scores = scoreAnswers(answers);
   const ranked = rankHouses(scores);
   const top = scores[ranked[0]];
   const tied = ranked.filter((h) => scores[h] === top);
-  if (tied.length > 1) return { kind: 'tie', tied, scores };
-  if (top - scores[ranked[1]] <= TORN_GAP) return { kind: 'torn', top: [ranked[0], ranked[1]], scores };
+  if (tied.length === 2) return { kind: 'pair', pair: [tied[0], tied[1]], scores };
+  if (tied.length > 2) return { kind: 'multi', tied, scores };
   return { kind: 'clear', house: ranked[0], scores };
 }
 
-/** Percentages for the reveal ("44 % Lantern, 31 % Thorn…"), summing to 100. */
-export function breakdown(scores: Scores): { house: HouseId; pct: number }[] {
-  const total = HOUSE_IDS.reduce((a, h) => a + scores[h], 0);
-  if (!total) return [];
-  const raw = rankHouses(scores).map((house) => ({ house, exact: (scores[house] / total) * 100 }));
-  const rows = raw.map((r) => ({ house: r.house, pct: Math.floor(r.exact) }));
-  // Largest remainder, so the parts always add up to 100.
-  let left = 100 - rows.reduce((a, r) => a + r.pct, 0);
-  [...raw]
-    .map((r, i) => ({ i, rem: r.exact - Math.floor(r.exact) }))
-    .sort((a, b) => b.rem - a.rem)
-    .forEach(({ i }) => {
-      if (left > 0) {
-        rows[i].pct += 1;
-        left -= 1;
-      }
-    });
-  return rows.filter((r) => r.pct > 0);
+/** Section 5.3: the tie-breaker answer adds 20 points to its House only. */
+export function applyTieBreak(scores: Scores, pair: [HouseId, HouseId], optionId: 'a' | 'b'): { house: HouseId; scores: Scores } {
+  const tb = tieBreakerFor(pair[0], pair[1]);
+  const house = tb.options.find((o) => o.id === optionId)!.house;
+  return { house, scores: { ...scores, [house]: scores[house] + TIE_BREAK_POINTS } };
 }
 
 /**
- * Soft balance for the tie-breaker: if one of the tied Houses holds more than
- * 35 % of recent sortings, suggest (never force) the least crowded tied House.
+ * Section 5.2 and 5.5: each House's share of the combined score, rounded to
+ * whole numbers with a largest-remainder adjustment so they total exactly 100.
+ * Returned in the fixed House order; the scores themselves are never changed.
  */
-export function suggestedTieBreak(tied: HouseId[], recentShare: Partial<Record<HouseId, number>>): HouseId | null {
-  if (!tied.some((h) => (recentShare[h] ?? 0) > BALANCE_LIMIT)) return null;
-  return [...tied].sort((a, b) => (recentShare[a] ?? 0) - (recentShare[b] ?? 0))[0] ?? null;
+export function percentages(scores: Scores): Record<HouseId, number> {
+  const total = HOUSE_IDS.reduce((a, h) => a + scores[h], 0);
+  const out = zero();
+  if (!total) return out;
+  const exact = HOUSE_IDS.map((h) => (scores[h] / total) * 100);
+  const floor = exact.map(Math.floor);
+  let left = 100 - floor.reduce((a, b) => a + b, 0);
+  exact
+    .map((e, i) => ({ i, rem: e - Math.floor(e) }))
+    .sort((a, b) => b.rem - a.rem || a.i - b.i)
+    .forEach(({ i }) => {
+      if (left > 0) {
+        floor[i] += 1;
+        left -= 1;
+      }
+    });
+  HOUSE_IDS.forEach((h, i) => {
+    out[h] = floor[i];
+  });
+  return out;
+}
+
+/** Percentages as rows, highest first (for the result screen). */
+export function breakdown(scores: Scores): { house: HouseId; pct: number }[] {
+  const pct = percentages(scores);
+  return rankHouses(scores).map((house) => ({ house, pct: pct[house] }));
 }
 
 /** Fisher–Yates with an injectable random source (tests pass a seeded one). */

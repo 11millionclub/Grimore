@@ -49,7 +49,7 @@ export default function SortingScreen() {
           stepTotal={2}
           onDone={(house) => {
             toast(t('sorting.welcomeCard.title', { house: HOUSE_NAMES[house] }));
-            void qc.invalidateQueries({ queryKey: ['myHouse'] });
+            for (const key of ['myHouse', 'sorting', 'canTakeSorting', 'standings', 'readerHouses', 'myItems', 'ritual']) void qc.invalidateQueries({ queryKey: [key] });
           }}
         />
       ) : null}

@@ -1,41 +1,56 @@
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, ReduceMotion } from 'react-native-reanimated';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 
+import { CaretRightIcon } from '@/components/icons';
 import { Sigil } from '@/components/sigil';
 import { Press, Text, toast } from '@/components/ui';
 import { useTranslation } from '@/i18n';
 import { track } from '@/lib/analytics';
+import { confirmAction } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
-import { changeHouse, houseBalance, submitSorting } from '@/services/houses';
+import { submitSorting } from '@/services/houses';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_IDS, HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
-import { decide, shuffle, SORTING_QUESTIONS, suggestedTieBreak, type Answers, type Scores } from '@/utils/sorting';
+import { HOUSE_IDS, HOUSE_NAMES, type HouseId, houseInk, houseTokens, themedHouse } from '@/theme/houses';
+import { breakdown, decide, shuffle, type Answers, type Scores } from '@/utils/sorting';
+import { QUIZ, tieBreakerFor } from '@/utils/sorting-quiz';
 
 import { Frame, OptionRow, StepHeader } from './frame';
 import { Reveal } from './reveal';
 
-type Phase = { k: 'intro' } | { k: 'q'; i: number } | { k: 'tie'; tied: HouseId[] } | { k: 'torn'; top: [HouseId, HouseId] } | { k: 'choose'; change?: boolean } | { k: 'reveal'; house: HouseId; scores: Scores | null };
+type Phase =
+  | { k: 'intro' }
+  | { k: 'q'; i: number; editing?: boolean }
+  | { k: 'review' }
+  | { k: 'pair'; pair: [HouseId, HouseId] }
+  | { k: 'multi'; tied: HouseId[]; scores: Scores }
+  | { k: 'reveal'; house: HouseId; scores: Scores };
+
+const TOTAL = QUIZ.length;
 
 /**
- * The Sorting: intro, eight scenario questions (answers shuffled, no House
- * names or colours), then a tie-breaker or a "torn between two" choice when
- * needed, and the reveal. The server re-scores the answers and assigns the House.
+ * The House Sorting Quiz (GRIMORE specification): an intro, twelve questions
+ * one at a time (answers shuffled, no letters, Houses or points shown), a
+ * review screen to change answers or start again, the pair tie-breaker when
+ * exactly two Houses tie, a choice between the tied Houses when three or four
+ * tie, and the reveal with all four percentages. The server re-scores
+ * everything and assigns the House.
  */
-export function SortingFlow({ onDone, onBack, stepOffset = 0, stepTotal = 9 }: { onDone: (house: HouseId) => void; onBack?: () => void; stepOffset?: number; stepTotal?: number }) {
+export function SortingFlow({ onDone, onBack, stepOffset = 0, stepTotal = 2 }: { onDone: (house: HouseId) => void; onBack?: () => void; stepOffset?: number; stepTotal?: number }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>({ k: 'intro' });
   const [answers, setAnswers] = useState<Answers>({});
   const [busy, setBusy] = useState(false);
-  const order = useMemo(() => Object.fromEntries(SORTING_QUESTIONS.map((q) => [q, shuffle(HOUSE_IDS)])) as Record<(typeof SORTING_QUESTIONS)[number], HouseId[]>, []);
+  // Options are shuffled once per session; text and score always move together.
+  const order = useMemo(() => Object.fromEntries(QUIZ.map((q) => [q.id, shuffle(q.options.map((o) => o.id))])) as Record<string, string[]>, []);
+  const [tbOrder] = useState(() => (Math.random() < 0.5 ? (['a', 'b'] as const) : (['b', 'a'] as const)));
 
-  const submit = async (input: { answers: Answers; tieBreak?: HouseId; choice?: HouseId }, meta: { gap?: number; tie?: boolean; skipped?: boolean }) => {
+  const submit = async (input: { tieBreak?: 'a' | 'b'; choice?: HouseId }) => {
     setBusy(true);
     try {
-      const r = await submitSorting(input);
-      track('house_revealed', { house: r.house, gap: meta.gap ?? null, tie_break: !!meta.tie, skipped: !!meta.skipped });
-      setPhase({ k: 'reveal', house: r.house, scores: meta.skipped ? null : r.scores });
+      const r = await submitSorting({ answers, tieBreak: input.tieBreak ?? null, choice: input.choice ?? null });
+      track('house_revealed', { house: r.house, tie_break: !!input.tieBreak, multi: !!input.choice });
+      setPhase({ k: 'reveal', house: r.house, scores: r.scores });
     } catch (e) {
       toast(toAppError(e).message);
     } finally {
@@ -43,36 +58,35 @@ export function SortingFlow({ onDone, onBack, stepOffset = 0, stepTotal = 9 }: {
     }
   };
 
-  const finishQuestions = (a: Answers) => {
-    const d = decide(a);
-    if (d.kind === 'tie') return setPhase({ k: 'tie', tied: shuffle(d.tied) });
-    if (d.kind === 'torn') return setPhase({ k: 'torn', top: d.top });
-    void submit({ answers: a }, { gap: d.scores[d.house] - Math.max(...HOUSE_IDS.filter((h) => h !== d.house).map((h) => d.scores[h])) });
+  const reveal = () => {
+    const d = decide(answers);
+    if (d.kind === 'pair') return setPhase({ k: 'pair', pair: d.pair });
+    if (d.kind === 'multi') return setPhase({ k: 'multi', tied: d.tied, scores: d.scores });
+    void submit({});
   };
 
   const back = () => {
-    if (phase.k === 'q') return setPhase(phase.i === 0 ? { k: 'intro' } : { k: 'q', i: phase.i - 1 });
-    if (phase.k === 'tie' || phase.k === 'torn') return setPhase({ k: 'q', i: 7 });
-    if (phase.k === 'choose' && !phase.change) return setPhase({ k: 'intro' });
+    if (phase.k === 'q') return setPhase(phase.editing ? { k: 'review' } : phase.i === 0 ? { k: 'intro' } : { k: 'q', i: phase.i - 1 });
+    if (phase.k === 'review') return setPhase({ k: 'q', i: TOTAL - 1 });
+    if (phase.k === 'pair' || phase.k === 'multi') return setPhase({ k: 'review' });
     onBack?.();
   };
 
-  if (phase.k === 'reveal')
-    return (
-      <Reveal
-        house={phase.house}
-        scores={phase.scores}
-        onContinue={() => onDone(phase.house)}
-        onChooseAnother={() => setPhase({ k: 'choose', change: true })}
-      />
-    );
+  const restart = async () => {
+    if (!(await confirmAction(t('sorting.review.restart'), t('sorting.review.restartConfirm'), t('sorting.review.restart'), false))) return;
+    setAnswers({});
+    setPhase({ k: 'q', i: 0 });
+  };
 
-  const progress = phase.k === 'q' ? stepOffset + 1 + phase.i / 8 : phase.k === 'intro' ? stepOffset : stepOffset + 1;
+  if (phase.k === 'reveal') return <Reveal house={phase.house} scores={phase.scores} onContinue={() => onDone(phase.house)} />;
+
+  const answered = Object.keys(answers).length;
+  const progress = phase.k === 'q' ? stepOffset + (phase.i + 1) / TOTAL : phase.k === 'intro' ? stepOffset : stepOffset + 1;
   return (
     <View style={{ flex: 1 }}>
       <StepHeader step={Math.min(stepTotal, progress)} total={stepTotal} onBack={phase.k === 'intro' && !onBack ? undefined : back} />
       {busy ? (
-        <View style={{ ...{ position: 'absolute', inset: 0 }, zIndex: 20, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', inset: 0, zIndex: 20, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator />
           <Text variant="small" tone="muted" style={{ marginTop: spacing.sm }}>
             {t('sorting.reveal.saving')}
@@ -80,86 +94,45 @@ export function SortingFlow({ onDone, onBack, stepOffset = 0, stepTotal = 9 }: {
         </View>
       ) : null}
       <View style={{ flex: 1, opacity: busy ? 0.15 : 1 }} pointerEvents={busy ? 'none' : 'auto'}>
-        {phase.k === 'intro' ? (
-          <Intro
-            onBegin={() => {
-              track('sorting_started');
-              setPhase({ k: 'q', i: 0 });
-            }}
-            onChoose={() => {
-              track('sorting_skipped');
-              setPhase({ k: 'choose' });
-            }}
-          />
-        ) : null}
+        {phase.k === 'intro' ? <Intro onBegin={() => (track('sorting_started'), setPhase(answered ? { k: 'review' } : { k: 'q', i: 0 }))} /> : null}
         {phase.k === 'q' ? (
           <Question
             key={phase.i}
-            n={phase.i}
-            order={order[SORTING_QUESTIONS[phase.i]]}
-            value={answers[SORTING_QUESTIONS[phase.i]]}
-            onPick={(h) => {
-              const q = SORTING_QUESTIONS[phase.i];
-              const next = { ...answers, [q]: h };
-              setAnswers(next);
-              track('sorting_question_answered', { question: q, house: h });
-              setTimeout(() => (phase.i < 7 ? setPhase({ k: 'q', i: phase.i + 1 }) : finishQuestions(next)), 220);
+            i={phase.i}
+            order={order[QUIZ[phase.i].id]}
+            value={answers[QUIZ[phase.i].id]}
+            onPick={(id) => {
+              const q = QUIZ[phase.i];
+              setAnswers((a) => ({ ...a, [q.id]: id as 'a' | 'b' | 'c' | 'd' }));
+              track('sorting_question_answered', { question: q.id });
+              const go = () => setPhase(phase.editing || phase.i === TOTAL - 1 ? { k: 'review' } : { k: 'q', i: phase.i + 1 });
+              setTimeout(go, 220);
             }}
+            onNext={answers[QUIZ[phase.i].id] ? () => setPhase(phase.editing || phase.i === TOTAL - 1 ? { k: 'review' } : { k: 'q', i: phase.i + 1 }) : undefined}
           />
         ) : null}
-        {phase.k === 'tie' ? <TieBreak tied={phase.tied} onPick={(h) => void submit({ answers, tieBreak: h }, { tie: true, gap: 0 })} /> : null}
-        {phase.k === 'torn' ? (
-          <Torn
-            top={phase.top}
-            onPick={(h) => {
-              track('house_chosen_from_two', { house: h });
-              void submit({ answers, choice: h }, { gap: 2 });
-            }}
-          />
-        ) : null}
-        {phase.k === 'choose' ? (
-          <ChooseHouse
-            onPick={async (h) => {
-              if (!phase.change) return void submit({ answers: {}, choice: h }, { skipped: true });
-              setBusy(true);
-              try {
-                await changeHouse(h);
-                track('house_changed', { to: h, when: 'reveal' });
-                setPhase({ k: 'reveal', house: h, scores: null });
-              } catch (e) {
-                toast(toAppError(e).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          />
-        ) : null}
+        {phase.k === 'review' ? <Review answers={answers} onEdit={(i) => setPhase({ k: 'q', i, editing: true })} onReveal={reveal} onRestart={() => void restart()} /> : null}
+        {phase.k === 'pair' ? <PairTieBreak pair={phase.pair} order={tbOrder} onPick={(id) => void submit({ tieBreak: id })} /> : null}
+        {phase.k === 'multi' ? <MultiTie tied={phase.tied} scores={phase.scores} onPick={(h) => void submit({ choice: h })} /> : null}
       </View>
     </View>
   );
 }
 
-function Intro({ onBegin, onChoose }: { onBegin: () => void; onChoose: () => void }) {
-  const { colors } = useTheme();
+function Intro({ onBegin }: { onBegin: () => void }) {
   const { t } = useTranslation();
   return (
-    <Frame
-      title={t('sorting.intro.title')}
-      sub={t('sorting.intro.sub')}
-      cta={t('sorting.intro.begin')}
-      onNext={onBegin}
-      footer={
-        <Press onPress={onChoose} accessibilityRole="button" style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md }}>
-          <Text variant="small" tone="muted" style={{ textDecorationLine: 'underline' }}>
-            {t('sorting.intro.choose')}
-          </Text>
-        </Press>
-      }
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.xl }}>
+    <Frame title={t('sorting.intro.title')} sub={t('sorting.intro.sub')} cta={t('sorting.intro.begin')} onNext={onBegin}>
+      {/* All four Houses, in full colour and equal size: none is presented as better. */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md, marginTop: spacing.xl, flexWrap: 'wrap' }}>
         {HOUSE_IDS.map((h, i) => (
-          <Animated.View key={h} entering={FadeInDown.delay(120 * i).duration(500).reduceMotion(ReduceMotion.System)}>
-            <Sigil house={h} size={44} color={colors.muted} label={false} />
+          <Animated.View key={h} entering={FadeInDown.delay(120 * i).duration(500).reduceMotion(ReduceMotion.System)} style={{ alignItems: 'center', gap: 6, width: 72 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: houseTokens[h].primary, alignItems: 'center', justifyContent: 'center' }}>
+              <Sigil house={h} size={32} color={houseTokens[h].onPrimary} label={false} />
+            </View>
+            <Text variant="caption" align="center">
+              {HOUSE_NAMES[h]}
+            </Text>
           </Animated.View>
         ))}
       </View>
@@ -167,127 +140,155 @@ function Intro({ onBegin, onChoose }: { onBegin: () => void; onChoose: () => voi
   );
 }
 
-function Question({ n, order, value, onPick }: { n: number; order: HouseId[]; value?: HouseId; onPick: (h: HouseId) => void }) {
+function Question({ i, order, value, onPick, onNext }: { i: number; order: string[]; value?: string; onPick: (id: string) => void; onNext?: () => void }) {
   const { t } = useTranslation();
-  const q = SORTING_QUESTIONS[n];
+  const q = QUIZ[i];
   return (
-    <Frame title={t(`sorting.${q}.title`)} sub={t('sorting.question', { n: n + 1, total: 8 })}>
-      <View style={{ gap: spacing.sm }} accessibilityRole="radiogroup">
-        {order.map((h, k) => (
-          <Animated.View key={h} entering={FadeInDown.duration(320).delay(60 + k * 50).reduceMotion(ReduceMotion.System)}>
-            <OptionRow label={t(`sorting.${q}.${h}`)} on={value === h} onPress={() => onPick(h)} />
-          </Animated.View>
-        ))}
-      </View>
-    </Frame>
-  );
-}
-
-/** Unnamed, uncoloured signs in random order. Soft balance may pre-highlight one, never forces it. */
-function TieBreak({ tied, onPick }: { tied: HouseId[]; onPick: (h: HouseId) => void }) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
-  const balance = useQuery({ queryKey: ['houseBalance'], queryFn: houseBalance, staleTime: 10 * 60_000 });
-  const hint = balance.data ? suggestedTieBreak(tied, balance.data) : null;
-  return (
-    <Frame title={t('sorting.tie.title')} sub={t('sorting.tie.sub')}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'center' }}>
-        {tied.map((h, i) => (
-          <Press
-            key={h}
-            accessibilityRole="button"
-            accessibilityLabel={t('sorting.tie.sign', { n: i + 1 })}
-            onPress={() => onPick(h)}
-            style={{ width: 132, height: 132, borderRadius: radius.card, borderWidth: hint === h ? 2 : 1, borderColor: hint === h ? colors.gold : colors.line, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Sigil house={h} size={64} color={colors.ink} label={false} />
-          </Press>
-        ))}
-      </View>
-    </Frame>
-  );
-}
-
-function Torn({ top, onPick }: { top: [HouseId, HouseId]; onPick: (h: HouseId) => void }) {
-  const { t } = useTranslation();
-  return (
-    <Frame title={t('sorting.torn.title')} sub={t('sorting.torn.sub')}>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.xl, marginVertical: spacing.xl }}>
-        <Animated.View entering={FadeIn.duration(500).reduceMotion(ReduceMotion.System)} style={{ transform: [{ scaleX: 1 }] }}>
-          <Sigil house={top[0]} size={84} color={houseTokens[top[0]].ink} />
-        </Animated.View>
-        <Animated.View entering={FadeIn.duration(500).delay(150).reduceMotion(ReduceMotion.System)} style={{ transform: [{ scaleX: -1 }] }}>
-          <Sigil house={top[1]} size={84} color={houseTokens[top[1]].ink} />
-        </Animated.View>
-      </View>
-      <View style={{ gap: spacing.md }}>
-        {top.map((h) => (
-          <HouseButton key={h} house={h} onPress={() => onPick(h)} />
-        ))}
-      </View>
-    </Frame>
-  );
-}
-
-function HouseButton({ house, onPress }: { house: HouseId; onPress: () => void }) {
-  const { t } = useTranslation();
-  const tk = houseTokens[house];
-  return (
-    <Press
-      accessibilityRole="button"
-      accessibilityLabel={t('sorting.torn.pick', { house: HOUSE_NAMES[house] })}
-      onPress={onPress}
-      style={{ minHeight: 64, borderRadius: radius.card, backgroundColor: tk.primary, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.base }}
-    >
-      <Sigil house={house} size={30} color={tk.onPrimary} label={false} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.onPrimary}>
-          {HOUSE_NAMES[house]}
-        </Text>
-        <Text variant="small" color={tk.onPrimary}>
-          {t(`houses.${house}.motto`)}
-        </Text>
-      </View>
-    </Press>
-  );
-}
-
-function ChooseHouse({ onPick }: { onPick: (h: HouseId) => void }) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
-  const [sel, setSel] = useState<HouseId | null>(null);
-  return (
-    <Frame title={t('sorting.choose.title')} sub={t('sorting.choose.sub')} cta={sel ? t('sorting.choose.join', { house: HOUSE_NAMES[sel] }) : undefined} onNext={() => sel && onPick(sel)}>
-      <View style={{ gap: spacing.md }}>
-        {HOUSE_IDS.map((h) => {
-          const on = sel === h;
-          const tk = houseTokens[h];
+    <Frame title={q.title} sub={`${t('sorting.question', { n: i + 1, total: TOTAL })}\n\n${q.prompt}`} cta={onNext ? t('sorting.next') : undefined} onNext={onNext} ctaVariant="secondary">
+      <View style={{ gap: spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={q.title}>
+        {order.map((id, k) => {
+          const o = q.options.find((x) => x.id === id)!;
           return (
-            <Press
-              key={h}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
-              onPress={() => setSel(h)}
-              style={{ borderRadius: radius.card, borderWidth: on ? 2 : 1, borderColor: on ? tk.ink : colors.line, backgroundColor: colors.surface, padding: spacing.base, flexDirection: 'row', gap: spacing.md }}
-            >
-              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: tk.primary, alignItems: 'center', justifyContent: 'center' }}>
-                <Sigil house={h} size={30} color={tk.onPrimary} label={false} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.ink}>
-                  {HOUSE_NAMES[h]} · {t(`houses.${h}.members`)}
-                </Text>
-                <Text variant="small" style={{ fontStyle: 'italic' }}>
-                  {t(`houses.${h}.motto`)}
-                </Text>
-                <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
-                  {t(`houses.${h}.strength`)}
-                </Text>
-              </View>
-            </Press>
+            <Animated.View key={id} entering={FadeInDown.duration(320).delay(60 + k * 50).reduceMotion(ReduceMotion.System)}>
+              <OptionRow label={o.text} on={value === id} onPress={() => onPick(id)} />
+            </Animated.View>
           );
         })}
       </View>
     </Frame>
+  );
+}
+
+function Review({ answers, onEdit, onReveal, onRestart }: { answers: Answers; onEdit: (i: number) => void; onReveal: () => void; onRestart: () => void }) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const complete = QUIZ.every((q) => answers[q.id]);
+  return (
+    <Frame
+      title={t('sorting.review.title')}
+      sub={t('sorting.review.sub')}
+      cta={t('sorting.review.cta')}
+      onNext={onReveal}
+      disabled={!complete}
+      footer={
+        <Press onPress={onRestart} accessibilityRole="button" style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md }}>
+          <Text variant="small" tone="muted" style={{ textDecorationLine: 'underline' }}>
+            {t('sorting.review.restart')}
+          </Text>
+        </Press>
+      }
+    >
+      <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: spacing.sm }}>
+        {QUIZ.map((q, i) => {
+          const o = q.options.find((x) => x.id === answers[q.id]);
+          return (
+            <Press
+              key={q.id}
+              accessibilityRole="button"
+              accessibilityLabel={t('sorting.review.edit', { n: i + 1 })}
+              onPress={() => onEdit(i)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.card, borderWidth: 1, borderColor: o ? colors.line : colors.danger, backgroundColor: colors.surface, padding: spacing.md }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="caption" tone="muted">
+                  {i + 1}. {q.title}
+                </Text>
+                <Text variant="callout" numberOfLines={2}>
+                  {o?.text ?? '—'}
+                </Text>
+              </View>
+              <CaretRightIcon size={14} color={colors.muted} />
+            </Press>
+          );
+        })}
+      </ScrollView>
+    </Frame>
+  );
+}
+
+/** Section 4: the question for exactly this pair of tied Houses; each answer is +20 to one of them. */
+function PairTieBreak({ pair, order, onPick }: { pair: [HouseId, HouseId]; order: readonly ('a' | 'b')[]; onPick: (id: 'a' | 'b') => void }) {
+  const { t } = useTranslation();
+  const tb = tieBreakerFor(pair[0], pair[1]);
+  return (
+    <Frame title={tb.title} sub={`${t('sorting.tie.sub')}\n\n${tb.prompt}`}>
+      <View style={{ gap: spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={tb.title}>
+        {order.map((id) => {
+          const o = tb.options.find((x) => x.id === id)!;
+          return <OptionRow key={id} label={o.text} on={false} onPress={() => onPick(id)} />;
+        })}
+      </View>
+    </Frame>
+  );
+}
+
+/**
+ * Section 5.4: three or four Houses tied. The specification forbids picking a
+ * winner arbitrarily, so the reader sees the blended result and chooses.
+ */
+function MultiTie({ tied, scores, onPick }: { tied: HouseId[]; scores: Scores; onPick: (h: HouseId) => void }) {
+  const { t } = useTranslation();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
+  const rows = breakdown(scores);
+  return (
+    <Frame title={t('sorting.multi.title')} sub={t('sorting.multi.sub')}>
+      <View style={{ gap: spacing.md }}>
+        <Percentages rows={rows} />
+        {tied.map((h) => {
+          const tk = themedHouse(h, dark);
+          return (
+            <View key={h} style={{ borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: spacing.base, gap: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tk.primary, alignItems: 'center', justifyContent: 'center' }}>
+                  <Sigil house={h} size={26} color={tk.onPrimary} label={false} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.display, fontSize: 21 }} color={tk.ink}>
+                    {HOUSE_NAMES[h]}
+                  </Text>
+                  <Text variant="small" style={{ fontStyle: 'italic' }}>
+                    “{t(`houses.${h}.motto`)}”
+                  </Text>
+                </View>
+              </View>
+              <Text variant="small" tone="muted">
+                {t(`houses.${h}.description`)}
+              </Text>
+              <Press accessibilityRole="button" onPress={() => onPick(h)} style={{ minHeight: 48, borderRadius: radius.full, backgroundColor: tk.primary, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontFamily: fonts.semibold }} color={tk.onPrimary}>
+                  {t('sorting.multi.join', { house: HOUSE_NAMES[h] })}
+                </Text>
+              </Press>
+            </View>
+          );
+        })}
+      </View>
+    </Frame>
+  );
+}
+
+/** All four House percentages, with the symbol and name next to each bar (never colour alone). */
+export function Percentages({ rows, onDark }: { rows: { house: HouseId; pct: number }[]; onDark?: string }) {
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
+  const list = rows.map((r) => `${HOUSE_NAMES[r.house]} ${r.pct}%`).join(', ');
+  return (
+    <View style={{ gap: 6 }} accessibilityLabel={list}>
+      {rows.map((r) => (
+        <View key={r.house} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <Sigil house={r.house} size={16} color={onDark ?? houseInk(r.house, dark)} label={false} />
+          <Text variant="caption" style={{ width: 84 }} color={onDark}>
+            {HOUSE_NAMES[r.house]}
+          </Text>
+          <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.surface2, overflow: 'hidden' }}>
+            <View style={{ width: `${r.pct}%`, height: '100%', backgroundColor: houseTokens[r.house].primary }} />
+          </View>
+          <Text variant="caption" style={{ width: 40, textAlign: 'right', fontVariant: ['tabular-nums'] }} color={onDark}>
+            {r.pct}%
+          </Text>
+        </View>
+      ))}
+    </View>
   );
 }

@@ -7,23 +7,24 @@ import { Press, Text } from '@/components/ui';
 import { useMyHouse, useMyId, useReaderHouses } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_NAMES, houseTokens } from '@/theme/houses';
+import { HOUSE_NAMES, themedHouse } from '@/theme/houses';
 
 /**
- * A reader's House on their profile: sigil, "Scribe of House Quill" and the
+ * A reader's House on their profile: sigil, "One of the Seekers" and the
  * motto; opens the House's Common Room. Other readers only see it when it is not hidden (reader_houses
  * already filters); the owner always sees it, with a note when hidden.
  */
 export function HousePlate({ userId }: { userId: string }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const me = useMyId();
   const mine = userId === me;
   const own = useMyHouse();
   const others = useReaderHouses(mine ? [] : [userId]);
   const house = mine ? own.data?.house : others.data?.[userId];
   if (!house) return null;
-  const tk = houseTokens[house];
+  const tk = themedHouse(house, dark);
   const name = HOUSE_NAMES[house];
   return (
     <Press

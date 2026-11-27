@@ -18,7 +18,8 @@ export async function readerHouses(ids: string[]): Promise<Record<string, HouseI
   return Object.fromEntries(rows.filter((r) => isHouseId(r.house_id)).map((r) => [r.user_id, r.house_id as HouseId]));
 }
 
-export async function submitSorting(input: { answers: Answers; tieBreak?: HouseId | null; choice?: HouseId | null }) {
+/** The server re-scores the answers with its own copy of the vectors and assigns the House. */
+export async function submitSorting(input: { answers: Answers; tieBreak?: 'a' | 'b' | null; choice?: HouseId | null }) {
   const res = unwrap(
     await supabase.rpc('submit_sorting', { p_answers: input.answers as unknown as Record<string, string>, p_tie_break: input.tieBreak ?? null, p_choice: input.choice ?? null }),
   ) as { house: HouseId; scores: Scores };
@@ -31,11 +32,6 @@ export async function changeHouse(house: HouseId) {
 
 export async function setHouseHidden(userId: string, hidden: boolean) {
   unwrap(await supabase.from('profiles').update({ house_hidden: hidden }).eq('id', userId));
-}
-
-export async function houseBalance(): Promise<Partial<Record<HouseId, number>>> {
-  const rows = unwrap(await supabase.rpc('house_balance')) ?? [];
-  return Object.fromEntries(rows.filter((r) => isHouseId(r.house_id)).map((r) => [r.house_id, Number(r.share)]));
 }
 
 export async function myAgeBand(): Promise<'unknown' | 'teen' | 'adult'> {
@@ -54,11 +50,17 @@ export async function saveBirthDate(userId: string, isoDate: string) {
 }
 
 export async function latestSorting(userId: string) {
-  return unwrap(await supabase.from('sorting_results').select('scores, house_id, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()) as {
+  return unwrap(await supabase.from('sorting_results').select('scores, house_id, created_at, quiz_version').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()) as {
     scores: Scores;
     house_id: HouseId;
     created_at: string;
+    quiz_version: number;
   } | null;
+}
+
+/** No House yet, or sorted by the earlier quiz (allowed to take the current one once). */
+export async function canTakeSorting(): Promise<boolean> {
+  return !!unwrap(await supabase.rpc('can_take_sorting'));
 }
 
 /* ---------- House Cup ---------- */
@@ -89,7 +91,7 @@ export type Duel = { perMember: number; contributors: number; points: number };
 export async function getDuels(): Promise<Record<HouseId, Duel>> {
   const rows = unwrap(await supabase.rpc('house_duels')) ?? [];
   const zero = { perMember: 0, contributors: 0, points: 0 };
-  const out: Record<HouseId, Duel> = { lantern: { ...zero }, quill: { ...zero }, thorn: { ...zero }, hourglass: { ...zero } };
+  const out: Record<HouseId, Duel> = { wanderers: { ...zero }, weavers: { ...zero }, luminaries: { ...zero }, seekers: { ...zero } };
   rows.forEach((r) => {
     if (isHouseId(r.house_id)) out[r.house_id] = { perMember: Number(r.points_per_member), contributors: r.contributors, points: Number(r.points) };
   });

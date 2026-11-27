@@ -7,16 +7,17 @@ import { Avatar, EmptyState, Press, Screen, Skeleton, Text } from '@/components/
 import { useTranslation } from '@/i18n';
 import { houseContributors } from '@/services/houses';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_NAMES, houseTokens, isHouseId } from '@/theme/houses';
+import { HOUSE_NAMES, isHouseId, themedHouse } from '@/theme/houses';
 
 /** Everyone in a House who earned it points this season: the "active" members the Cup divides by. */
 export default function CupActive() {
   const { house } = useLocalSearchParams<{ house: string }>();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const { t } = useTranslation();
-  const h = isHouseId(house) ? house : 'lantern';
+  const h = isHouseId(house) ? house : 'wanderers';
   const q = useQuery({ queryKey: ['cupActive', h], queryFn: () => houseContributors(h) });
-  const tk = houseTokens[h];
+  const tk = themedHouse(h, dark);
   const d = q.data;
   return (
     <Screen title={t('cup.activeTitle', { house: HOUSE_NAMES[h] })} back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>

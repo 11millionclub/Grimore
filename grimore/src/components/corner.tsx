@@ -7,19 +7,17 @@ import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop, Text as SvgText 
 import {
   BookOpenIcon,
   CompassIcon,
-  DropIcon,
   FeatherIcon,
   FlagBannerIcon,
   FlowerIcon,
   FlowerTulipIcon,
-  HeartBreakIcon,
-  HourglassMediumIcon,
+  KeyIcon,
   LampIcon,
+  MagnifyingGlassIcon,
   MapTrifoldIcon,
   PenNibIcon,
   QuotesIcon,
   ScrollIcon,
-  TimerIcon,
   BookmarkSimpleIcon,
   ButterflyIcon,
   CatIcon,
@@ -117,16 +115,16 @@ const sigilIcon = (h: HouseId): ComponentType<IconProps> =>
     return <Sigil house={h} size={Number(size)} color={String(color)} label={false} />;
   };
 const HOUSE_OBJECTS: Record<HouseId, ComponentType<IconProps>[]> = {
-  lantern: [ButterflyIcon, LampIcon, CompassIcon, MapTrifoldIcon, StarIcon, MoonIcon],
-  quill: [PenNibIcon, ScrollIcon, QuotesIcon, FeatherIcon, BookOpenIcon, CoffeeIcon],
-  thorn: [FlowerTulipIcon, HeartBreakIcon, DropIcon, FlowerIcon, HeartIcon, MoonIcon],
-  hourglass: [TimerIcon, BookmarkSimpleIcon, HourglassMediumIcon, CoffeeIcon, StarIcon, BookOpenIcon],
+  wanderers: [CompassIcon, MapTrifoldIcon, ButterflyIcon, LampIcon, StarIcon, MoonIcon],
+  weavers: [HeartIcon, FlowerTulipIcon, FlowerIcon, BookmarkSimpleIcon, CoffeeIcon, MoonIcon],
+  luminaries: [SparkleIcon, BookOpenIcon, LampIcon, ScrollIcon, QuotesIcon, StarIcon],
+  seekers: [KeyIcon, MagnifyingGlassIcon, PenNibIcon, ScrollIcon, FeatherIcon, MoonIcon],
 };
 const PREMIUM_THEMES: Record<HouseId, [string[], string[]]> = {
-  lantern: [['#1f2a44', '#0d1320'], ['#e9a23b', '#6b3a0c']],
-  quill: [['#2b2f63', '#14162e'], ['#f4ecd8', '#c9ced8']],
-  thorn: [['#6e1830', '#2a0812'], ['#2a0f1f', '#120609']],
-  hourglass: [['#c77d4a', '#3d2412'], ['#e8d3a6', '#2a9d8f']],
+  wanderers: [['#1f3a5c', '#0b1726'], ['#e6d7b4', '#152d49']],
+  weavers: [['#8a3f28', '#2a120b'], ['#f3d2c4', '#c76849']],
+  luminaries: [['#3a2f12', '#14100a'], ['#f6e2a8', '#ddac42']],
+  seekers: [['#1d4644', '#0a1716'], ['#d3e7e5', '#3a8884']],
 };
 for (const h of HOUSE_IDS) {
   const tk = houseTokens[h];
@@ -135,7 +133,7 @@ for (const h of HOUSE_IDS) {
   THEMES[`house-${h}-premium-b`] = lin(140, PREMIUM_THEMES[h][1], PREMIUM_THEMES[h][1][1], true, h);
   FRAMES[`house-${h}`] = { ring: ring([tk.primary, tk.secondary, tk.primary]), sigil: h };
   FRAMES[`house-${h}-animated`] = { ring: ring([tk.primary, tk.secondary, tk.primary]), sigil: h, orbit: true };
-  NAME_STYLES[`house-${h}`] = { stops: [tk.ink, tk.primary] };
+  NAME_STYLES[`house-${h}`] = { stops: [tk.inkDark, tk.secondary] };
   PACKS[`house-${h}`] = { icons: [sigilIcon(h), FlagBannerIcon, ...HOUSE_OBJECTS[h].slice(0, 2)], color: tk.primary };
   PACKS[`house-${h}-premium`] = { icons: [sigilIcon(h), ...HOUSE_OBJECTS[h], FlagBannerIcon, SparkleIcon, CrownIcon, DiamondIcon, LeafIcon], color: tk.secondary };
   PACKS[`house-${h}-bundle`] = PACKS[`house-${h}-premium`];

@@ -20,14 +20,16 @@ import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 
 import { AppWindowIcon, FlagBannerIcon, IdentificationBadgeIcon, PaletteIcon, SquaresFourIcon, StickerIcon, type IconProps } from '@/components/icons';
 import { Sigil } from '@/components/sigil';
-import { Avatar, Btn, Press, Text } from '@/components/ui';
+import { Avatar, Btn, Text } from '@/components/ui';
 import { useMyProfile } from '@/hooks/queries';
 import { useTranslation } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
 import { fonts, radius, spacing, useTheme } from '@/theme';
-import { HOUSE_IDS, HOUSE_NAMES, houseTokens, type HouseId } from '@/theme/houses';
+import { HOUSE_IDS, HOUSE_NAMES, type HouseId, houseInk, houseTokens } from '@/theme/houses';
 import { breakdown, type Scores } from '@/utils/sorting';
+
+import { Percentages } from './sorting';
 
 const ORBIT = 112;
 const SPIN_MS = 2000;
@@ -42,7 +44,8 @@ const KIT: { key: 'frame' | 'banner' | 'badge' | 'nameColour' | 'stickers' | 'ic
 ];
 
 function OrbitSigil({ house, i, spin, chosen, landed }: { house: HouseId; i: number; spin: SharedValue<number>; chosen: boolean; landed: SharedValue<number> }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const dark = scheme === 'dark';
   const style = useAnimatedStyle(() => {
     const a = (i / 4) * Math.PI * 2 + spin.value;
     const r = ORBIT * (1 - landed.value * (chosen ? 1 : 0));
@@ -54,7 +57,7 @@ function OrbitSigil({ house, i, spin, chosen, landed }: { house: HouseId; i: num
   });
   return (
     <Animated.View style={[{ position: 'absolute', width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center' }, style]}>
-      <Sigil house={house} size={28} color={chosen ? houseTokens[house].ink : colors.muted} label={false} />
+      <Sigil house={house} size={28} color={chosen ? houseInk(house, dark) : colors.muted} label={false} />
     </Animated.View>
   );
 }
@@ -64,7 +67,7 @@ function OrbitSigil({ house, i, spin, chosen, landed }: { house: HouseId; i: num
  * (a haptic tick as each passes), the chosen one comes forward, the screen
  * floods with the House colour and the name lands. Reduced motion: a cross-fade.
  */
-export function Reveal({ house, scores, onContinue, onChooseAnother }: { house: HouseId; scores: Scores | null; onContinue: () => void; onChooseAnother: () => void }) {
+export function Reveal({ house, scores, onContinue }: { house: HouseId; scores: Scores | null; onContinue: () => void }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -76,7 +79,6 @@ export function Reveal({ house, scores, onContinue, onChooseAnother }: { house: 
   const landed = useSharedValue(0);
   const flood = useSharedValue(0);
   const [done, setDone] = useState(reduced);
-  const [changed, setChanged] = useState(false);
 
   useEffect(() => {
     if (reduced) {
@@ -99,8 +101,6 @@ export function Reveal({ house, scores, onContinue, onChooseAnother }: { house: 
   const floodStyle = useAnimatedStyle(() => ({ opacity: flood.value, transform: [{ scale: 0.2 + flood.value * 3 }] }));
   const avatarStyle = useAnimatedStyle(() => ({ opacity: 1 - landed.value }));
   const rows = scores ? breakdown(scores) : [];
-  const list = rows.map((r) => `${r.pct} % ${HOUSE_NAMES[r.house]}`).join(', ');
-  const about = t(`houses.${house}.about`, { returnObjects: true }) as unknown as string[];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }}>
@@ -131,35 +131,19 @@ export function Reveal({ house, scores, onContinue, onChooseAnother }: { house: 
             <Text accessibilityRole="header" align="center" style={{ fontFamily: fonts.display, fontSize: 40, lineHeight: 48 }} color={tk.onPrimary}>
               {HOUSE_NAMES[house]}
             </Text>
-            <Text align="center" variant="title" color={tk.onPrimary}>
-              {t(`houses.${house}.member`)}
-            </Text>
             <Text align="center" variant="quote" color={tk.onPrimary} style={{ marginTop: spacing.base }}>
               “{t(`houses.${house}.motto`)}”
             </Text>
 
             <View style={{ marginTop: spacing.xl, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base, gap: spacing.sm, borderWidth: 1, borderColor: colors.gold }}>
-              {about.map((line) => (
-                <Text key={line} variant="callout">
-                  {line}
-                </Text>
-              ))}
-              {list ? (
-                <View style={{ marginTop: spacing.sm, gap: 6 }} accessibilityLabel={t('sorting.reveal.breakdown', { list })}>
+              {/* The result description exactly as written in the specification. */}
+              <Text variant="callout">{t(`houses.${house}.description`)}</Text>
+              {rows.length ? (
+                <View style={{ marginTop: spacing.sm, gap: 6 }}>
                   <Text variant="small" style={{ fontFamily: fonts.semibold }}>
-                    {t('sorting.reveal.breakdown', { list })}
+                    {t('sorting.reveal.percentages')}
                   </Text>
-                  {rows.map((r) => (
-                    <View key={r.house} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <Sigil house={r.house} size={16} color={houseTokens[r.house].ink} label={false} />
-                      <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.surface2, overflow: 'hidden' }}>
-                        <View style={{ width: `${r.pct}%`, height: '100%', backgroundColor: houseTokens[r.house].primary }} />
-                      </View>
-                      <Text variant="caption" style={{ width: 92 }}>
-                        {r.pct} % {HOUSE_NAMES[r.house]}
-                      </Text>
-                    </View>
-                  ))}
+                  <Percentages rows={rows} />
                 </View>
               ) : null}
             </View>
@@ -186,20 +170,6 @@ export function Reveal({ house, scores, onContinue, onChooseAnother }: { house: 
             <Btn size="lg" full onPress={onContinue} style={{ marginTop: spacing.sm }}>
               {t('common.continue')}
             </Btn>
-            {!changed ? (
-              <Press
-                accessibilityRole="button"
-                onPress={() => {
-                  setChanged(true);
-                  onChooseAnother();
-                }}
-                style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: spacing.sm }}
-              >
-                <Text variant="small" tone="muted" style={{ textDecorationLine: 'underline' }}>
-                  {t('sorting.reveal.notYou')}
-                </Text>
-              </Press>
-            ) : null}
             <Text variant="caption" tone="muted" align="center">
               {t('sorting.reveal.changeHint')}
             </Text>
