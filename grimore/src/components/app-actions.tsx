@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { BellIcon, EnvelopeSimpleIcon, GearSixIcon, XIcon } from '@/components/icons';
 import { Avatar, IconBtn, Press, Text } from '@/components/ui';
 import { useMyId, useUnread } from '@/hooks/queries';
+import { qk } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
@@ -78,6 +79,9 @@ export function MessageAlerts() {
         void qc.invalidateQueries({ queryKey: ['unread'] });
         void qc.invalidateQueries({ queryKey: ['conversations'] });
         if (msg.sender_id === me) return;
+        // "Messages" switched off in Settings: counts update, no banner.
+        const prefs = qc.getQueryData<{ notification_settings?: Record<string, boolean> | null }>(qk.preferences);
+        if (prefs?.notification_settings?.messages === false) return;
         if (useAlertStore.getState().alert?.conversationId === msg.conversation_id) hide();
         const { data } = await supabase.from('profiles').select('display_name, username, avatar_url').eq('id', msg.sender_id).maybeSingle();
         show({

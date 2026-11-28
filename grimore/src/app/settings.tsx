@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Toggle } from '@/components/switch';
@@ -13,7 +14,7 @@ import {
   GlobeIcon,
   SignOutIcon,
   TrophyIcon,
-  UsersThreeIcon, GiftIcon, EnvelopeSimpleIcon, PaletteIcon, TrashIcon } from '@/components/icons';
+  UsersThreeIcon, GiftIcon, EnvelopeSimpleIcon, FileArrowDownIcon, PaletteIcon, TrashIcon } from '@/components/icons';
 import { Avatar, Group, Press, Row, Screen, Text, toast } from '@/components/ui';
 import { Sigil } from '@/components/sigil';
 import { useMyHouse, useMyId, useMyProfile, usePreferences, useReadingGoal } from '@/hooks/queries';
@@ -26,6 +27,7 @@ import { toAppError } from '@/lib/errors';
 import { qk } from '@/lib/query-client';
 import { signOut } from '@/services/auth';
 import { confirmAction } from '@/lib/confirm';
+import { exportMyData } from '@/services/export';
 import { deleteMyAccount, updatePreferences, updateProfile } from '@/services/profile';
 import { appTheme, radius, spacing, useTheme } from '@/theme';
 
@@ -77,6 +79,19 @@ export default function Settings() {
       qc.clear();
     } catch (e) {
       toast(toAppError(e).message);
+    }
+  };
+  const [exporting, setExporting] = useState(false);
+  const doExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportMyData();
+      toast('Your data is ready');
+    } catch (e) {
+      toast(toAppError(e).message);
+    } finally {
+      setExporting(false);
     }
   };
   const icon = (I: typeof BooksIcon) => <I size={20} color={colors.muted} />;
@@ -184,6 +199,11 @@ export default function Settings() {
         <Row icon={icon(CrownSimpleIcon)} label="Grimore purchases" onPress={() => router.push('/corner/edit')} right={chevron} last />
       </Group>
 
+      <Group title="Your data and account">
+        <Row icon={icon(FileArrowDownIcon)} label="Export my data" value={exporting ? 'Preparing…' : 'Everything you added, as a JSON file'} onPress={() => void doExport()} right={chevron} />
+        <Row icon={<TrashIcon size={20} color={colors.danger} />} label="Delete account" value="Delete your account and all its data" danger last onPress={() => void deleteAccount()} />
+      </Group>
+
       <Group>
         <Row
           icon={<SignOutIcon size={20} color={colors.danger} />}
@@ -196,9 +216,6 @@ export default function Settings() {
             })
           }
         />
-      </Group>
-      <Group>
-        <Row icon={<TrashIcon size={20} color={colors.danger} />} label="Delete account" danger last onPress={() => void deleteAccount()} />
       </Group>
       <Text variant="caption" tone="faint" align="center" style={{ marginTop: spacing.xl }}>
         Grimore

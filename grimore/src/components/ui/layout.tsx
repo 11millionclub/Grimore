@@ -69,11 +69,15 @@ export function Flourish({ style, centered }: { style?: StyleProp<ViewStyle>; ce
 }
 
 export function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const { colors } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 22 }}>
-        {title}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 }}>
+        <View style={{ width: 7, height: 7, backgroundColor: colors.gold, transform: [{ rotate: '45deg' }] }} />
+        <Text variant="h2" accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 22 }}>
+          {title}
+        </Text>
+      </View>
       {action ? (
         <Press onPress={onAction} accessibilityRole="button" hitSlop={8}>
           <Text variant="small" tone="accent" style={{ fontFamily: fonts.semibold }}>
@@ -166,11 +170,16 @@ export function Group({ title, children }: { title?: string; children: ReactNode
   return (
     <View style={{ marginTop: spacing.xl, paddingHorizontal: spacing.lg }}>
       {title ? (
-        <Text variant="micro" tone="muted" style={{ marginBottom: spacing.sm, paddingHorizontal: spacing.xs, textTransform: 'uppercase' }}>
-          {title}
-        </Text>
+        // The Grimore heading: a small gilt diamond, the title, and a fine gold rule.
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm, paddingHorizontal: spacing.xs }}>
+          <View style={{ width: 6, height: 6, backgroundColor: colors.gold, transform: [{ rotate: '45deg' }] }} />
+          <Text variant="micro" style={{ textTransform: 'uppercase', letterSpacing: 1.2, color: colors.gold }}>
+            {title}
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.goldSoft }} />
+        </View>
       ) : null}
-      <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' }}>{children}</View>
+      <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.goldSoft, overflow: 'hidden' }}>{children}</View>
     </View>
   );
 }

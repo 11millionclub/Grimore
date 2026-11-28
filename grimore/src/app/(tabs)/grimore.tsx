@@ -36,6 +36,8 @@ function Grimore() {
   const [rooms, setRooms] = useState(false);
 
   const insetTop = insets.top + 116 + (rooms ? 104 : 0);
+  // The overlays fade into the room's own colour (dark rooms, or the light wall of Minimal Oak).
+  const fade = SCENES[lib.shown].fade ?? '16,13,11';
   const insetBottom = layout.tabBarHeight + Math.max(insets.bottom, spacing.md) + 84;
 
   return (
@@ -51,7 +53,7 @@ function Grimore() {
       ) : null}
 
       {/* Top: the room's name (opens the room picker) and the filters. */}
-      <LinearGradient pointerEvents="none" colors={['rgba(16,13,11,0.92)', 'rgba(16,13,11,0.55)', 'rgba(16,13,11,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insetTop + 40 }} />
+      <LinearGradient pointerEvents="none" colors={[`rgba(${fade},0.92)`, `rgba(${fade},0.55)`, `rgba(${fade},0)`]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insetTop + 40 }} />
       <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, top: insets.top + spacing.sm, gap: spacing.md }}>
         <Press accessibilityLabel={`${SCENES[lib.shown].name}. Change library`} accessibilityState={{ expanded: rooms }} onPress={() => setRooms(!rooms)} style={{ alignSelf: 'center' }}>
           <Cartouche size="md">
@@ -76,7 +78,7 @@ function Grimore() {
       </View>
 
       {/* Bottom: reading session and the wheel, above the tab bar. */}
-      <LinearGradient pointerEvents="none" colors={['rgba(16,13,11,0)', 'rgba(16,13,11,0.6)', 'rgba(16,13,11,0.95)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insetBottom + 30 }} />
+      <LinearGradient pointerEvents="none" colors={[`rgba(${fade},0)`, `rgba(${fade},0.6)`, `rgba(${fade},0.95)`]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insetBottom + 30 }} />
       <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: layout.tabBarHeight + Math.max(insets.bottom, spacing.md) + spacing.base, flexDirection: 'row', gap: spacing.sm, maxWidth: 560, alignSelf: 'center' }}>
         <Press onPress={() => router.push('/reading-session')} style={{ flex: 1.3, height: 52, borderRadius: 26, backgroundColor: GILT.gold, borderWidth: 1, borderColor: GILT.champagne, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <TimerIcon size={18} color={GILT.black} weight="bold" />

@@ -1,18 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useEffect, type ComponentType } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState, type ComponentType } from 'react';
+import { ScrollView, View } from 'react-native';
 
-import { ChatCircleIcon, HeartIcon, MedalIcon, TrophyIcon, UserPlusIcon, UsersThreeIcon, type IconProps } from '@/components/icons';
-import { Avatar, Btn, EmptyState, Press, Screen, Text, toast } from '@/components/ui';
+import { ChatCircleIcon, HeartIcon, MaskHappyIcon, MedalIcon, TrashIcon, TrophyIcon, UserPlusIcon, UsersThreeIcon, type IconProps } from '@/components/icons';
+import { Avatar, Btn, Chip, EmptyState, IconBtn, Press, Screen, Text, toast } from '@/components/ui';
+import { confirmAction } from '@/lib/confirm';
 import { useMyId } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
-import { acceptFollow, follow, getNotifications, markNotificationsRead, myFollowStatuses, unfollow } from '@/services/social';
+import { acceptFollow, clearNotifications, follow, getNotifications, markNotificationsRead, myFollowStatuses, unfollow } from '@/services/social';
 import { fonts, spacing, useTheme } from '@/theme';
 import { relativeTime } from '@/utils/dates';
 
 type N = Awaited<ReturnType<typeof getNotifications>>[number];
-type Data = { listing_id?: string; offer_id?: string; community_id?: string; thread_id?: string; event?: string; book_id?: string };
+type Data = { listing_id?: string; offer_id?: string; community_id?: string; thread_id?: string; event?: string; book_id?: string; anonymous?: boolean };
 
 const ICON: Record<string, ComponentType<IconProps>> = {
   follow: UserPlusIcon,
@@ -26,6 +27,28 @@ const ICON: Record<string, ComponentType<IconProps>> = {
   achievement: MedalIcon,
   game: TrophyIcon,
   community: UsersThreeIcon,
+};
+
+type Filter = 'all' | 'people' | 'reactions' | 'communities' | 'games';
+const FILTERS: [Filter, string][] = [
+  ['all', 'All'],
+  ['people', 'Followers'],
+  ['reactions', 'Likes and comments'],
+  ['communities', 'Communities'],
+  ['games', 'Games and achievements'],
+];
+const FILTER_OF: Record<string, Filter> = {
+  follow: 'people',
+  follow_request: 'people',
+  follow_accepted: 'people',
+  post_like: 'reactions',
+  review_like: 'reactions',
+  post_comment: 'reactions',
+  review_comment: 'reactions',
+  comment_reply: 'reactions',
+  community: 'communities',
+  game: 'games',
+  achievement: 'games',
 };
 
 function text(n: N) {
@@ -42,13 +65,16 @@ function text(n: N) {
     case 'review_like':
       return 'liked your review';
     case 'post_comment':
-    case 'review_comment':
       return 'commented on your post';
+    case 'review_comment':
+      return 'commented on your review';
     case 'comment_reply':
       return 'replied to your comment';
     case 'achievement':
-      return `You earned an achievement: ${n.achievement_id?.replace(/_/g, ' ')}`;
+      return `You earned an achievement: ${(n.achievement_id ?? '').replace(/_/g, ' ')}`;
     case 'community':
+      // Anonymous communities never say who wrote.
+      if (d.anonymous) return d.event === 'reply' ? 'Someone replied to your discussion' : 'A new discussion was started in your community';
       return d.event === 'reply' ? 'replied to your discussion' : 'started a discussion in your community';
     case 'game':
       return 'beat your time in today’s game';
@@ -99,18 +125,73 @@ export default function Notifications() {
       toast(toAppError(e).message);
     },
   });
+  const clear = useMutation({
+    mutationFn: async () => {
+      if (!(await confirmAction('Clear all notifications?', 'They are removed for good.', 'Clear all'))) return false;
+      await clearNotifications(me);
+      return true;
+    },
+    onSuccess: (done) => {
+      if (!done) return;
+      qc.setQueryData(['notifications'], []);
+      void qc.invalidateQueries({ queryKey: ['unread'] });
+    },
+    onError: (e) => toast(toAppError(e).message),
+  });
+  const [filter, setFilter] = useState<Filter>('all');
+  const [openedAt] = useState(() => Date.now());
   // The Market was retired; its old notifications are no longer shown.
-  const list = (q.data ?? []).filter((n) => n.type !== 'market' && n.type !== 'trade');
+  const all = (q.data ?? []).filter((n) => n.type !== 'market' && n.type !== 'trade');
+  const list = all.filter((n) => filter === 'all' || FILTER_OF[n.type] === filter);
+  const now = openedAt;
+  const section = (iso: string) => {
+    const age = now - new Date(iso).getTime();
+    return age < 86_400_000 ? 'Today' : age < 7 * 86_400_000 ? 'This week' : 'Earlier';
+  };
   return (
-    <Screen title="Notifications" back refreshing={q.isRefetching} onRefresh={() => q.refetch()}>
-      {!q.isLoading && list.length === 0 ? <EmptyState title="Nothing yet" body="Follows, likes and community replies show up here." /> : null}
-      {list.map((n) => {
+    <Screen
+      title="Notifications"
+      back
+      refreshing={q.isRefetching}
+      onRefresh={() => q.refetch()}
+      actions={
+        all.length ? (
+          <IconBtn label="Clear all notifications" onPress={() => clear.mutate()}>
+            <TrashIcon size={20} color={colors.ink} />
+          </IconBtn>
+        ) : undefined
+      }
+    >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.md, gap: spacing.sm }}>
+        {FILTERS.map(([k, label]) => (
+          <Chip key={k} active={filter === k} onPress={() => setFilter(k)}>
+            {label}
+          </Chip>
+        ))}
+      </ScrollView>
+      {!q.isLoading && list.length === 0 ? <EmptyState title="Nothing yet" body={filter === 'all' ? 'Follows, likes and community replies show up here.' : 'Nothing of this kind yet.'} /> : null}
+      {list.map((n, i) => {
+        const head = section(n.created_at);
+        const showHead = i === 0 || section(list[i - 1].created_at) !== head;
+        const d = (n.data ?? {}) as Data;
         const Icon = ICON[n.type] ?? HeartIcon;
         const actor = n.actor as { id: string; username: string; display_name: string | null; avatar_url: string | null } | null;
         return (
-          <Press key={n.id} onPress={() => open(n)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: n.read_at ? 'transparent' : colors.accentSoft }}>
+          <View key={n.id}>
+          {showHead ? (
+            <Text variant="micro" tone="muted" style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xs, textTransform: 'uppercase' }}>
+              {head}
+            </Text>
+          ) : null}
+          <Press onPress={() => open(n)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: n.read_at ? 'transparent' : colors.accentSoft }}>
             <View>
-              <Avatar uri={actor?.avatar_url} name={actor?.display_name ?? actor?.username ?? 'G'} size={44} />
+              {d.anonymous ? (
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' }}>
+                  <MaskHappyIcon size={24} color={colors.muted} />
+                </View>
+              ) : (
+                <Avatar uri={actor?.avatar_url} name={actor?.display_name ?? actor?.username ?? 'G'} size={44} />
+              )}
               <View style={{ position: 'absolute', right: -4, bottom: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={11} weight="bold" color={colors.onAccent} />
               </View>
@@ -142,6 +223,7 @@ export default function Notifications() {
               )
             ) : null}
           </Press>
+          </View>
         );
       })}
     </Screen>

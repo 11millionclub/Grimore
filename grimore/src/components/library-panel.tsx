@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { CaretRightIcon, CheckIcon, CoinsIcon, LockSimpleIcon } from '@/components/icons';
-import { LibraryRoom, SCENE_IDS, SCENES, type LibraryScene, type ShelfBook } from '@/components/library-room';
+import { FREE_SCENES, LibraryRoom, SCENE_IDS, SCENES, type LibraryScene, type ShelfBook } from '@/components/library-room';
 import { Btn, Chip, Press, Text, toast } from '@/components/ui';
 import { usePaywalls } from '@/hooks/queries';
 import { toAppError } from '@/lib/errors';
@@ -36,7 +36,7 @@ export function useLibrary(userId: string, isMe: boolean, saved?: string | null)
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [preview, setPreview] = useState<LibraryScene | null>(null);
   const current: LibraryScene = isScene(saved) ? saved : 'classic';
-  const ownsScene = (s: LibraryScene) => !paywalls || s === 'classic' || (items.data ?? []).some((x) => x.item_key === `library:${s}`) || (bought.data ?? []).includes(`library:${s}`);
+  const ownsScene = (s: LibraryScene) => !paywalls || FREE_SCENES.includes(s) || (items.data ?? []).some((x) => x.item_key === `library:${s}`) || (bought.data ?? []).includes(`library:${s}`);
 
   const books = useMemo(() => {
     return (lib.data ?? []).filter((e) => inFilter(e, filter)).map(toShelf);

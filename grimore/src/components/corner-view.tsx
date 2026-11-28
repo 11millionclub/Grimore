@@ -28,7 +28,7 @@ import { toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { myCommunities } from '@/services/communities';
 import { listGuestbook, signGuestbook, type Widget } from '@/services/corner';
-import { listQuotes } from '@/services/library';
+import { listQuotes, progressOf } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { fmt, relativeTime } from '@/utils/dates';
 
@@ -125,7 +125,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
             Reading now
           </Text>
           {(reading.data ?? []).slice(0, 3).map((r) => {
-            const pct = r.book.page_count_estimate ? (r.current_page ?? 0) / r.book.page_count_estimate : (r.progress_percent ?? 0) / 100;
+            const { pct } = progressOf(r);
             return (
               <Press key={r.id} onPress={go(() => openBook(r.book.id))} style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <Cover uri={r.book.cover_url} title={r.book.title} width={40} />
@@ -224,7 +224,7 @@ export function CornerBlocks({ userId, look, widgets, status, song, preview, lib
             This month
           </Text>
           <Text tone="onAccent" style={{ fontFamily: fonts.bold, fontSize: 24, lineHeight: 25 }}>
-            Monthly{'\n'}Wrapped
+            Monthly{'\n'}Codex
           </Text>
         </Press>
         <Press onPress={go(() => router.push({ pathname: '/wrapped', params: { period: 'year' } }))} style={{ flex: 1, aspectRatio: 1, borderRadius: radius.card, backgroundColor: colors.ink, padding: spacing.base, justifyContent: 'space-between' }}>

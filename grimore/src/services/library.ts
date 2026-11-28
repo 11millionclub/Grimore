@@ -33,12 +33,20 @@ export const STATUS_ORDER: ReadingStatus[] = ['reading', 'want_to_read', 'read',
 export type LibrarySort = 'updated' | 'added' | 'title' | 'rating';
 export const PAGE_SIZE = 30;
 
-const entrySelect = `id, status, rating, spice, is_priority, minutes_read, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
+const entrySelect = `id, status, format, rating, spice, is_priority, minutes_read, progress_percent, current_page, started_on, finished_on, notes, is_private, is_owned, added_at, updated_at,
   book:books!user_books_book_id_fkey!inner(id, title, cover_url, first_published_year, page_count_estimate, normalized_title, primary_genre_id, book_authors(position, role, authors(name)))` as const;
+
+export type ReadingFormat = 'print' | 'ebook' | 'audio';
+export const FORMATS: { id: ReadingFormat; label: string }[] = [
+  { id: 'print', label: 'Print' },
+  { id: 'ebook', label: 'Ebook' },
+  { id: 'audio', label: 'Audiobook' },
+];
 
 type RawEntry = {
   id: string;
   status: ReadingStatus;
+  format: ReadingFormat;
   rating: number | null;
   spice: number | null;
   is_priority: boolean;
@@ -113,7 +121,7 @@ export async function getEntry(userId: string, bookId: string): Promise<LibraryE
   return row ? mapEntry(row as unknown as RawEntry) : null;
 }
 
-export type EntryPatch = Partial<Pick<LibraryEntry, 'status' | 'rating' | 'spice' | 'is_priority' | 'minutes_read' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
+export type EntryPatch = Partial<Pick<LibraryEntry, 'format' | 'status' | 'rating' | 'spice' | 'is_priority' | 'minutes_read' | 'progress_percent' | 'current_page' | 'notes' | 'started_on' | 'finished_on' | 'is_private' | 'is_owned'>>;
 
 export async function saveEntry(userId: string, bookId: string, patch: EntryPatch) {
   return unwrap(
@@ -279,6 +287,24 @@ export async function logProgress(input: { bookId: string; page: number; note?: 
       p_audience: input.audience ?? 'public',
     }),
   ) as { user_book_id: string; page: number; total: number | null; pages_logged: number; post_id: string | null };
+}
+
+/** How far into a book: pages for print, percent for ebooks and audiobooks. */
+export function progressOf(e: Pick<LibraryEntry, 'format' | 'current_page' | 'progress_percent'> & { book: { page_count_estimate: number | null } }) {
+  const total = e.book.page_count_estimate;
+  if (e.format && e.format !== 'print') {
+    const pct = (e.progress_percent ?? 0) / 100;
+    return { pct, label: `${e.format === 'audio' ? 'Audiobook' : 'Ebook'} · ${Math.round(pct * 100)}%` };
+  }
+  const page = e.current_page ?? 0;
+  return { pct: total ? page / total : (e.progress_percent ?? 0) / 100, label: total ? `p. ${page} of ${total}` : `p. ${page}` };
+}
+
+/** Progress as a percentage (ebooks and audiobooks); the page follows when the length is known. */
+export async function logProgressPercent(input: { bookId: string; percent: number; note?: string }) {
+  return unwrap(
+    await supabase.rpc('log_progress_percent', { p_book: input.bookId, p_percent: Math.max(0, Math.min(100, Math.round(input.percent))), p_note: input.note?.trim() || undefined }),
+  ) as { user_book_id: string; percent: number; page: number | null; total: number | null; percent_logged: number; post_id: string | null };
 }
 
 export type Streak = { current: number; longest: number; today_pages: number; daily_goal: number; week: { date: string; pages: number }[] };

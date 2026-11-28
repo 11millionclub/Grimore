@@ -30,7 +30,7 @@ export const WIDGETS: Record<Widget, { name: string; desc: string }> = {
   year: { name: 'Your year in numbers', desc: 'Books, pages, days' },
   quote: { name: 'Favourite quote', desc: 'One quote, in the spotlight' },
   review: { name: 'Pinned review', desc: 'Your best review' },
-  wrapped: { name: 'Wrapped', desc: 'Shortcuts to your month and year' },
+  wrapped: { name: 'Readers Codex', desc: 'Your month and your year in books' },
   badges: { name: 'Achievements', desc: 'The ones you earned' },
   shelf: { name: 'Virtual shelf', desc: 'Spines on a shelf' },
   genres: { name: 'Genres and moods', desc: 'Your taste in tags' },

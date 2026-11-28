@@ -331,6 +331,11 @@ export async function markNotificationsRead(userId: string) {
   unwrap(await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('recipient_id', userId).is('read_at', null));
 }
 
+/** Removes all of the reader's notifications. */
+export async function clearNotifications(userId: string) {
+  unwrap(await supabase.from('notifications').delete().eq('recipient_id', userId));
+}
+
 export async function getActivityFromFollowed(viewerId: string) {
   const follows = unwrap(await supabase.from('follows').select('followee_id').eq('follower_id', viewerId).eq('status', 'accepted').limit(500));
   const ids = follows.map((f) => f.followee_id);

@@ -30,7 +30,7 @@ function Swatch({ t }: { t: AppTheme }) {
   );
 }
 
-/** Colour themes for the whole app: four free, five to unlock (all open while paywalls are off). */
+/** Colour themes for the whole app: six free (two simple), five to unlock (all open while paywalls are off). */
 export default function AppThemeScreen() {
   const { colors } = useTheme();
   const me = useMyId()!;
