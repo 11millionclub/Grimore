@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { CaretLeftIcon, CaretRightIcon, LockSimpleIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon } from '@/components/icons';
@@ -10,20 +10,25 @@ import { Press, Text } from '@/components/ui';
 import { fonts, GILT, radius, spacing } from '@/theme';
 import { groupSagas, hash, spineTitle, type SagaBook } from '@/utils/sagas';
 
-export type LibraryScene = 'classic' | 'hobbit' | 'palace' | 'academia';
+export type LibraryScene = 'classic' | 'hobbit' | 'palace' | 'academia' | 'simple' | 'minimal';
 
 /**
  * Each room is a painting with one empty bookcase. Geometry is in the
  * painting's own pixels (before the 2x export): the bay's left and right
  * edges and the top of each board, from the top shelf down.
  */
-export const SCENES: Record<LibraryScene, { name: string; image: number; w: number; h: number; x0: number; x1: number; boards: number[]; light: boolean }> = {
+export const SCENES: Record<LibraryScene, { name: string; image: number; w: number; h: number; x0: number; x1: number; boards: number[]; light: boolean; /** RGB the overlays fade to (default: the dark room). */ fade?: string }> = {
   classic: { name: 'Classic Library', image: require('@/assets/images/libraries/classic.jpg'), w: 607, h: 540, x0: 308, x1: 514, boards: [110, 167, 221, 274, 328, 382, 441], light: false },
   hobbit: { name: 'Hillside Library', image: require('@/assets/images/libraries/hobbit.jpg'), w: 606, h: 540, x0: 190, x1: 468, boards: [158, 214, 271, 328, 384, 442], light: false },
   palace: { name: 'Palace Library', image: require('@/assets/images/libraries/palace.jpg'), w: 607, h: 555, x0: 240, x1: 514, boards: [113, 171, 228, 284, 341, 399, 457], light: true },
   academia: { name: 'Dark Academia Library', image: require('@/assets/images/libraries/academia.jpg'), w: 606, h: 555, x0: 218, x1: 496, boards: [102, 161, 218, 274, 332, 392, 456], light: false },
+  // Simpler, painted-free bookcases (free for everyone).
+  simple: { name: 'Simple Walnut', image: require('@/assets/images/libraries/simple.jpg'), w: 606, h: 540, x0: 200, x1: 406, boards: [96, 156, 214, 272, 330, 388, 446], light: false, fade: '26,18,13' },
+  minimal: { name: 'Minimal Oak', image: require('@/assets/images/libraries/minimal.jpg'), w: 606, h: 540, x0: 200, x1: 406, boards: [96, 156, 214, 272, 330, 388, 446], light: true, fade: '222,213,198' },
 };
 export const SCENE_IDS = Object.keys(SCENES) as LibraryScene[];
+/** Rooms every reader has without unlocking. */
+export const FREE_SCENES: LibraryScene[] = ['classic', 'simple', 'minimal'];
 
 /** Cloth bindings in jewel tones; one per saga so a series reads as a set. */
 const BINDINGS = [
@@ -196,6 +201,7 @@ export function LibraryRoom({ scene: sceneId, books, locked, empty, fill }: { sc
   const [close, setClose] = useState(true);
   const [pageIx, setPage] = useState(0);
   const [held, setHeld] = useState<{ book: ShelfBook; saga?: string; row: number } | null>(null);
+  const scroller = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const onHold: Hold = (book, saga, row = 0) => setHeld(book ? { book, saga, row } : null);
   // The label sits away from the shelf you are holding: low for the upper shelves, high for the lower ones.
   const captionLow = !!held && held.row < (scene.boards.length - 1) / 2;
@@ -215,7 +221,12 @@ export function LibraryRoom({ scene: sceneId, books, locked, empty, fill }: { sc
   let viewH = 0;
   if (fill && width) {
     const free = fill.height - fill.insetTop - fill.insetBottom;
-    scale = Math.max(fill.width / scene.w, fill.height / scene.h, Math.min(free / (shelfBottom - shelfTop), (fill.width * 0.97) / bay));
+    // The whole bookcase always fits the width (on phones the painting is
+    // narrower than the bay at "cover" size, which cut off books and the
+    // covers on display); on wide screens the painting still fills the area.
+    const fitBay = (fill.width * 0.97) / bay;
+    const cover = Math.max(fill.width / scene.w, fill.height / scene.h);
+    scale = Math.min(fitBay, Math.max(free / (shelfBottom - shelfTop), cover));
     left = Math.min(0, Math.max(fill.width - scene.w * scale, fill.width / 2 - (scene.x0 + bay / 2) * scale)) / -scale;
     viewH = scene.h * scale;
   } else if (width) {
@@ -280,13 +291,25 @@ export function LibraryRoom({ scene: sceneId, books, locked, empty, fill }: { sc
     ) : null;
 
   if (fill) {
-    // Start with the shelves centred in the free space between the overlays.
-    const free = fill.height - fill.insetTop - fill.insetBottom;
-    const startY = Math.max(0, Math.min(viewH - fill.height, ((shelfTop + shelfBottom) / 2) * scale - (fill.insetTop + free / 2)));
+    // The first shelf starts just below the filters (no empty arch on top).
+    // When the painting is shorter than the space, it is padded so it can
+    // still sit there; the dark gradients cover the padding.
+    const want = shelfTop * scale - (fill.insetTop + 4);
+    const padTop = Math.max(0, -want);
+    const startY = Math.max(0, want);
+    const padBottom = Math.max(0, fill.height - (viewH + padTop - startY));
     return (
-      <View style={{ width: fill.width, height: fill.height, backgroundColor: GILT.black }}>
-        <ScrollView key={`${sceneId}-${Math.round(scale * 100)}`} contentOffset={{ x: 0, y: startY }} showsVerticalScrollIndicator={false} bounces={false}>
+      <View style={{ width: fill.width, height: fill.height, backgroundColor: scene.fade ? `rgb(${scene.fade})` : GILT.black }}>
+        <ScrollView
+          key={`${sceneId}-${Math.round(scale * 100)}`}
+          ref={scroller}
+          contentOffset={{ x: 0, y: startY }}
+          // The web ignores contentOffset, so also scroll once the content is laid out.
+          onContentSizeChange={() => scroller.current?.scrollTo({ y: startY, animated: false })}
+          contentContainerStyle={{ paddingTop: padTop, paddingBottom: padBottom }} showsVerticalScrollIndicator={false} bounces={false}>
           {room}
+          {/* The painting fades into the dark below it instead of ending on a hard edge. */}
+          {padBottom > 0 ? <LinearGradient pointerEvents="none" colors={[`rgba(${scene.fade ?? '16,13,11'},0)`, `rgb(${scene.fade ?? '16,13,11'})`]} style={{ position: 'absolute', left: 0, right: 0, top: padTop + viewH - 90, height: 90 }} /> : null}
         </ScrollView>
         {notice}
         <View pointerEvents="box-none" style={{ position: 'absolute', right: spacing.md, bottom: fill.insetBottom + spacing.sm }}>

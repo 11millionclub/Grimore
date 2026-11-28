@@ -58,7 +58,7 @@ function slides(d: WrappedData, house: { id: HouseId; points: number } | null, s
       <View style={{ flex: 1, justifyContent: 'flex-end', paddingBottom: spacing.xxl }}>
         <R>
           <Text style={{ fontFamily: fonts.semibold, fontSize: 17, opacity: 0.7 }} color={month ? '#1f130a' : '#f1e6d0'}>
-            {month ? 'Your Wrapped for' : 'Grimore Wrapped'}
+            {month ? 'Your Readers Codex for' : 'Readers Codex'}
           </Text>
         </R>
         <R i={1}>
@@ -297,7 +297,7 @@ export default function Wrapped() {
     try {
       const uri = await shot.current?.capture?.();
       if (uri && Platform.OS !== 'web' && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(uri, { mimeType: 'image/png' });
-      else await shareText(`My Grimore Wrapped ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.`);
+      else await shareText(`My Readers Codex ${d?.label}: ${fmt(d?.pages ?? 0)} pages, ${d?.books.length ?? 0} books.`);
     } catch {
       /* cancelled */
     }
@@ -405,7 +405,7 @@ export default function Wrapped() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <Avatar uri={p?.avatar_url} name={p?.display_name} size={28} />
           <Text style={{ fontFamily: fonts.semibold, fontSize: 13 }} color={s.fg}>
-            Wrapped
+            Readers Codex
           </Text>
         </View>
         <Press onPress={() => router.back()} accessibilityLabel="Close" style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>

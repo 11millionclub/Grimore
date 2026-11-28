@@ -167,3 +167,5 @@ export { SpiralIcon } from 'phosphor-react-native/src/icons/Spiral';
 export { ShieldIcon } from 'phosphor-react-native/src/icons/Shield';
 export { MaskHappyIcon } from 'phosphor-react-native/src/icons/MaskHappy';
 export { LinkIcon } from 'phosphor-react-native/src/icons/Link';
+export { FileArrowDownIcon } from 'phosphor-react-native/src/icons/FileArrowDown';
+export { SlidersHorizontalIcon } from 'phosphor-react-native/src/icons/SlidersHorizontal';

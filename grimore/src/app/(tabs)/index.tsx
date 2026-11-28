@@ -12,6 +12,7 @@ import { useMyId, useReadingGoal, useReadingStats, useShelf, useStreak, useToday
 import { getLeaderboard } from '@/services/games';
 import { getFeed } from '@/services/social';
 import { monthName } from '@/services/stats';
+import { progressOf } from '@/services/library';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { fmt } from '@/utils/dates';
 
@@ -69,9 +70,7 @@ export default function Home() {
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={312} decelerationRate="fast" contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
           {(reading.data ?? []).map((r, i) => {
-            const total = r.book.page_count_estimate;
-            const page = r.current_page ?? 0;
-            const pct = total ? page / total : (r.progress_percent ?? 0) / 100;
+            const { pct, label } = progressOf(r);
             return (
               <Stagger key={r.id} i={i}>
                 <View style={{ width: 300, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.base }}>
@@ -90,7 +89,7 @@ export default function Home() {
                       <View style={{ marginTop: 'auto' }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                           <Text variant="caption" tone="muted">
-                            {total ? `p. ${page} of ${total}` : `p. ${page}`}
+                            {label}
                           </Text>
                           <Text variant="caption" tone="muted">
                             {Math.round(pct * 100)}%
@@ -101,7 +100,7 @@ export default function Home() {
                     </View>
                   </Press>
                   <Btn variant="secondary" size="sm" full style={{ marginTop: spacing.base }} onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: r.book.id } })}>
-                    Update page
+                    {r.format && r.format !== 'print' ? 'Update progress' : 'Update page'}
                   </Btn>
                 </View>
               </Stagger>
@@ -146,7 +145,7 @@ export default function Home() {
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.base }}>
             <View style={{ flex: 1 }}>
               <Text variant="small" tone="onAccent" style={{ fontFamily: fonts.semibold, opacity: 0.8 }}>
-                {monthName(month)} Wrapped
+                {monthName(month)} · Readers Codex
               </Text>
               <Text tone="onAccent" style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 31, marginTop: 4 }}>
                 {monthPages ? `${fmt(monthPages)} pages.\nYour month, told.` : 'Your month,\ntold in pages.'}

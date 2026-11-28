@@ -168,6 +168,7 @@ function Navigation() {
           <Stack.Screen name="house-cup" />
           <Stack.Screen name="cup-active/[house]" />
           <Stack.Screen name="resort" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="discover" />
           <Stack.Screen name="points" />
           <Stack.Screen name="app-theme" />
           <Stack.Screen name="avatar" />

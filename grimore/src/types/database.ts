@@ -2420,6 +2420,7 @@ export type Database = {
           current_page: number | null
           edition_id: string | null
           finished_on: string | null
+          format: string
           id: string
           is_owned: boolean
           is_private: boolean
@@ -2440,6 +2441,7 @@ export type Database = {
           current_page?: number | null
           edition_id?: string | null
           finished_on?: string | null
+          format?: string
           id?: string
           is_owned?: boolean
           is_private?: boolean
@@ -2460,6 +2462,7 @@ export type Database = {
           current_page?: number | null
           edition_id?: string | null
           finished_on?: string | null
+          format?: string
           id?: string
           is_owned?: boolean
           is_private?: boolean
@@ -2981,6 +2984,13 @@ export type Database = {
       reader_marks: { Args: { p_user: string }; Returns: { item_key: string; season_id: number | null }[] }
       submit_sorting: { Args: { p_answers: Json; p_tie_break?: string | null; p_choice?: string | null }; Returns: Json }
       can_take_sorting: { Args: Record<PropertyKey, never>; Returns: boolean }
+      export_my_data: { Args: Record<PropertyKey, never>; Returns: Json }
+      discover_books: {
+        Args: { p_moods?: string[] | null; p_tropes?: string[] | null; p_spice_min?: number | null; p_spice_max?: number | null; p_genre?: number | null; p_min_pages?: number | null; p_max_pages?: number | null; p_limit?: number }
+        Returns: Json
+      }
+      book_moods: { Args: Record<PropertyKey, never>; Returns: { mood: string; n: number }[] }
+      log_progress_percent: { Args: { p_book: string; p_percent: number; p_note?: string; p_share?: boolean; p_audience?: string }; Returns: Json }
       change_house: { Args: { p_house: string }; Returns: string }
       my_house: { Args: Record<PropertyKey, never>; Returns: { house_id: string | null; house_hidden: boolean; house_assigned_at: string | null }[] }
       reader_houses: { Args: { p_ids: string[] }; Returns: { user_id: string; house_id: string }[] }

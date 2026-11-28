@@ -149,7 +149,7 @@ const feed = [
   },
 ];
 
-type MockOptions = { newReader?: boolean; /** Real-looking covers and a fuller library, for screenshots. */ covers?: boolean };
+type MockOptions = { newReader?: boolean; /** Real-looking covers and a fuller library, for screenshots. */ covers?: boolean; /** Library room shown on My Grimore. */ library?: string };
 
 /** Invented sagas and stand-alones to fill the shelves in screenshot runs. */
 const EXTRA = [
@@ -225,6 +225,16 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
       return { house: 'weavers', scores: { wanderers: 35, weavers: 215, luminaries: 10, seekers: 25 }, tie_break: false, multi: false };
     case 'rpc/can_take_sorting':
       return false;
+    case 'rpc/book_moods':
+      return [{ mood: 'dark', n: 10 }, { mood: 'cosy', n: 4 }, { mood: 'tense', n: 9 }];
+    case 'rpc/discover_books':
+      return [
+        { id: 'b3', title: 'Blindness', cover_url: null, pages: 326, year: 1995, moods: ['dark', 'tense'], tropes: ['found-family'], spice: 1.5, spice_votes: 2, authors: 'José Saramago' },
+      ];
+    case 'rpc/export_my_data':
+      return { app: 'Grimore', exported_at: today, user_id: ME, data: { library: [] } };
+    case 'rpc/log_progress_percent':
+      return { user_book_id: 'e0', percent: 40, page: 130, total: 326, percent_logged: 40, post_id: null };
     case 'profile_private':
       return single ? null : [];
     case 'house_seasons':
@@ -319,7 +329,7 @@ function rows(path: string, q: URLSearchParams, single: boolean, opts: MockOptio
     case 'book_genres':
       return [{ genres: { id: 1, name: 'Literary Fiction', slug: 'literary-fiction' } }];
     case 'corners':
-      return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], library: 'classic', updated_at: today };
+      return { user_id: ME, theme: 'forest', frame: 'gold', shelf: 'theme', name_style: 'plain', pack: 'reader', widgets: ['status', 'top4', 'reading', 'goal', 'shelf'], status_text: 'Reading Blindness on the train', song: null, pinned_review_id: null, badge_ids: [], library: opts.library ?? 'classic', updated_at: today };
     case 'corner_items':
       return [
         { key: 'theme:forest', kind: 'theme', name: 'Forest', price_cents: null, sort_order: 1 },

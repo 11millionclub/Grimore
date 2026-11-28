@@ -18,7 +18,7 @@ import { toAppError } from '@/lib/errors';
 import { refreshLibrary } from '@/lib/query-client';
 import { friendsWithBook, getBook } from '@/services/catalogue';
 import { communitiesForBook } from '@/services/communities';
-import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, entryLabel, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
+import { addToShelf, getEntry, removeEntry, removeFromShelf, saveEntry, entryLabel, progressOf, statusPatch, STATUS_META, type EntryPatch } from '@/services/library';
 import { money } from '@/utils/money';
 import { getBookReviews, getBookTags } from '@/services/social';
 import { fonts, radius, spacing, useTheme } from '@/theme';
@@ -150,10 +150,10 @@ export default function BookScreen() {
                 Reading
               </Text>
               <Text variant="small" tone="muted">
-                {total ? `p. ${e?.current_page ?? 0} of ${total}` : `p. ${e?.current_page ?? 0}`}
+                {e ? progressOf(e).label : ''}
               </Text>
             </View>
-            <Progress value={total ? (e?.current_page ?? 0) / total : (e?.progress_percent ?? 0) / 100} />
+            <Progress value={e ? progressOf(e).pct : 0} />
             <Btn full style={{ marginTop: spacing.base }} onPress={() => router.push({ pathname: '/progress/[bookId]', params: { bookId: id } })}>
               Update page
             </Btn>

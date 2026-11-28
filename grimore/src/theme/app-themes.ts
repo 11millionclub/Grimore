@@ -39,7 +39,7 @@ function build(b: Base): Palette {
   };
 }
 
-export type AppThemeId = 'ivory' | 'midnight' | 'parchment' | 'forest' | 'rose' | 'velvet' | 'academia' | 'celestial' | 'emerald';
+export type AppThemeId = 'ivory' | 'midnight' | 'paper' | 'slate' | 'parchment' | 'forest' | 'rose' | 'velvet' | 'academia' | 'celestial' | 'emerald';
 export type AppTheme = { id: AppThemeId; name: string; paid: boolean; scheme: 'light' | 'dark'; colors: Palette };
 
 /** Colours of the floating tab bar for a theme. Ivory keeps the original walnut and gold. */
@@ -61,10 +61,25 @@ export function barColors(t: AppTheme): BarColors {
   };
 }
 
-/** Four free themes and five paid ones (open to everyone while paywalls are off). */
+/** Six free themes (two of them plain and simple) and five paid ones (open to everyone while paywalls are off). */
 export const APP_THEMES: AppTheme[] = [
   { id: 'ivory', name: 'Ivory', paid: false, scheme: 'light', colors: palettes.light },
   { id: 'midnight', name: 'Midnight', paid: false, scheme: 'dark', colors: palettes.dark },
+  // Simple themes: plain, quiet colours with no tinted paper.
+  {
+    id: 'paper',
+    name: 'Paper',
+    paid: false,
+    scheme: 'light',
+    colors: build({ bg: '#FAFAF8', surface: '#FFFFFF', surface2: '#F1F1EE', surface3: '#E4E4E0', ink: '#1C1C1A', muted: '#5F5F5A', faint: '#9A9A94', accent: '#2F2F2C', onAccent: '#FFFFFF', gold: '#A8873F', good: '#2F6B45', danger: '#B3261E', dark: false }),
+  },
+  {
+    id: 'slate',
+    name: 'Slate',
+    paid: false,
+    scheme: 'dark',
+    colors: build({ bg: '#141518', surface: '#1D1F23', surface2: '#26292E', surface3: '#33373D', ink: '#ECEDEF', muted: '#A9ADB4', faint: '#70757D', accent: '#E3E5E8', onAccent: '#141518', gold: '#C9A961', good: '#8FC79F', danger: '#F2958C', dark: true }),
+  },
   {
     id: 'parchment',
     name: 'Parchment',

@@ -6,7 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { BookShelfRow, CommunityCard, CommunityCover, openCommunity } from '@/components/books';
-import { CaretRightIcon, KeyIcon, MagnifyingGlassIcon, PlusIcon, XIcon } from '@/components/icons';
+import { CaretRightIcon, KeyIcon, MagnifyingGlassIcon, PlusIcon, SlidersHorizontalIcon, XIcon } from '@/components/icons';
 import { Avatar, Btn, Chip, Cover, EmptyState, Press, Screen, SectionHead, Segmented, Skeleton, Stagger, Text, toast } from '@/components/ui';
 import { HouseBadge } from '@/components/house-badge';
 import { Sigil } from '@/components/sigil';
@@ -35,6 +35,16 @@ export default function Explore() {
           <Text variant="body" tone="faint">
             Books, authors, ISBN
           </Text>
+        </Press>
+        <Press accessibilityRole="button" onPress={() => router.push('/discover')} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.card, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: spacing.base, paddingVertical: spacing.md }}>
+          <SlidersHorizontalIcon size={18} color={colors.accent} />
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyStrong">Find by mood, trope or spice</Text>
+            <Text variant="caption" tone="muted">
+              Cosy, dark, enemies to lovers, slow burn, short reads…
+            </Text>
+          </View>
+          <CaretRightIcon size={14} color={colors.muted} />
         </Press>
         <Segmented
           value={seg}
